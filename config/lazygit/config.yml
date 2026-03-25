@@ -1,0 +1,8 @@
+# lazygit configuration
+# https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
+#
+# Offline-first: update checks disabled. The vault is designed to run without
+# background network connections. Explicit git push/pull via the UI is permitted.
+
+update:
+  method: never # never | prompt | background — disables automatic update polling

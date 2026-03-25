@@ -1,0 +1,24 @@
+# Obsidian workspace state (changes constantly, not worth tracking)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Large or binary attachments (track explicitly if needed)
+attachments/*.pdf
+attachments/*.zip
+attachments/*.tar.gz
+attachments/*.mp4
+attachments/*.mov
+attachments/*.png
+attachments/*.jpg
+attachments/*.jpeg
+attachments/*.gif
+attachments/*.webp
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor swap/backup files
+*.swp
+*.swo
+*~
