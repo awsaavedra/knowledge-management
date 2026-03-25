@@ -605,7 +605,12 @@ ensure_shell_line  "${SHELL_RC}" 'alias obs="flatpak run md.obsidian.Obsidian"'
 
 log_info "==> Writing obs binary"
 OBS_SOURCE='#!/usr/bin/env bash
-exec flatpak run md.obsidian.Obsidian "$@" >/dev/null 2>&1 &
+if [ $# -gt 0 ]; then
+    path="$(realpath "${1}")"
+    flatpak run md.obsidian.Obsidian "obsidian://open?path=${path}" >/dev/null 2>&1 &
+else
+    flatpak run md.obsidian.Obsidian >/dev/null 2>&1 &
+fi
 '
 if [ -x "${BIN_DIR}/obs" ]; then
     existing_hash="$(sha256sum "${BIN_DIR}/obs" | cut -d' ' -f1)"
