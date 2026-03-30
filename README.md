@@ -1,4 +1,4 @@
-# Knowledge Management System
+# Knowledge Management
 
 Personal notes, daily logs, and captured ideas — managed via the `okm` CLI and visualised in Obsidian, with full terminal editing via Neovim.
 
