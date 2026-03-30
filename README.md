@@ -916,6 +916,7 @@ These tools may be worth revisiting if the minimal stack proves insufficient:
 | SSH key generation | Medium | Not yet guided by `setup-kms.sh`; see [SSH and Git Remote](#ssh-and-git-remote) for manual steps |
 | Add `okm distill` subcommand | Low | Phase 3; pipes notes through Claude Code or Ollama for summarisation |
 | Install Ollama + `llm` CLI | Low | Phase 3; free offline summarisation alternative to Claude Code |
+| Inline image rendering in Neovim | Low | Options: `markdown-preview.nvim` (browser, easiest on WSL2), `image.nvim` (ueberzug, any terminal), `Snacks.image` (kitty protocol, needs WezTerm). `<leader>og` → Obsidian GUI works as fallback now. |
 | `.obsidian/` plugin config audit | Low | One-time manual review before first remote push; community plugins may store tokens in `.obsidian/plugins/` |
 
 ---
