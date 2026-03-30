@@ -651,12 +651,270 @@ Per-process firewall rules on Linux require either AppArmor/SELinux profiles or 
 
 ---
 
+## Audio & Video Transcription → Citations Pipeline
+
+Transcribe podcasts, YouTube videos, and audio sources into citable, searchable
+notes using a minimal, offline-first toolchain.
+
+### Fact-Check: Tools Originally Considered
+
+Before settling on the minimal stack below, these tools were evaluated and rejected
+or deferred:
+
+| Tool | Claim | Reality | Verdict |
+|---|---|---|---|
+| **Snipd** | iOS podcast app with Obsidian sync via BRAT plugin | Real app (iOS + Android), AI transcription works. But the Obsidian BRAT plugin (`obsidian-snipd`) is a community beta — maintenance status uncertain, may be abandoned. Freemium with limited free-tier transcriptions. | **Deferred** — unnecessary if you already download podcast audio locally |
+| **Readwise Reader** | Syncs podcast/YouTube transcripts to Obsidian | Real, ~$8–12/month subscription. Pulls *existing* transcripts only — does not run its own speech-to-text. Podcast transcript coverage is inconsistent. | **Rejected** — paid dependency for something yt-dlp does free |
+| **Note Companion** | Native Obsidian plugin for YouTube + Whisper | **Does not appear to exist as described.** Likely conflated from multiple tools. Real alternatives: `obsidian-ytranscript` (YouTube captions) and `obsidian-whisper` (OpenAI Whisper API, paid per use). | **Rejected** — phantom tool |
+| **Fabric** | CLI tool that processes transcripts locally, runs offline | Real and actively maintained (25k+ GitHub stars). **But requires an LLM API key** (OpenAI, Anthropic, etc.) — it sends transcripts to a cloud LLM for summarisation. The `yt` helper extracts transcripts via yt-dlp, but `fabric -p extract_wisdom` is a cloud API call. Only runs offline if you set up a local LLM via Ollama. | **Deferred** — the `yt` transcript extraction is just yt-dlp; the AI summarisation can be done by Claude directly |
+
+### Toolchain
+
+All free. No subscriptions, no paid API keys. Transcription runs fully local.
+Summarisation uses your existing Claude Code subscription (already paid for) or
+a local LLM via Ollama (free).
+
+| Tool | Role | Install | Cost |
+|---|---|---|---|
+| **yt-dlp** | YouTube transcript extraction + audio download | `pip install yt-dlp` | Free |
+| **youtube-transcript-api** | Cleaner YouTube transcript extraction (primary) | `pip install youtube-transcript-api` | Free |
+| **whisperX** | Local transcription with speaker diarization (host vs guest) | `pip install whisperx` | Free |
+| **large-v3-turbo** | Whisper model — 809M params, near-best quality at ~3x speed | Auto-downloaded by whisperX | Free (MIT) |
+| **ffmpeg** | Audio format conversion | `sudo apt install ffmpeg` | Free |
+| **mpv** | Video player with one-key screenshot capture | `sudo apt install mpv` | Free |
+| **Claude Code** (`claude -p`) | Summarisation, citation extraction, tagging | Already installed | Already paid for |
+| **Ollama** + `llm` CLI | Offline summarisation alternative | `curl -fsSL https://ollama.com/install.sh \| sh` + `pip install llm llm-ollama` | Free |
+
+### How Each Source Is Handled
+
+| Source | Primary tool | Fallback | Network? |
+|---|---|---|---|
+| YouTube (has captions) | youtube-transcript-api fetches clean text | yt-dlp `--write-auto-sub` | Yes (one-time fetch) |
+| YouTube (no captions) | yt-dlp downloads audio → whisperX transcribes | — | Yes (fetch), then local |
+| Downloaded podcast file | whisperX transcribes directly with speaker labels | — | No — fully offline |
+| Podcast URL | yt-dlp or curl downloads → whisperX transcribes | — | Yes (fetch), then local |
+| Any local audio file | whisperX transcribes directly | — | No — fully offline |
+| Video screenshots | mpv: press `s` during playback | flameshot for annotation | No |
+
+### Why whisperX Over Plain Whisper
+
+[whisperX](https://github.com/m-bain/whisperX) wraps faster-whisper and adds two
+critical features for podcasts:
+
+1. **Speaker diarization** via pyannote.audio — identifies host vs guest and labels
+   each segment (`SPEAKER_00`, `SPEAKER_01`). Specify `--min_speakers 2 --max_speakers 2`
+   for typical 2-person podcasts.
+2. **Word-level timestamps** via forced alignment — enables precise quote citations
+   with timestamps in the output notes.
+
+> [!note] pyannote.audio models require accepting a free license on HuggingFace and
+> obtaining an access token. The models run fully locally after download.
+
+### Why large-v3-turbo
+
+OpenAI released Whisper large-v3-turbo in late 2024:
+- **809M parameters** (vs 1,550M for large-v3) — same encoder, smaller decoder (4 layers vs 32)
+- **~3x faster** than large-v3 with only marginal quality loss (<1% WER difference on clean English speech)
+- **Handles technical jargon** better than smaller models (base, small, medium)
+- Supported natively by whisperX, faster-whisper, and whisper.cpp
+
+For CPU-only transcription: a 1-hour podcast takes ~2-3 hours with large-v3-turbo.
+With a GPU: ~2-5 minutes.
+
+### Summarisation Options
+
+| Option | Quality | Privacy | Setup |
+|---|---|---|---|
+| **Claude Code** (`claude -p`) | Best — 200K context, nuanced extraction | Sends transcript to Anthropic servers | Zero — already installed |
+| **Ollama + Llama 3.1 8B** | ~75% of Claude quality | Fully local, fully private | Install Ollama, pull model (~5GB) |
+| **Ollama + Qwen 2.5 14B** | ~85% of Claude quality | Fully local, fully private | Install Ollama, pull model (~8GB), needs 16GB+ RAM |
+
+**Claude Code approach** (recommended for non-sensitive transcripts):
+```bash
+cat transcript.txt | claude -p "Extract: 1) Summary bullets 2) Key quotes with speaker attribution 3) Topic tags. Format as markdown."
+```
+
+**Ollama approach** (for sensitive/private transcripts):
+```bash
+cat transcript.txt | llm -m llama3.1 -t summarize-transcript
+```
+
+The `llm` CLI by Simon Willison supports reusable prompt templates and logs every
+interaction to a SQLite database — useful for tracking what you've processed.
+
+### Online Mode
+
+The vault's default posture is offline (see [Privacy and Security](#privacy-and-security)).
+Transcription workflows that fetch from the internet require temporarily enabling
+network access. This is handled via an `okm online` / `okm offline` toggle:
+
+```bash
+okm online                # re-enable Obsidian network; mark shell session as online
+okm offline               # revoke Obsidian network; restore default posture
+```
+
+**What `okm online` does:**
+1. Runs `flatpak override --user --share=network md.obsidian.Obsidian` (re-enables Obsidian network)
+2. Exports `OKM_ONLINE=1` in the current shell session
+3. Prints a warning that online mode is active
+
+**What `okm offline` does:**
+1. Runs `flatpak override --user --unshare=network md.obsidian.Obsidian` (revokes Obsidian network)
+2. Unsets `OKM_ONLINE`
+3. Confirms offline mode restored
+
+> [!important]
+> Online mode is session-scoped. Closing the terminal restores the default offline
+> posture on next launch (the Flatpak override persists, but `setup-kms.sh` and
+> `verify-kms.sh` re-enforce offline as the baseline). The `okm yt` and `okm pod`
+> commands that need network access should check `$OKM_ONLINE` and warn if offline.
+
+### Workflow
+
+1. **YouTube (has captions)**: `okm yt <URL>` → youtube-transcript-api fetches clean
+   text (falls back to yt-dlp) → markdown note with frontmatter and `#source/youtube`
+2. **YouTube (no captions)**: `okm yt <URL>` → yt-dlp downloads audio → whisperX
+   transcribes locally → markdown note
+3. **Downloaded podcast**: `okm pod <file> "Episode Title"` → whisperX transcribes
+   with speaker diarization (host vs guest labels) → markdown note (fully offline)
+4. **Podcast URL**: `okm pod <url> "Episode Title"` → downloads audio → whisperX
+   transcribes → markdown note
+5. **Any audio file**: Same as podcast — `okm pod <file> "Title"`
+6. **Distillation** (optional): `okm distill <note>` → pipes transcript through
+   Claude Code (`claude -p`) or Ollama for summary, key quotes, and tags
+7. **Screenshots**: Watch in mpv → press `s` to capture frame → auto-saved to
+   `attachments/` as `VideoTitle-HH-MM-SS.png` → reference from note with
+   `![[VideoTitle-HH-MM-SS.png]]`
+
+### Note Format
+
+Each ingested source produces a note with this structure:
+
+```yaml
+---
+title: "Episode Title or Video Title"
+source_type: podcast | youtube | audio
+source_url: "https://..."
+author: "Host / Channel / Speaker"
+publish_date: 2026-03-28
+captured_date: 2026-03-30
+captured_via: okm-yt | okm-pod | manual
+tags:
+  - source/podcast
+  - topic/machine-learning
+---
+```
+
+Note body contains:
+- Full or partial transcript with timestamps
+- AI-generated summary (if distillation step was run)
+- Key quotes formatted as blockquotes with timestamp citations
+
+### Source Tagging System
+
+Every ingested source gets tagged by type and origin so you can trace where content
+came from and filter by source in search or graph view.
+
+| Tag | When applied | Example source |
+|---|---|---|
+| `#source/podcast` | Any podcast episode | The Tim Ferriss Show ep. 400 |
+| `#source/youtube` | Any YouTube video | 3Blue1Brown linear algebra series |
+| `#source/audio` | Non-podcast audio (lectures, voice memos, interviews) | Recorded meeting, audiobook clip |
+| `#source/video` | Non-YouTube video (conference talks, local files) | WWDC session, downloaded lecture |
+| `#source/article` | Web articles (manual capture) | Blog post, newsletter |
+
+The `captured_via` frontmatter field records which tool brought the content into the
+vault (`okm-yt`, `okm-pod`, or `manual`). The `source_type` + `source_url` fields
+let you always trace back to the original.
+
+**Obsidian Dataview queries** (once Dataview plugin is installed):
+
+```dataview
+TABLE source_type, author, publish_date
+FROM #source/podcast
+SORT publish_date DESC
+```
+
+### Implementation Plan
+
+#### Phase 1 — Core transcription pipeline
+
+| Step | Action | Detail |
+|---|---|---|
+| 1 | Install Python deps | `pip install yt-dlp youtube-transcript-api whisperx` |
+| 2 | Install ffmpeg + mpv | `sudo apt install ffmpeg mpv` |
+| 3 | Download Whisper model | whisperX auto-downloads on first use, or pre-fetch: `whisperx --model large-v3-turbo --compute_type int8 test.wav` |
+| 4 | Get HuggingFace token | Free account at huggingface.co → accept pyannote terms → generate access token for speaker diarization |
+| 5 | Configure mpv | Write `~/.config/mpv/mpv.conf` with `screenshot-directory` pointing to `attachments/` and `screenshot-template=%F-%wH-%wM-%wS` |
+| 6 | Add `okm yt <URL>` | Shell wrapper: tries youtube-transcript-api first → falls back to yt-dlp subtitles → falls back to audio download + whisperX. Writes markdown note to `inbox/` with frontmatter and `#source/youtube` tag |
+| 7 | Add `okm pod <file\|url> "Title"` | Shell wrapper: if URL, downloads via yt-dlp/curl; runs whisperX with `--diarize --min_speakers 2`; formats speaker-labelled transcript as markdown note in `inbox/` with `#source/podcast` tag |
+| 8 | Test all paths | `okm yt` on a captioned video, one without captions. `okm pod` on a local podcast file. Verify speaker labels and timestamps |
+
+> [!note] Phase 1 requires network only for fetching YouTube content and the initial
+> model download (~1GB for large-v3-turbo + pyannote). Local podcast audio files are
+> transcribed fully offline after setup. No paid API keys or subscriptions.
+
+#### Phase 2 — Online mode toggle
+
+| Step | Action | Detail |
+|---|---|---|
+| 1 | Add `okm online` | Re-enables Obsidian Flatpak network, sets `$OKM_ONLINE=1`, prints warning |
+| 2 | Add `okm offline` | Revokes Obsidian network, unsets `$OKM_ONLINE`, confirms offline |
+| 3 | Gate network commands | `okm yt` and URL-based `okm pod` check `$OKM_ONLINE` and warn if offline |
+| 4 | Update `verify-kms.sh` | Verify offline is the default; report current mode |
+
+#### Phase 3 — Summarisation and distillation
+
+| Step | Action | Detail |
+|---|---|---|
+| 1 | Build distillation prompt template | Markdown file with the extraction prompt: summary bullets, key quotes with speaker attribution and timestamps, `[[wikilinks]]` to related notes, suggested tags |
+| 2 | Add `okm distill <note>` | Shell wrapper: pipes note through `claude -p` (uses existing Claude Code subscription) with the prompt template. Writes enriched version back to the note with a `## Summary` section prepended |
+| 3 | Install Ollama (offline alternative) | `curl -fsSL https://ollama.com/install.sh \| sh` then `ollama pull llama3.1:8b` (~5GB) |
+| 4 | Install `llm` CLI + Ollama plugin | `pip install llm llm-ollama` then `llm templates edit summarize-transcript` to save the prompt template |
+| 5 | Add `--local` flag to `okm distill` | `okm distill <note>` uses Claude by default; `okm distill --local <note>` uses Ollama for private transcripts |
+| 6 | Test both paths | Run `okm distill` and `okm distill --local` on the same transcript; compare output quality |
+
+> [!note] Claude Code (`claude -p`) uses your existing subscription — no additional
+> API cost. Ollama is fully free and runs locally for privacy-sensitive content.
+> Transcription itself (Phases 1–2) requires neither.
+
+### Alternatives Evaluated but Deferred
+
+These tools may be worth revisiting if the minimal stack proves insufficient:
+
+| Tool | When to reconsider | Cost |
+|---|---|---|
+| **Fabric** (`danielmiessler/fabric`) | If you want pre-built LLM prompt patterns beyond what Claude/Ollama distillation provides. The `yt` helper is redundant with yt-dlp. | Free (but needs LLM API key or Ollama) |
+| **Snipd** (iOS/Android) | If you want timestamp-based audio highlights while listening on mobile. The Obsidian BRAT plugin needs verification. | Freemium (limited free tier) |
+| **Readwise Reader** | If you want unified highlight management across Kindle, web, podcasts. | ~$8–12/month — **paid** |
+| **obsidian-ytranscript** | If you want YouTube transcripts fetched inside Obsidian rather than CLI. | Free |
+| **obsidian-whisper** | If you want audio transcription inside Obsidian. Uses OpenAI Whisper API. | Free plugin, **paid API** |
+| **distil-large-v3** | English-only distilled Whisper model, ~5-6x faster than large-v3. | Free |
+| **Qwen 2.5 14B** (Ollama) | If Llama 3.1 8B summarisation quality is insufficient. Needs 16GB+ RAM. | Free |
+
+### Design Decisions Remaining
+
+| Decision | Options | Recommendation |
+|---|---|---|
+| Transcript storage | (a) Full transcript in note body, (b) transcript as separate file linked from summary, (c) summary-only | Full transcript in note body with `## Summary` prepended after distillation. Transcripts are the primary source of truth. |
+| Speaker label format | (a) `**Host:**` / `**Guest:**` prefixes, (b) `> [Speaker 1]` blockquotes, (c) raw whisperX `SPEAKER_00` labels | Replace `SPEAKER_00`/`SPEAKER_01` with human names via a post-processing step or manual edit after first transcription |
+| Long transcript git impact | Full podcast transcripts (10-30K words) will bloat git history | Accept for now; consider `git-lfs` or moving transcripts to a `transcripts/` dir excluded from git-crypt if encryption overhead is high |
+
+---
+
 ## Open Items
 
 | Item | Priority | Notes |
 |---|---|---|
 | Initialise git-crypt | High | Symmetric key mode; encrypt `daily/*.md` and `inbox/*.md`; must run before first remote push — see [git-crypt](#git-crypt) |
+| Install yt-dlp + whisperX + ffmpeg + mpv | High | Phase 1 of transcription pipeline; all free, see [Implementation Plan](#implementation-plan) |
+| Get HuggingFace token for pyannote | High | Free account; required for whisperX speaker diarization |
+| Add `okm yt` and `okm pod` subcommands | High | Shell wrappers for YouTube and podcast transcription with speaker labels |
+| Add `okm online` / `okm offline` toggle | Medium | Phase 2; session-scoped network mode switch for Obsidian Flatpak |
+| Configure mpv screenshot directory | Medium | Point `screenshot-directory` to vault `attachments/`; set `screenshot-template` for auto-naming |
 | SSH key generation | Medium | Not yet guided by `setup-kms.sh`; see [SSH and Git Remote](#ssh-and-git-remote) for manual steps |
+| Add `okm distill` subcommand | Low | Phase 3; pipes notes through Claude Code or Ollama for summarisation |
+| Install Ollama + `llm` CLI | Low | Phase 3; free offline summarisation alternative to Claude Code |
 | `.obsidian/` plugin config audit | Low | One-time manual review before first remote push; community plugins may store tokens in `.obsidian/plugins/` |
 
 ---
