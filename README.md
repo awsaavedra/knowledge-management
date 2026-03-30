@@ -691,6 +691,7 @@ a local LLM via Ollama (free).
 |---|---|---|---|
 | YouTube (has captions) | youtube-transcript-api fetches clean text | yt-dlp `--write-auto-sub` | Yes (one-time fetch) |
 | YouTube (no captions) | yt-dlp downloads audio → whisperX transcribes | — | Yes (fetch), then local |
+| Podcast (known show) | Check Happy Scribe (`podcasts.happyscribe.com`) first — free transcripts for many popular podcasts | whisperX on downloaded audio | Yes (one-time fetch) |
 | Downloaded podcast file | whisperX transcribes directly with speaker labels | — | No — fully offline |
 | Podcast URL | yt-dlp or curl downloads → whisperX transcribes | — | Yes (fetch), then local |
 | Any local audio file | whisperX transcribes directly | — | No — fully offline |
