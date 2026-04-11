@@ -21,7 +21,7 @@ Scans file types: `.md`, `.sh`, `.lua`, `.yml`, `.json`
 # Print summary to stdout
 bash scripts/todo-summary.sh
 
-# Write summary to inbox/todo-summary-YYYY-MM-DD.md
+# Write summary to inbox/todo-summary-YYYY.md (yearly living doc)
 bash scripts/todo-summary.sh --output
 ```
 
@@ -32,7 +32,7 @@ bash scripts/todo-summary.sh --output
 
 ### Scheduled runs
 
-The script runs twice daily at **07:00** and **12:00**.
+The script runs three times daily at **07:00**, **12:00**, and **15:00**.
 
 **Claude Code cron (session-scoped, auto-expires after 7 days):**
 
@@ -40,6 +40,7 @@ Set up at the start of each Claude Code session with:
 ```
 CronCreate: "3 7 * * *"  — PARA TODO scan, 07:00 daily
 CronCreate: "3 12 * * *" — PARA TODO scan, 12:00 daily
+CronCreate: "3 15 * * *" — PARA TODO scan, 15:00 daily
 ```
 
 **System crontab (persistent across reboots):**
@@ -48,11 +49,12 @@ CronCreate: "3 12 * * *" — PARA TODO scan, 12:00 daily
 # Add with: crontab -e
 3 7 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
 3 12 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
+3 15 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
 ```
 
 ### Output
 
-Each run writes `inbox/todo-summary-YYYY-MM-DD.md` (overwrites same-day file). The file uses PARA structure:
+Each year gets a single file `inbox/todo-summary-YYYY.md`. Each cron run prepends a timestamped scan section (newest at top). Checked-off items stay as accomplishment records. The file uses PARA structure:
 
 ```
 ## Projects    — TODO/FIXME/HACK/XXX markers

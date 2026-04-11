@@ -22,3 +22,10 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Downloaded binaries (large; re-created by setup-kms.sh)
+bin/nvim
+bin/lazygit
+
+# Generated TODO summaries
+inbox/todo-summary-*.md

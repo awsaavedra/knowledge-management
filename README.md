@@ -11,6 +11,7 @@ Everything runs locally — no cloud dependencies after initial setup.
 - Plain Markdown as the source of truth — no proprietary format lock-in
 - Offline by default — Obsidian's network is revoked at the container level
 - Privacy-first — AI assistants follow strict rules in `ai-instructions.md`
+- Project-scoped — `source env.sh` activates the environment; no global configs are modified
 - One script bootstraps everything — `setup-kms.sh` is idempotent and safe to re-run
 
 ---
@@ -19,16 +20,18 @@ Everything runs locally — no cloud dependencies after initial setup.
 
 ```bash
 bash setup-kms.sh        # install everything: Obsidian, Neovim, vim, okm, lazygit
-source ~/.zshrc           # reload shell
+source env.sh            # activate the project environment
 bash verify-kms.sh       # confirm all tools installed correctly
 ```
+
+> **Project-scoped:** `source env.sh` sets PATH, EDITOR, and vault variables for the current shell only. Your `~/.zshrc`, `~/.config/nvim`, and `~/.config/lazygit` are never modified. Neovim uses `NVIM_APPNAME=kms` so the project config lives at `~/.config/kms/`, isolated from your global nvim setup.
 
 Then pick your editor:
 
 | Editor | How to start | Notes |
 |---|---|---|
 | **Obsidian** | `obs` | First launch: open `/home/aws/workspace/knowledge-management-system` as vault |
-| **Neovim** | `okm today` | Plugins auto-bootstrap on first launch. `:Lazy sync` if needed |
+| **Neovim** | `okm today` | Uses project config via `NVIM_APPNAME=kms`. `:Lazy sync` if needed |
 | **Vim** | `EDITOR=vim okm today` | No plugins — plain Markdown editing |
 
 **Core `okm` commands:**
@@ -53,21 +56,30 @@ okm sync "message"       # git add + commit + pull --rebase + push
 ## Project Structure
 
 ```
-knowledge-management-system/
-  daily/               ← one file per day (YYYY-MM-DD.md)
-  inbox/               ← named notes and quick captures
-  attachments/         ← images, PDFs, other assets
+knowledge-management/               ← this repo (tools, config, setup)
+  env.sh                            ← source this to activate the project environment
+  setup-kms.sh                      ← idempotent bootstrap script
+  verify-kms.sh                     ← post-install verification script
+  bin/
+    okm                             ← vault CLI (tracked in git)
+    obs                             ← Obsidian launcher (tracked in git)
+    nvim                            ← Neovim binary (gitignored; created by setup)
+    lazygit                         ← lazygit binary (gitignored; created by setup)
   config/
-    nvim/              ← Neovim config (symlinked to ~/.config/nvim)
-    lazygit/           ← lazygit config (symlinked to ~/.config/lazygit)
+    nvim/                           ← project nvim config (via NVIM_APPNAME=kms)
+    lazygit/                        ← project lazygit config (via LG_CONFIG_FILE)
   scripts/
-    todo-summary.sh    ← PARA-structured TODO/task scanner (runs on cron)
-  _skills/             ← privacy framework reference library for AI tools
-  ai-instructions.md   ← rules for AI assistants in this vault
-  setup-kms.sh         ← idempotent bootstrap script
-  verify-kms.sh        ← post-install verification script
-  .gitignore           ← excludes attachments, OS noise, editor swap files
+    todo-summary.sh                 ← PARA-structured TODO/task scanner (runs on cron)
+  _skills/                          ← privacy framework reference library for AI tools
+  ai-instructions.md                ← rules for AI assistants in this vault
+
+knowledge-management-system/        ← vault (notes live here)
+  daily/                            ← one file per day (YYYY-MM-DD.md)
+  inbox/                            ← named notes and quick captures
+  attachments/                      ← images, PDFs, other assets
 ```
+
+**Scoping:** all project config and binaries live inside this repo. Global config files (`~/.zshrc`, `~/.config/nvim`, `~/.config/lazygit`) are never modified. `source env.sh` activates the project for the current shell; closing the shell deactivates it.
 
 ---
 
@@ -76,10 +88,10 @@ knowledge-management-system/
 | Tool | Role | Installed by |
 |---|---|---|
 | Obsidian | GUI vault viewer, graph view | Flatpak (network revoked) |
-| Neovim | Primary terminal editor | `~/bin/nvim` via GitHub release |
+| Neovim | Primary terminal editor | `bin/nvim` (project-local) via GitHub release |
 | obsidian.nvim | Vault integration in Neovim (nav, backlinks, search) | lazy.nvim auto-bootstrap |
-| lazygit | TUI git client | `~/bin/lazygit` via GitHub release |
-| okm | Vault CLI (notes, search, sync) | `~/bin/okm` written by setup |
+| lazygit | TUI git client | `bin/lazygit` (project-local) via GitHub release |
+| okm | Vault CLI (notes, search, sync) | `bin/okm` written by setup |
 | ripgrep / fzf | Search and fuzzy picking | apt |
 | git / SSH | Version control and sync | apt |
 | xclip / wl-clipboard | Clipboard bridge (terminal ↔ GUI) | apt |
@@ -101,7 +113,7 @@ knowledge-management-system/
 | `obs` | `okm obs` | Launch Obsidian GUI |
 | `path` | `okm path` | Print vault path |
 
-**Environment variables** (set in `~/.zshrc` by setup):
+**Environment variables** (set by `source env.sh`):
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -123,7 +135,7 @@ knowledge-management-system/
 | `:ObsidianFollowLink` | Follow `[[wikilink]]` under cursor |
 | `:ObsidianBacklinks` | Show notes linking to current note |
 
-Config: `config/nvim/lua/plugins/obsidian.lua` (symlinked to `~/.config/nvim/`).
+Config: `config/nvim/lua/plugins/obsidian.lua` (available via `NVIM_APPNAME=kms` → `~/.config/kms/`). Your global `~/.config/nvim` is not affected.
 
 ---
 
@@ -131,7 +143,7 @@ Config: `config/nvim/lua/plugins/obsidian.lua` (symlinked to `~/.config/nvim/`).
 
 `scripts/todo-summary.sh` scans the project and vault for open work items and generates a PARA-structured checklist.
 
-**Schedule:** runs at 07:00 and 12:00 daily.
+**Schedule:** runs at 07:00, 12:00, and 15:00 daily.
 
 **PARA mapping:**
 
@@ -143,7 +155,7 @@ Config: `config/nvim/lua/plugins/obsidian.lua` (symlinked to `~/.config/nvim/`).
 
 ```bash
 bash scripts/todo-summary.sh              # print to stdout
-bash scripts/todo-summary.sh --output     # write to inbox/todo-summary-YYYY-MM-DD.md
+bash scripts/todo-summary.sh --output     # write to inbox/todo-summary-YYYY.md (yearly living doc)
 ```
 
 **System crontab (persistent):**
@@ -151,6 +163,7 @@ bash scripts/todo-summary.sh --output     # write to inbox/todo-summary-YYYY-MM-
 # crontab -e
 3 7 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
 3 12 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
+3 15 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
 ```
 
 See `scripts/README.md` for full details.
@@ -163,16 +176,30 @@ See `scripts/README.md` for full details.
 
 1. Installs apt packages: vim, git, ripgrep, fzf, curl, xclip, wl-clipboard, flatpak
 2. Installs Obsidian via Flatpak; revokes its network permission
-3. Downloads Neovim and lazygit binaries to `~/bin/`
+3. Downloads Neovim and lazygit binaries to `bin/` (project-local, gitignored)
 4. Creates vault directories (`daily/`, `inbox/`, `attachments/`)
-5. Writes `~/bin/okm` and shell config to `~/.zshrc`
-6. Symlinks Neovim and lazygit configs (or installs `obsidian.lua` into existing config)
-7. Bootstraps Neovim plugins, initialises git repo, optionally sets remote
-8. Enforces offline mode as the final step
+5. Writes `bin/okm` and `bin/obs` scripts (project-local, tracked in git)
+6. Symlinks `~/.config/kms/` → `config/nvim/` for `NVIM_APPNAME=kms` isolation
+7. Bootstraps Neovim plugins under `~/.local/share/kms/` (isolated from global nvim)
+8. Initialises git repo, optionally sets remote
+9. Enforces offline mode as the final step
+
+**What it does NOT do:** modify `~/.zshrc`, `~/.bashrc`, `~/.config/nvim`, or `~/.config/lazygit`.
 
 Safe to re-run — every step is guarded (checks `dpkg -s`, SHA-256 hashes, existing dirs/files).
 
 Logs: `~/.local/log/setup-kms-YYYYMMDD-HHMMSS.log`
+
+### Activation
+
+```bash
+source env.sh    # sets PATH, EDITOR, NVIM_APPNAME, LG_CONFIG_FILE, vault vars
+```
+
+For auto-activation with [direnv](https://direnv.net/), create `.envrc`:
+```bash
+source_env env.sh
+```
 
 ---
 

@@ -2,15 +2,17 @@
 # verify-kms.sh — check that all KMS stack components are properly installed
 #
 # Usage:  bash verify-kms.sh
+#         source env.sh && bash verify-kms.sh
+#
 # Exits 0 if all required checks pass; exits 1 if any FAIL.
 # WARN items are advisory and do not affect the exit code.
 
 set -uo pipefail
 
-VAULT_DIR="/home/aws/workspace/knowledge-management-system"
-BIN_DIR="${HOME}/bin"
-SHELL_RC="${HOME}/.zshrc"
-LAZY_DIR="${HOME}/.local/share/nvim/lazy"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VAULT_DIR="${OBSIDIAN_VAULT:-/home/aws/workspace/knowledge-management-system}"
+BIN_DIR="${SCRIPT_DIR}/bin"
+LAZY_DIR="${HOME}/.local/share/kms/lazy"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -69,8 +71,8 @@ else
     _fail "Obsidian not installed — run: flatpak install flathub md.obsidian.Obsidian"
 fi
 
-# ── ~/bin binaries ───────────────────────────────────────────────────────────
-_section "~/bin binaries"
+# ── Project binaries ────────────────────────────────────────────────────────
+_section "Project binaries (${BIN_DIR})"
 
 for bin in nvim lazygit okm obs; do
     if [ -x "${BIN_DIR}/${bin}" ]; then
@@ -103,87 +105,108 @@ else
     _fail "vault is not a git repo — run: bash setup-kms.sh"
 fi
 
-# ── Neovim config ────────────────────────────────────────────────────────────
-_section "Neovim config"
+# ── Project-scoped config (NVIM_APPNAME=kms) ────────────────────────────────
+_section "Neovim config (NVIM_APPNAME=kms)"
 
-nvim_cfg="${HOME}/.config/nvim"
-nvim_vault="${VAULT_DIR}/config/nvim"
+kms_cfg="${HOME}/.config/kms"
+project_nvim="${SCRIPT_DIR}/config/nvim"
 
-# Determine active config location and whether obsidian.lua + checker are in place
-if [ -L "${nvim_cfg}" ] && [ "$(readlink "${nvim_cfg}")" = "${nvim_vault}" ]; then
-    _pass "~/.config/nvim -> vault (symlinked)"
-    active_nvim="${nvim_vault}"
-elif [ -d "${nvim_cfg}" ]; then
-    _pass "~/.config/nvim: pre-existing config (global install preserved)"
-    active_nvim="${nvim_cfg}"
+if [ -L "${kms_cfg}" ] && [ "$(readlink "${kms_cfg}")" = "${project_nvim}" ]; then
+    _pass "~/.config/kms -> ${project_nvim} (NVIM_APPNAME isolation)"
+elif [ -d "${kms_cfg}" ]; then
+    _pass "~/.config/kms exists (manual config)"
 else
-    _fail "~/.config/nvim missing — run: bash setup-kms.sh"
-    active_nvim=""
+    _fail "~/.config/kms missing — run: bash setup-kms.sh"
 fi
 
-# Vault reference config files must always exist
+# Verify global nvim config was NOT modified
+nvim_global="${HOME}/.config/nvim"
+if [ -L "${nvim_global}" ] && [ "$(readlink "${nvim_global}")" = "${project_nvim}" ]; then
+    _fail "~/.config/nvim is symlinked to project config — should use NVIM_APPNAME=kms instead"
+else
+    _pass "~/.config/nvim not overridden by project"
+fi
+
+# Project config files must exist
 for f in \
-    "${nvim_vault}/init.lua" \
-    "${nvim_vault}/lua/plugins/obsidian.lua"
+    "${project_nvim}/init.lua" \
+    "${project_nvim}/lua/plugins/obsidian.lua"
 do
-    rel="${f#"${nvim_vault}/"}"
+    rel="${f#"${project_nvim}/"}"
     if [ -f "${f}" ]; then
-        _pass "vault config/nvim/${rel} present"
+        _pass "config/nvim/${rel} present"
     else
-        _fail "vault config/nvim/${rel} missing"
+        _fail "config/nvim/${rel} missing"
     fi
 done
-
-# obsidian.lua must be in the active config (vault symlink or real dir)
-if [ -n "${active_nvim}" ]; then
-    obs_plugin="${active_nvim}/lua/plugins/obsidian.lua"
-    if [ -f "${obs_plugin}" ]; then
-        _pass "obsidian.lua installed in active nvim config"
-    else
-        _fail "obsidian.lua missing from active nvim config — run: bash setup-kms.sh"
-    fi
-fi
 
 # lazy.nvim and obsidian.nvim download on first `nvim` launch — advisory only
 if [ -d "${LAZY_DIR}/lazy.nvim" ]; then
     _pass "lazy.nvim downloaded (${LAZY_DIR}/lazy.nvim)"
 else
-    _warn "lazy.nvim not yet downloaded — launch nvim once to trigger bootstrap"
+    _warn "lazy.nvim not yet downloaded — run: source env.sh && nvim (triggers bootstrap)"
 fi
 
 if [ -d "${LAZY_DIR}/obsidian.nvim" ]; then
     _pass "obsidian.nvim downloaded (${LAZY_DIR}/obsidian.nvim)"
 else
-    _warn "obsidian.nvim not yet downloaded — launch nvim once to trigger bootstrap"
+    _warn "obsidian.nvim not yet downloaded — run: source env.sh && nvim (triggers bootstrap)"
 fi
 
-# ── Shell config ─────────────────────────────────────────────────────────────
-_section "Shell config (${SHELL_RC})"
+# ── Project activation (env.sh) ─────────────────────────────────────────────
+_section "Project activation"
 
-if [ ! -f "${SHELL_RC}" ]; then
-    _fail "${SHELL_RC} not found"
+if [ -f "${SCRIPT_DIR}/env.sh" ]; then
+    _pass "env.sh exists"
 else
-    shell_checks=(
-        'export PATH="$HOME/bin:$PATH"'
-        'export EDITOR=nvim'
-        'export OBSIDIAN_VAULT="/home/aws/workspace/knowledge-management-system"'
-        'export OBSIDIAN_DAILY_DIR=daily'
-        'export OBSIDIAN_NOTES_DIR=inbox'
-        'alias obs="flatpak run md.obsidian.Obsidian"'
-    )
-    for line in "${shell_checks[@]}"; do
-        if grep -qxF "${line}" "${SHELL_RC}"; then
-            _pass "${line}"
-        else
-            _fail "missing from .zshrc: ${line}"
-        fi
-    done
+    _fail "env.sh missing at ${SCRIPT_DIR}/env.sh"
+fi
+
+# Check that env.sh did NOT modify ~/.zshrc
+if [ -f "${HOME}/.zshrc" ]; then
+    if grep -qF 'OBSIDIAN_VAULT' "${HOME}/.zshrc" 2>/dev/null; then
+        _warn "~/.zshrc contains OBSIDIAN_VAULT — may be leftover from old setup; env.sh handles this now"
+    else
+        _pass "~/.zshrc does not contain project-specific exports"
+    fi
+fi
+
+# ── lazygit config ──────────────────────────────────────────────────────────
+_section "lazygit config"
+
+lazygit_cfg="${SCRIPT_DIR}/config/lazygit/config.yml"
+if [ -f "${lazygit_cfg}" ]; then
+    _pass "lazygit config exists at ${lazygit_cfg}"
+else
+    _fail "lazygit config missing at ${lazygit_cfg}"
+fi
+
+if grep -q 'method: never' "${lazygit_cfg}" 2>/dev/null; then
+    _pass "lazygit: update checks disabled (method: never)"
+else
+    _fail "lazygit update checks not disabled — check ${lazygit_cfg}"
+fi
+
+# Verify global lazygit config was NOT symlinked
+lazygit_global="${HOME}/.config/lazygit"
+if [ -L "${lazygit_global}" ] && [ "$(readlink "${lazygit_global}")" = "${SCRIPT_DIR}/config/lazygit" ]; then
+    _fail "~/.config/lazygit is symlinked to project config — should use LG_CONFIG_FILE env var instead"
+else
+    _pass "~/.config/lazygit not overridden by project"
+fi
+
+# lazy.nvim: update checker disabled
+lazy_lua="${project_nvim}/lua/config/lazy.lua"
+if grep -q 'enabled = false' "${lazy_lua}" 2>/dev/null; then
+    _pass "lazy.nvim: update checker disabled (${lazy_lua})"
+else
+    _fail "lazy.nvim update checker not disabled — check ${lazy_lua}"
 fi
 
 # ── Git remote ───────────────────────────────────────────────────────────────
 _section "Git remote"
 
-if git -C "${VAULT_DIR}" remote get-url origin >/dev/null 2>&1; then
+if [ -d "${VAULT_DIR}/.git" ] && git -C "${VAULT_DIR}" remote get-url origin >/dev/null 2>&1; then
     _pass "remote 'origin' configured"
 else
     _warn "no git remote — vault is local-only (add one with: git -C \"\$(okm path)\" remote add origin <url>)"
@@ -192,41 +215,11 @@ fi
 # ── Offline mode enforcement ─────────────────────────────────────────────────
 _section "Offline mode enforcement"
 
-# Obsidian: flatpak network permission revocation
-# flatpak override writes: [Context] shared=!network; into the override file
 obsidian_override="${HOME}/.local/share/flatpak/overrides/md.obsidian.Obsidian"
 if [ -f "${obsidian_override}" ] && grep -q '!network' "${obsidian_override}"; then
     _pass "Obsidian: network revoked via flatpak sandbox"
 else
     _fail "Obsidian has network access — run: flatpak override --user --unshare=network md.obsidian.Obsidian"
-fi
-
-# lazygit: config symlink
-lazygit_link="${HOME}/.config/lazygit"
-lazygit_target="${VAULT_DIR}/config/lazygit"
-if [ -L "${lazygit_link}" ] && [ "$(readlink "${lazygit_link}")" = "${lazygit_target}" ]; then
-    _pass "lazygit config: symlinked to vault"
-else
-    _fail "~/.config/lazygit not symlinked to vault — run: bash setup-kms.sh"
-fi
-
-# lazygit: update checks disabled
-lazygit_cfg="${VAULT_DIR}/config/lazygit/config.yml"
-if grep -q 'method: never' "${lazygit_cfg}" 2>/dev/null; then
-    _pass "lazygit: update checks disabled (method: never)"
-else
-    _fail "lazygit update checks not disabled — check ${lazygit_cfg}"
-fi
-
-# lazy.nvim: update checker disabled — check active config location
-lazy_lua="${HOME}/.config/nvim/lua/config/lazy.lua"  # LazyVim layout
-vault_init="${VAULT_DIR}/config/nvim/init.lua"         # minimal layout fallback
-if grep -q 'enabled = false' "${lazy_lua}" 2>/dev/null; then
-    _pass "lazy.nvim: update checker disabled (${lazy_lua})"
-elif grep -q 'checker.*enabled.*false' "${vault_init}" 2>/dev/null; then
-    _pass "lazy.nvim: update checker disabled (${vault_init})"
-else
-    _fail "lazy.nvim update checker not disabled — check ${lazy_lua}"
 fi
 
 # ── Security (advisory — WARNs only, never block) ────────────────────────────

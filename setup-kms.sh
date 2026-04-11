@@ -31,10 +31,10 @@ _on_error() {
 trap '_on_error ${LINENO}' ERR
 
 # --- Variables ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VAULT_DIR="/home/aws/workspace/knowledge-management-system"
-BIN_DIR="${HOME}/bin"
+BIN_DIR="${SCRIPT_DIR}/bin"
 OKM_PATH="${BIN_DIR}/okm"
-SHELL_RC="${HOME}/.zshrc"
 GIT_REMOTE="${1:-}"
 
 # --- Helper functions ---
@@ -117,44 +117,6 @@ install_okm_binary() {
     log_info "OK: okm binary written and made executable"
 }
 
-ensure_shell_line() {
-    local rc_file="$1"
-    local line="$2"
-    if grep -qxF "${line}" "${rc_file}" 2>/dev/null; then
-        log_info "SKIP: already in ${rc_file}: ${line}"
-    else
-        log_info "ACTION: Appending to ${rc_file}: ${line}"
-        printf '%s\n' "${line}" >> "${rc_file}"
-    fi
-}
-
-# Replace old_line with new_line in rc_file (exact-line match); appends if old not found.
-replace_shell_line() {
-    local rc_file="$1"
-    local old_line="$2"
-    local new_line="$3"
-
-    if grep -qxF "${new_line}" "${rc_file}" 2>/dev/null; then
-        log_info "SKIP: already in ${rc_file}: ${new_line}"
-        return 0
-    fi
-    if grep -qxF "${old_line}" "${rc_file}" 2>/dev/null; then
-        log_info "ACTION: Replacing in ${rc_file}: '${old_line}' -> '${new_line}'"
-        local tmp
-        tmp="$(mktemp)"
-        while IFS= read -r _line || [ -n "${_line}" ]; do
-            if [ "${_line}" = "${old_line}" ]; then
-                printf '%s\n' "${new_line}"
-            else
-                printf '%s\n' "${_line}"
-            fi
-        done < "${rc_file}" > "${tmp}"
-        mv "${tmp}" "${rc_file}"
-    else
-        log_info "ACTION: Appending to ${rc_file}: ${new_line}"
-        printf '%s\n' "${new_line}" >> "${rc_file}"
-    fi
-}
 
 ensure_gitignore() {
     local dir="$1"
@@ -266,78 +228,40 @@ install_lazygit() {
 }
 
 ensure_nvim_config_link() {
-    local vault_nvim="${VAULT_DIR}/config/nvim"
-    local target="${HOME}/.config/nvim"
-    local obs_src="${vault_nvim}/lua/plugins/obsidian.lua"
+    # Use NVIM_APPNAME=kms so the project nvim config lives at ~/.config/kms/
+    # and does NOT touch the user's global ~/.config/nvim config.
+    local project_nvim="${SCRIPT_DIR}/config/nvim"
+    local target="${HOME}/.config/kms"
 
     mkdir -p "${HOME}/.config"
 
     if [ -L "${target}" ]; then
         local current_target
         current_target="$(readlink "${target}")"
-        if [ "${current_target}" = "${vault_nvim}" ]; then
-            log_info "SKIP: ~/.config/nvim already linked to ${vault_nvim}"
+        if [ "${current_target}" = "${project_nvim}" ]; then
+            log_info "SKIP: ~/.config/kms already linked to ${project_nvim}"
             return 0
         fi
-        log_warn "~/.config/nvim symlinks to ${current_target} — skipping (unexpected symlink target)"
-        return 0
+        log_warn "~/.config/kms symlinks to ${current_target} — updating to ${project_nvim}"
+        rm "${target}"
     elif [ -d "${target}" ]; then
-        # Pre-existing config — install obsidian.lua and disable the update checker; leave everything else alone.
-        local plugin_dir="${target}/lua/plugins"
-        local dest="${plugin_dir}/obsidian.lua"
-        mkdir -p "${plugin_dir}"
-        if [ -f "${dest}" ]; then
-            local src_hash dest_hash
-            src_hash="$(sha256sum "${obs_src}" | cut -d' ' -f1)"
-            dest_hash="$(sha256sum "${dest}" | cut -d' ' -f1)"
-            if [ "${src_hash}" = "${dest_hash}" ]; then
-                log_info "SKIP: obsidian.lua already installed in existing nvim config"
-            else
-                log_warn "obsidian.lua in nvim config differs from vault — overwriting"
-                cp "${obs_src}" "${dest}"
-                log_info "OK: obsidian.lua updated at ${dest}"
-            fi
-        else
-            cp "${obs_src}" "${dest}"
-            log_info "OK: obsidian.lua installed into existing nvim config at ${dest}"
-        fi
-        # Disable background update checker (offline-first policy)
-        local lazy_lua="${target}/lua/config/lazy.lua"
-        if [ -f "${lazy_lua}" ] && grep -q 'enabled = true' "${lazy_lua}"; then
-            sed -i 's/enabled = true, -- check for plugin updates periodically/enabled = false, -- disabled: offline-first; update manually with :Lazy sync/' "${lazy_lua}"
-            log_info "OK: disabled lazy.nvim update checker in existing config"
-        fi
+        log_warn "~/.config/kms exists as a real directory — skipping symlink (manual merge required)"
         return 0
     fi
 
-    # No existing config — create the symlink (new machine path)
-    ln -s "${vault_nvim}" "${target}"
-    log_info "OK: ~/.config/nvim -> ${vault_nvim}"
+    ln -s "${project_nvim}" "${target}"
+    log_info "OK: ~/.config/kms -> ${project_nvim} (NVIM_APPNAME=kms isolates from global nvim config)"
 }
 
-ensure_lazygit_config_link() {
-    local vault_lg="${VAULT_DIR}/config/lazygit"
-    local target="${HOME}/.config/lazygit"
-
-    mkdir -p "${HOME}/.config"
-    mkdir -p "${vault_lg}"   # idempotent; dir is already committed to repo
-
-    if [ -L "${target}" ]; then
-        local current_target
-        current_target="$(readlink "${target}")"
-        if [ "${current_target}" = "${vault_lg}" ]; then
-            log_info "SKIP: ~/.config/lazygit already linked to ${vault_lg}"
-            return 0
-        fi
-        log_warn "~/.config/lazygit symlinks to ${current_target} — updating to ${vault_lg}"
-        rm "${target}"
-    elif [ -e "${target}" ]; then
-        log_warn "~/.config/lazygit exists as a real directory — skipping symlink (manual merge required)"
-        return 0
+verify_lazygit_config() {
+    # lazygit config is pointed to by LG_CONFIG_FILE in env.sh.
+    # No symlink to ~/.config/lazygit needed.
+    local lg_config="${SCRIPT_DIR}/config/lazygit/config.yml"
+    if [ -f "${lg_config}" ]; then
+        log_info "OK: lazygit config exists at ${lg_config} (loaded via LG_CONFIG_FILE in env.sh)"
+    else
+        log_warn "lazygit config not found at ${lg_config}"
     fi
-
-    ln -s "${vault_lg}" "${target}"
-    log_info "OK: ~/.config/lazygit -> ${vault_lg}"
 }
 
 # Bootstrap all Neovim plugins while the network is still available.
@@ -348,19 +272,20 @@ bootstrap_nvim_plugins() {
         return 0
     fi
 
-    local lazy_path="${HOME}/.local/share/nvim/lazy/lazy.nvim"
-    local obsidian_path="${HOME}/.local/share/nvim/lazy/obsidian.nvim"
+    # NVIM_APPNAME=kms stores plugin data under ~/.local/share/kms/ (isolated from global nvim)
+    local lazy_path="${HOME}/.local/share/kms/lazy/lazy.nvim"
+    local obsidian_path="${HOME}/.local/share/kms/lazy/obsidian.nvim"
 
     if [ -d "${lazy_path}" ] && [ -d "${obsidian_path}" ]; then
-        log_info "SKIP: Neovim plugins already bootstrapped"
+        log_info "SKIP: Neovim plugins already bootstrapped (NVIM_APPNAME=kms)"
         return 0
     fi
 
-    log_info "ACTION: Bootstrapping Neovim plugins (one-time; requires network)"
-    if timeout 180 "${BIN_DIR}/nvim" --headless "+Lazy! sync" +qa 2>/dev/null; then
-        log_info "OK: Neovim plugins bootstrapped"
+    log_info "ACTION: Bootstrapping Neovim plugins (one-time; requires network; NVIM_APPNAME=kms)"
+    if timeout 180 env NVIM_APPNAME=kms "${BIN_DIR}/nvim" --headless "+Lazy! sync" +qa 2>/dev/null; then
+        log_info "OK: Neovim plugins bootstrapped under ~/.local/share/kms/"
     else
-        log_warn "Plugin bootstrap exited non-zero — run 'nvim' once to finish install"
+        log_warn "Plugin bootstrap exited non-zero — run 'source env.sh && nvim' once to finish install"
     fi
 }
 
@@ -398,210 +323,22 @@ ensure_dir "${VAULT_DIR}/attachments"
 ensure_dir "${VAULT_DIR}/config/lazygit"
 ensure_dir "${BIN_DIR}"
 
-log_info "==> Writing okm CLI"
-OKM_SOURCE=$(cat <<'OKMSRC'
-#!/usr/bin/env bash
-set -euo pipefail
-
-VAULT="${OBSIDIAN_VAULT:-/home/aws/workspace/knowledge-management-system}"
-EDITOR_CMD="${EDITOR:-vim}"
-DAILY_DIR="${OBSIDIAN_DAILY_DIR:-daily}"
-NOTES_DIR="${OBSIDIAN_NOTES_DIR:-inbox}"
-
-usage() {
-  cat <<'EOF2'
-okm - simple terminal knowledge manager
-
-Usage:
-  okm open [path]
-  okm new <title>
-  okm capture [text]
-  okm today
-  okm grep <pattern>
-  okm files [pattern]
-  okm recent
-  okm sync [message]
-  okm obs
-  okm path
-EOF2
-}
-
-need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing: $1" >&2; exit 1; }; }
-slugify() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//'; }
-iso_now() { date -Iseconds; }
-timestamp() { date +"%Y%m%d-%H%M%S"; }
-
-ensure_dirs() {
-  mkdir -p "$VAULT/$DAILY_DIR" "$VAULT/$NOTES_DIR"
-}
-
-pick_file() {
-  need_cmd fzf
-  find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##" | sort | fzf --height=40% --reverse --border --prompt="notes> "
-}
-
-open_note() {
-  ensure_dirs
-  local target="${1:-}"
-  if [ -z "$target" ]; then
-    local picked
-    picked="$(pick_file || true)"
-    [ -n "${picked:-}" ] || exit 0
-    exec "$EDITOR_CMD" "$VAULT/$picked"
-  fi
-  if [ -e "$target" ]; then
-    exec "$EDITOR_CMD" "$target"
-  else
-    exec "$EDITOR_CMD" "$VAULT/$target"
-  fi
-}
-
-new_note() {
-  ensure_dirs
-  local title="$*"
-  [ -n "$title" ] || { echo "Title required" >&2; exit 1; }
-  local slug file
-  slug="$(slugify "$title")"
-  file="$VAULT/$NOTES_DIR/$slug.md"
-  [ -f "$file" ] || cat > "$file" <<EOF2
----
-title: $title
-created: $(iso_now)
-tags: []
----
-
-# $title
-
-EOF2
-  exec "$EDITOR_CMD" "$file"
-}
-
-capture_note() {
-  ensure_dirs
-  local file ts
-  ts="$(timestamp)"
-  file="$VAULT/$NOTES_DIR/$ts.md"
-  cat > "$file" <<EOF2
----
-title: Quick Capture $ts
-created: $(iso_now)
-tags: [capture, inbox]
----
-
-# Quick Capture $ts
-
-${*:-}
-EOF2
-  exec "$EDITOR_CMD" "$file"
-}
-
-today_note() {
-  ensure_dirs
-  local d file
-  d="$(date +%F)"
-  file="$VAULT/$DAILY_DIR/$d.md"
-  [ -f "$file" ] || cat > "$file" <<EOF2
----
-date: $d
-created: $(iso_now)
-tags: [daily]
----
-
-# $d
-
-## Tasks
-
-- [ ]
-
-## Notes
-
-EOF2
-  exec "$EDITOR_CMD" "$file"
-}
-
-grep_vault() {
-  need_cmd rg
-  local pattern="${1:-}"
-  [ -n "$pattern" ] || { echo "Pattern required" >&2; exit 1; }
-  rg -n --hidden --glob '*.md' "$pattern" "$VAULT"
-}
-
-files_vault() {
-  local pattern="${1:-}"
-  if [ -z "$pattern" ]; then
-    find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##" | sort
-  else
-    find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##" | grep -i -- "$pattern" | sort || true
-  fi
-}
-
-recent_notes() {
-  need_cmd fzf
-  local picked
-  picked="$(
-    find "$VAULT" -type f -name '*.md' -printf '%T@ %p\n' \
-      | sort -nr \
-      | head -200 \
-      | cut -d' ' -f2- \
-      | sed "s#^$VAULT/##" \
-      | fzf --height=40% --reverse --border --prompt="recent> "
-  )"
-  [ -n "${picked:-}" ] || exit 0
-  exec "$EDITOR_CMD" "$VAULT/$picked"
-}
-
-sync_git() {
-  git -C "$VAULT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
-    echo "Vault is not a git repo" >&2
+log_info "==> Installing okm CLI"
+# okm source lives at bin/okm in the project repo (tracked in git).
+# Copy it to the target BIN_DIR and ensure it is executable.
+OKM_SRC="${SCRIPT_DIR}/bin/okm"
+if [ ! -f "${OKM_SRC}" ]; then
+    log_error "bin/okm not found at ${OKM_SRC} — project repo may be incomplete"
     exit 1
-  }
-  local msg="${*:-vault sync $(date '+%F %T')}"
-  git -C "$VAULT" add -A
-  if git -C "$VAULT" diff --cached --quiet; then
-    echo "No changes to commit"
-  else
-    git -C "$VAULT" commit -m "$msg"
-  fi
-  local upstream
-  upstream="$(git -C "$VAULT" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
-  if [ -n "$upstream" ]; then
-    git -C "$VAULT" pull --rebase --autostash
-    git -C "$VAULT" push
-  else
-    echo "No upstream configured; skipped pull/push"
-  fi
-}
+fi
+install_okm_binary "${OKM_PATH}" "$(cat "${OKM_SRC}")"
 
-open_obsidian() {
-  flatpak run md.obsidian.Obsidian >/dev/null 2>&1 &
-}
-
-case "${1:-help}" in
-  open) shift; open_note "${1:-}" ;;
-  new) shift; new_note "$*" ;;
-  capture) shift; capture_note "$*" ;;
-  today) shift; today_note ;;
-  grep) shift; grep_vault "${1:-}" ;;
-  files) shift; files_vault "${1:-}" ;;
-  recent) shift; recent_notes ;;
-  sync) shift; sync_git "$*" ;;
-  obs) shift; open_obsidian ;;
-  path) printf '%s\n' "$VAULT" ;;
-  help|-h|--help) usage ;;
-  *) usage; exit 1 ;;
-esac
-OKMSRC
-)
-
-install_okm_binary "${OKM_PATH}" "${OKM_SOURCE}"
-
-log_info "==> Writing shell config"
-ensure_shell_line  "${SHELL_RC}" 'export PATH="$HOME/bin:$PATH"'
-replace_shell_line "${SHELL_RC}" 'export EDITOR=vim' 'export EDITOR=nvim'
-ensure_shell_line  "${SHELL_RC}" 'export OBSIDIAN_VAULT="/home/aws/workspace/knowledge-management-system"'
-ensure_shell_line  "${SHELL_RC}" 'export OBSIDIAN_DAILY_DIR=daily'
-ensure_shell_line  "${SHELL_RC}" 'export OBSIDIAN_NOTES_DIR=inbox'
-ensure_shell_line  "${SHELL_RC}" 'alias obs="flatpak run md.obsidian.Obsidian"'
+log_info "==> Verifying project env.sh"
+if [ -f "${SCRIPT_DIR}/env.sh" ]; then
+    log_info "OK: env.sh exists at ${SCRIPT_DIR}/env.sh — source it to activate the project environment"
+else
+    log_error "env.sh not found at ${SCRIPT_DIR}/env.sh — project environment cannot be activated"
+fi
 
 log_info "==> Writing obs binary"
 OBS_SOURCE='#!/usr/bin/env bash
@@ -648,8 +385,8 @@ install_lazygit
 log_info "==> Linking Neovim config"
 ensure_nvim_config_link
 
-log_info "==> Linking lazygit config"
-ensure_lazygit_config_link
+log_info "==> Verifying lazygit config"
+verify_lazygit_config
 
 log_info "==> Bootstrapping Neovim plugins"
 bootstrap_nvim_plugins
@@ -661,12 +398,15 @@ log_info "==> Setup complete"
 log_info "Full log written to: ${LOG_FILE}"
 echo ""
 echo "Setup complete. Log: ${LOG_FILE}"
-echo "Reload shell: source ${SHELL_RC}"
-echo "Examples:"
+echo ""
+echo "Activate the project environment:"
+echo "  source env.sh"
+echo ""
+echo "Then use okm:"
 echo "  okm today"
 echo "  okm new \"Linux notes\""
 echo "  okm capture \"read about systemd\""
-echo "  okm grep postgres"
-echo "  okm recent"
 echo "  okm sync \"notes update\""
-echo "  obs"
+echo ""
+echo "No global config files were modified."
+echo "Your ~/.zshrc, ~/.config/nvim, and ~/.config/lazygit are untouched."
