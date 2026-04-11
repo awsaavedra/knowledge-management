@@ -4,7 +4,7 @@
 load 'helpers/test_helper'
 
 setup() {
-    eval "$(cat "${BATS_TEST_DIRNAME}/helpers/test_helper.bash" | grep -A999 '^setup()'  | tail -n +2 | sed '/^}/q' | head -n -1)"
+    common_setup
 
     OKM="${PROJECT_ROOT}/bin/okm"
     export OBSIDIAN_VAULT="${FAKE_VAULT_DIR}"

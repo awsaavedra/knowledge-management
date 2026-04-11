@@ -4,7 +4,7 @@
 load 'helpers/test_helper'
 
 setup() {
-    eval "$(cat "${BATS_TEST_DIRNAME}/helpers/test_helper.bash" | grep -A999 '^setup()'  | tail -n +2 | sed '/^}/q' | head -n -1)"
+    common_setup
 }
 
 @test "verify-kms.sh is valid bash" {

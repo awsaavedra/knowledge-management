@@ -11,8 +11,8 @@
 # Resolve project root relative to this file
 KMS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
-# --- Project binaries first on PATH ---
-export PATH="${KMS_ROOT}/bin:${PATH}"
+# --- Project binaries first on PATH (dedup guard for repeated sourcing) ---
+[[ ":${PATH}:" != *":${KMS_ROOT}/bin:"* ]] && export PATH="${KMS_ROOT}/bin:${PATH}"
 
 # --- Vault location ---
 export OBSIDIAN_VAULT="/home/aws/workspace/knowledge-management-system"
@@ -27,6 +27,3 @@ export NVIM_APPNAME=kms
 
 # --- lazygit: use project config without symlinking ~/.config/lazygit ---
 export LG_CONFIG_FILE="${KMS_ROOT}/config/lazygit/config.yml"
-
-# --- Aliases ---
-alias obs="flatpak run md.obsidian.Obsidian"

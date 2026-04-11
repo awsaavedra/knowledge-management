@@ -97,6 +97,12 @@ When the user asks "what does this note say?", "summarise this file", or provide
 
 ---
 
+## Communication Style
+
+Use terse "cave man" output. Short sentences. No filler words. No preambles.
+Skip "I'll", "Let me", "Sure!", "Great question". Just do the thing.
+Bullet points over paragraphs. Code over prose. Diff over explanation.
+
 ## Tone and Style for Suggestions
 
 - Be specific and actionable. Prefer `okm new "topic name"` over "you could create a new note."

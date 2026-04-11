@@ -361,6 +361,39 @@ See `ai-instructions.md` for AI-specific rules. This covers system-level control
 
 ---
 
+## Feature Roadmap
+
+New `okm` subcommands and infrastructure planned beyond the open items above.
+
+| Feature | What it does |
+|---|---|
+| `okm link <file>` | List outgoing `[[wikilinks]]` from a note (pure ripgrep) |
+| `okm backlinks <file>` | List notes that link to a given note (pure ripgrep) |
+| `okm move <src> <dst>` | Rename/refile a note and update all `[[wikilinks]]` across vault |
+| `okm archive [--days N]` | Move daily notes older than N days to `daily/archive/YYYY/` |
+| `okm tags` / `okm tags <name>` | List all unique tags, or filter notes by tag (ripgrep + awk on frontmatter) |
+| `okm stats` | Vault health dashboard: note count, this week's notes, orphans, inbox size |
+| `okm template <name> <title>` | Create note from `templates/` skeleton (aligns CLI with `:ObsidianTemplate`) |
+| Auto-sync cron | End-of-day `okm sync` via cron (guarded: skip if no upstream) |
+
+---
+
+## Refactor Checklist
+
+Simplifications to reduce complexity and maintenance burden.
+
+| ID | Refactor | Status |
+|---|---|---|
+| R1 | Remove self-copy blocks in `setup-kms.sh` (bin/okm and bin/obs are tracked in git) | Done |
+| R2 | Shared logging lib (`lib/common.sh`) for setup + verify scripts | Deferred — functions differ more than they overlap |
+| R3 | Fix BATS test `setup()` boilerplate — rename to `common_setup()`, remove fragile `eval/grep/sed` | Done |
+| R4 | Consolidate `find` pipelines in `bin/okm` into `list_notes()` helper | Done |
+| R5 | Single source for vault path — scripts already use `$OBSIDIAN_VAULT` with fallback | Already done |
+| R6 | Simplify `todo-summary.sh` carry-forward logic | Deferred — working, well-tested |
+| R7 | PATH dedup guard in `env.sh` (prevents duplicates on repeated `source`) | Done |
+
+---
+
 ## See Also
 
 - `ai-instructions.md` — rules for AI assistants in this vault

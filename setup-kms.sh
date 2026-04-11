@@ -34,7 +34,6 @@ trap '_on_error ${LINENO}' ERR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VAULT_DIR="/home/aws/workspace/knowledge-management-system"
 BIN_DIR="${SCRIPT_DIR}/bin"
-OKM_PATH="${BIN_DIR}/okm"
 GIT_REMOTE="${1:-}"
 
 # --- Helper functions ---
@@ -91,30 +90,6 @@ ensure_dir() {
         log_info "ACTION: Creating directory: ${dir}"
         mkdir -p "${dir}"
     fi
-}
-
-install_okm_binary() {
-    local target_path="$1"
-    local new_content="$2"
-    local new_hash existing_hash
-
-    new_hash="$(printf '%s' "${new_content}" | sha256sum | cut -d' ' -f1)"
-
-    if [ -x "${target_path}" ]; then
-        existing_hash="$(sha256sum "${target_path}" | cut -d' ' -f1)"
-        if [ "${new_hash}" = "${existing_hash}" ]; then
-            log_info "SKIP: okm binary at ${target_path} is unchanged (sha256 match)"
-            return 0
-        else
-            log_warn "okm binary exists but content differs — overwriting (old=${existing_hash:0:12} new=${new_hash:0:12})"
-        fi
-    else
-        log_info "ACTION: Writing okm binary to ${target_path}"
-    fi
-
-    printf '%s' "${new_content}" > "${target_path}"
-    chmod +x "${target_path}"
-    log_info "OK: okm binary written and made executable"
 }
 
 
@@ -320,18 +295,16 @@ log_info "==> Creating vault structure"
 ensure_dir "${VAULT_DIR}/daily"
 ensure_dir "${VAULT_DIR}/inbox"
 ensure_dir "${VAULT_DIR}/attachments"
-ensure_dir "${VAULT_DIR}/config/lazygit"
 ensure_dir "${BIN_DIR}"
 
-log_info "==> Installing okm CLI"
-# okm source lives at bin/okm in the project repo (tracked in git).
-# Copy it to the target BIN_DIR and ensure it is executable.
-OKM_SRC="${SCRIPT_DIR}/bin/okm"
-if [ ! -f "${OKM_SRC}" ]; then
-    log_error "bin/okm not found at ${OKM_SRC} — project repo may be incomplete"
+log_info "==> Verifying okm CLI"
+# bin/okm is tracked in git — just ensure it exists and is executable.
+if [ ! -f "${BIN_DIR}/okm" ]; then
+    log_error "bin/okm not found at ${BIN_DIR}/okm — project repo may be incomplete"
     exit 1
 fi
-install_okm_binary "${OKM_PATH}" "$(cat "${OKM_SRC}")"
+chmod +x "${BIN_DIR}/okm"
+log_info "OK: bin/okm is present and executable"
 
 log_info "==> Verifying project env.sh"
 if [ -f "${SCRIPT_DIR}/env.sh" ]; then
@@ -340,32 +313,14 @@ else
     log_error "env.sh not found at ${SCRIPT_DIR}/env.sh — project environment cannot be activated"
 fi
 
-log_info "==> Writing obs binary"
-OBS_SOURCE='#!/usr/bin/env bash
-if [ $# -gt 0 ]; then
-    path="$(realpath "${1}")"
-    flatpak run md.obsidian.Obsidian "obsidian://open?path=${path}" >/dev/null 2>&1 &
-else
-    flatpak run md.obsidian.Obsidian >/dev/null 2>&1 &
+log_info "==> Verifying obs binary"
+# bin/obs is tracked in git — just ensure it exists and is executable.
+if [ ! -f "${BIN_DIR}/obs" ]; then
+    log_error "bin/obs not found at ${BIN_DIR}/obs — project repo may be incomplete"
+    exit 1
 fi
-'
-if [ -x "${BIN_DIR}/obs" ]; then
-    existing_hash="$(sha256sum "${BIN_DIR}/obs" | cut -d' ' -f1)"
-    new_hash="$(printf '%s' "${OBS_SOURCE}" | sha256sum | cut -d' ' -f1)"
-    if [ "${new_hash}" = "${existing_hash}" ]; then
-        log_info "SKIP: obs binary at ${BIN_DIR}/obs is unchanged"
-    else
-        log_warn "obs binary exists but content differs — overwriting"
-        printf '%s' "${OBS_SOURCE}" > "${BIN_DIR}/obs"
-        chmod +x "${BIN_DIR}/obs"
-        log_info "OK: obs binary updated"
-    fi
-else
-    log_info "ACTION: Writing obs binary to ${BIN_DIR}/obs"
-    printf '%s' "${OBS_SOURCE}" > "${BIN_DIR}/obs"
-    chmod +x "${BIN_DIR}/obs"
-    log_info "OK: obs binary written and made executable"
-fi
+chmod +x "${BIN_DIR}/obs"
+log_info "OK: bin/obs is present and executable"
 
 log_info "==> Writing .gitignore"
 ensure_gitignore "${VAULT_DIR}"

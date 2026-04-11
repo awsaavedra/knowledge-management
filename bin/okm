@@ -33,9 +33,13 @@ ensure_dirs() {
   mkdir -p "$VAULT/$DAILY_DIR" "$VAULT/$NOTES_DIR"
 }
 
+list_notes() {
+  find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##"
+}
+
 pick_file() {
   need_cmd fzf
-  find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##" | sort | fzf --height=40% --reverse --border --prompt="notes> "
+  list_notes | sort | fzf --height=40% --reverse --border --prompt="notes> "
 }
 
 open_note() {
@@ -127,9 +131,9 @@ grep_vault() {
 files_vault() {
   local pattern="${1:-}"
   if [ -z "$pattern" ]; then
-    find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##" | sort
+    list_notes | sort
   else
-    find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##" | grep -i -- "$pattern" | sort || true
+    list_notes | grep -i -- "$pattern" | sort || true
   fi
 }
 

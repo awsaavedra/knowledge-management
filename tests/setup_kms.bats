@@ -5,7 +5,7 @@
 load 'helpers/test_helper'
 
 setup() {
-    eval "$(cat "${BATS_TEST_DIRNAME}/helpers/test_helper.bash" | grep -A999 '^setup()'  | tail -n +2 | sed '/^}/q' | head -n -1)"
+    common_setup
 
     # Source just the function definitions from setup-kms.sh (stop before install steps).
     # We patch set -e to set +e so function failures don't kill the test harness,
@@ -37,30 +37,6 @@ setup() {
     mkdir -p "$target"
     run ensure_dir "$target"
     assert_output --partial "SKIP"
-}
-
-# === install_okm_binary ===
-
-@test "install_okm_binary writes content and sets +x" {
-    local target="${TEST_TEMP_DIR}/test-bin"
-    install_okm_binary "$target" "#!/bin/bash\necho hello"
-    [ -x "$target" ]
-    grep -q "echo hello" "$target"
-}
-
-@test "install_okm_binary is idempotent (same hash)" {
-    local target="${TEST_TEMP_DIR}/test-bin"
-    local content="#!/bin/bash\necho hello"
-    install_okm_binary "$target" "$content"
-    run install_okm_binary "$target" "$content"
-    assert_output --partial "SKIP"
-}
-
-@test "install_okm_binary overwrites when content differs" {
-    local target="${TEST_TEMP_DIR}/test-bin"
-    install_okm_binary "$target" "version 1"
-    install_okm_binary "$target" "version 2"
-    grep -q "version 2" "$target"
 }
 
 # === ensure_gitignore ===

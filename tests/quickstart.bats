@@ -11,7 +11,7 @@
 load 'helpers/test_helper'
 
 setup() {
-    eval "$(cat "${BATS_TEST_DIRNAME}/helpers/test_helper.bash" | grep -A999 '^setup()'  | tail -n +2 | sed '/^}/q' | head -n -1)"
+    common_setup
 
     # Source the setup functions (not the install steps)
     export LOG_FILE="${TEST_TEMP_DIR}/setup.log"
@@ -68,11 +68,10 @@ setup() {
     [ ! -e "${HOME}/.config/lazygit" ]
 }
 
-@test "quickstart: setup writes okm binary" {
-    ensure_dir "${BIN_DIR}"
-    install_okm_binary "${BIN_DIR}/okm" "$(cat "${PROJECT_ROOT}/bin/okm")"
-    [ -x "${BIN_DIR}/okm" ]
-    grep -q "okm - simple terminal knowledge manager" "${BIN_DIR}/okm"
+@test "quickstart: bin/okm exists and is executable" {
+    [ -f "${PROJECT_ROOT}/bin/okm" ]
+    [ -x "${PROJECT_ROOT}/bin/okm" ]
+    grep -q "okm - simple terminal knowledge manager" "${PROJECT_ROOT}/bin/okm"
 }
 
 # === Step 2: source env.sh activates environment ===
