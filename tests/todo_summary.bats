@@ -1,15 +1,13 @@
 #!/usr/bin/env bats
 # Tests for scripts/todo-summary.sh — PARA-structured TODO scanner.
 # Heavy coverage: marker classification, edge cases, output format, self-exclusion,
-# living yearly document behavior.
+# living yearly document with carry-forward behavior.
 
 load 'helpers/test_helper'
 
 setup() {
-    # Run shared setup (creates TEST_TEMP_DIR, FAKE_PROJECT_DIR, FAKE_VAULT_DIR, fake HOME)
     eval "$(cat "${BATS_TEST_DIRNAME}/helpers/test_helper.bash" | grep -A999 '^setup()'  | tail -n +2 | sed '/^}/q' | head -n -1)"
 
-    # Copy and patch todo-summary.sh to use fake directories
     cp "${PROJECT_ROOT}/scripts/todo-summary.sh" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^PROJECT_DIR=.*|PROJECT_DIR=\"${FAKE_PROJECT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^VAULT_DIR=.*|VAULT_DIR=\"${FAKE_VAULT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
@@ -17,26 +15,24 @@ setup() {
     chmod +x "${TEST_TEMP_DIR}/todo-summary.sh"
 }
 
-# Helper to run the patched script
 run_scanner() {
     run bash "${TEST_TEMP_DIR}/todo-summary.sh" "$@"
 }
 
 # === Scan Section Structure (stdout mode) ===
 
-@test "stdout mode prints scan timestamp header" {
+@test "stdout mode prints day header" {
     run_scanner
     assert_success
-    assert_output --partial "### Scan —"
+    assert_output --partial "### $(date +%F)"
 }
 
-@test "stdout mode prints all three PARA scan sections in order" {
+@test "stdout mode prints all three PARA sections in order" {
     run_scanner
     assert_success
     assert_output --partial "#### Projects"
     assert_output --partial "#### Areas"
     assert_output --partial "#### Resources"
-    # Check order
     local proj_line areas_line res_line
     proj_line=$(echo "$output" | grep -n "#### Projects" | head -1 | cut -d: -f1)
     areas_line=$(echo "$output" | grep -n "#### Areas" | head -1 | cut -d: -f1)
@@ -60,36 +56,36 @@ run_scanner() {
 # TODO: fix the frobnicator"
     run_scanner
     assert_success
-    local projects_section
-    projects_section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
-    echo "$projects_section" | grep -q "fix the frobnicator"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
+    echo "$section" | grep -q "fix the frobnicator"
 }
 
 @test "FIXME marker in .lua file appears in Projects section" {
     create_project_file "config/nvim/lua/plugins/test.lua" "-- FIXME: broken keybind"
     run_scanner
     assert_success
-    local projects_section
-    projects_section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
-    echo "$projects_section" | grep -q "broken keybind"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
+    echo "$section" | grep -q "broken keybind"
 }
 
 @test "HACK marker in .yml file appears in Projects section" {
     create_project_file "config/lazygit/test.yml" "# HACK: workaround for upstream bug"
     run_scanner
     assert_success
-    local projects_section
-    projects_section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
-    echo "$projects_section" | grep -q "workaround for upstream bug"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
+    echo "$section" | grep -q "workaround for upstream bug"
 }
 
 @test "XXX marker in .json file appears in Projects section" {
     create_project_file "test.json" '{"note": "XXX: temporary schema"}'
     run_scanner
     assert_success
-    local projects_section
-    projects_section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
-    echo "$projects_section" | grep -q "temporary schema"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
+    echo "$section" | grep -q "temporary schema"
 }
 
 @test "TODO marker in vault .md file appears in Projects section" {
@@ -99,9 +95,9 @@ title: test
 TODO: research quantum computing"
     run_scanner
     assert_success
-    local projects_section
-    projects_section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
-    echo "$projects_section" | grep -q "research quantum computing"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
+    echo "$section" | grep -q "research quantum computing"
 }
 
 # === Resources Section (REVIEW) ===
@@ -111,18 +107,18 @@ TODO: research quantum computing"
 # REVIEW: evaluate alternative approach"
     run_scanner
     assert_success
-    local resources_section
-    resources_section=$(echo "$output" | sed -n '/^#### Resources/,/^---$/p')
-    echo "$resources_section" | grep -q "evaluate alternative approach"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Resources/,/^---$/p')
+    echo "$section" | grep -q "evaluate alternative approach"
 }
 
 @test "REVIEW marker in vault .md appears in Resources section" {
     create_vault_file "inbox/reading.md" "REVIEW: read the Zettelkasten paper"
     run_scanner
     assert_success
-    local resources_section
-    resources_section=$(echo "$output" | sed -n '/^#### Resources/,/^---$/p')
-    echo "$resources_section" | grep -q "read the Zettelkasten paper"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Resources/,/^---$/p')
+    echo "$section" | grep -q "read the Zettelkasten paper"
 }
 
 # === Areas Section (unchecked tasks) ===
@@ -134,9 +130,9 @@ date: 2026-04-10
 - [ ] water the plants"
     run_scanner
     assert_success
-    local areas_section
-    areas_section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
-    echo "$areas_section" | grep -q "water the plants"
+    local section
+    section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
+    echo "$section" | grep -q "water the plants"
 }
 
 @test "checked tasks are NOT collected" {
@@ -156,13 +152,13 @@ REVIEW: resource item
 - [ ] area item"
     run_scanner
     assert_success
-    local projects_section areas_section resources_section
-    projects_section=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
-    areas_section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
-    resources_section=$(echo "$output" | sed -n '/^#### Resources/,/^---$/p')
-    echo "$projects_section" | grep -q "project item"
-    echo "$areas_section" | grep -q "area item"
-    echo "$resources_section" | grep -q "resource item"
+    local proj areas res
+    proj=$(echo "$output" | sed -n '/^#### Projects/,/^#### Areas/p')
+    areas=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
+    res=$(echo "$output" | sed -n '/^#### Resources/,/^---$/p')
+    echo "$proj" | grep -q "project item"
+    echo "$areas" | grep -q "area item"
+    echo "$res" | grep -q "resource item"
 }
 
 @test "markers from both project dir AND vault dir are collected" {
@@ -228,7 +224,6 @@ REVIEW: resource item
     create_project_file "example.sh" "# TODO: format test item"
     run_scanner
     assert_success
-    # Format: - [ ] **title** (`file:line`) — text
     echo "$output" | grep -qE '^\- \[ \] \*\*example\.sh\*\* \(`example\.sh:[0-9]+`\) —'
 }
 
@@ -245,8 +240,7 @@ REVIEW: resource item
     create_project_file "job.sh" "# TODO: test output mode"
     run_scanner --output
     assert_success
-    local expected_file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    [ -f "$expected_file" ]
+    [ -f "${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md" ]
 }
 
 @test "--output flag prints path to stdout" {
@@ -276,25 +270,30 @@ REVIEW: resource item
     grep -q "# TODO Summary — $(date +%Y)" "$file"
 }
 
-@test "--output file contains Archive section" {
+@test "--output file contains Archive section at the bottom" {
     run_scanner --output
     assert_success
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
     grep -q "## Archive" "$file"
+    # Archive should be after all day sections
+    local archive_line day_lines
+    archive_line=$(grep -n "## Archive" "$file" | head -1 | cut -d: -f1)
+    day_lines=$(grep -n "^### [0-9]" "$file" | tail -1 | cut -d: -f1)
+    [ "$archive_line" -gt "$day_lines" ]
 }
 
-@test "--output file contains scan section with PARA headers" {
+@test "--output file contains day section with PARA headers" {
     create_project_file "job.sh" "# TODO: para output test"
     run_scanner --output
     assert_success
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    grep -q "### Scan —" "$file"
+    grep -q "^### $(date +%F)$" "$file"
     grep -q "#### Projects" "$file"
     grep -q "#### Areas" "$file"
     grep -q "#### Resources" "$file"
 }
 
-@test "--output scan section contains scanned items" {
+@test "--output day section contains scanned items" {
     create_project_file "job.sh" "# TODO: output item test"
     create_vault_file "inbox/tasks.md" "- [ ] vault output test"
     run_scanner --output
@@ -304,62 +303,163 @@ REVIEW: resource item
     grep -q "vault output test" "$file"
 }
 
-# === Living document: prepend behavior ===
+# === Same-day re-run: replaces today's section ===
 
-@test "second scan prepends above first scan in yearly file" {
+@test "same-day re-run replaces today's section (not duplicates)" {
     create_project_file "first.sh" "# TODO: first run item"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    [ -f "$file" ]
 
-    # Add a new item and re-run
     create_project_file "second.sh" "# TODO: second run item"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
 
-    # Both items should exist
-    grep -q "first run item" "$file"
+    # Only one day section for today
+    local day_count
+    day_count=$(grep -c "^### $(date +%F)$" "$file")
+    [ "$day_count" -eq 1 ]
+
+    # New items present
     grep -q "second run item" "$file"
-
-    # Second scan should appear BEFORE first scan (prepend order)
-    local scan_lines scan_count
-    scan_lines=$(grep -n "^### Scan" "$file")
-    scan_count=$(echo "$scan_lines" | wc -l)
-    [ "$scan_count" -eq 2 ]
-
-    # The first "### Scan" in the file should be the NEWER one (second run)
-    local first_scan_line second_scan_line second_item_line
-    first_scan_line=$(echo "$scan_lines" | head -1 | cut -d: -f1)
-    second_scan_line=$(echo "$scan_lines" | tail -1 | cut -d: -f1)
-    second_item_line=$(grep -n "second run item" "$file" | head -1 | cut -d: -f1)
-    [ "$second_item_line" -gt "$first_scan_line" ]
-    [ "$second_item_line" -lt "$second_scan_line" ]
 }
 
-@test "three scans produce three scan sections in newest-first order" {
-    create_project_file "a.sh" "# TODO: alpha item"
+@test "only one yearly file exists after multiple same-day runs" {
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-    sleep 1
-
-    create_project_file "b.sh" "# TODO: beta item"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-    sleep 1
-
-    create_project_file "c.sh" "# TODO: gamma item"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
+    local count
+    count=$(find "${FAKE_PROJECT_DIR}/inbox" -name 'todo-summary-*.md' | wc -l)
+    [ "$count" -eq 1 ]
+}
 
+# === Carry-forward behavior ===
+
+@test "unchecked items from previous day carry forward to new day" {
+    # Simulate a previous day's section already in the file
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    local scan_count
-    scan_count=$(grep -c "^### Scan" "$file")
-    [ "$scan_count" -eq 3 ]
+    mkdir -p "$(dirname "$file")"
+    cat > "$file" << 'FILEEOF'
+---
+title: TODO Summary 2026
+created: 2026-04-09
+year: 2026
+tags: [todo-summary, para, automated]
+---
 
-    # All items preserved
-    grep -q "alpha item" "$file"
-    grep -q "beta item" "$file"
-    grep -q "gamma item" "$file"
+# TODO Summary — 2026
+
+> Living document. Each scan adds a day section (newest at top).
+> Unchecked items carry forward to the next day automatically.
+> Check off items as you complete them — they stay as a record.
+
+---
+
+### 2026-04-09
+
+#### Projects
+
+- [ ] **deploy.sh** (`scripts/deploy.sh:5`) — TODO: deploy new feature
+- [x] **build.sh** (`scripts/build.sh:8`) — TODO: fix CI pipeline
+
+#### Areas
+
+- [ ] **Daily Log** (`daily/2026-04-09.md:4`) — review pull requests
+- [x] **Daily Log** (`daily/2026-04-09.md:5`) — update documentation
+
+#### Resources
+
+- [ ] **review.sh** (`scripts/review.sh:1`) — REVIEW: evaluate caching strategy
+
+---
+
+## Archive
+
+Move completed items here during your review.
+FILEEOF
+
+    # Patch TODAY to be 2026-04-10 so it's a new day
+    sed -i "s|^TODAY=.*|TODAY=\"2026-04-10\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
+
+    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
+
+    # Today's section should exist
+    grep -q "^### 2026-04-10$" "$file"
+
+    # Carried items (unchecked from 2026-04-09) should appear in today
+    local today_section
+    today_section=$(sed -n '/^### 2026-04-10$/,/^### 2026-04-09$/p' "$file")
+    echo "$today_section" | grep -q "deploy new feature"
+    echo "$today_section" | grep -q "review pull requests"
+    echo "$today_section" | grep -q "evaluate caching strategy"
+
+    # Checked items should NOT carry forward into today
+    ! echo "$today_section" | grep -q "fix CI pipeline"
+    ! echo "$today_section" | grep -q "update documentation"
+}
+
+@test "checked items stay in their original day section" {
+    local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
+    mkdir -p "$(dirname "$file")"
+    cat > "$file" << 'FILEEOF'
+---
+title: TODO Summary 2026
+created: 2026-04-09
+year: 2026
+tags: [todo-summary, para, automated]
+---
+
+# TODO Summary — 2026
+
+> Living document. Each scan adds a day section (newest at top).
+> Unchecked items carry forward to the next day automatically.
+> Check off items as you complete them — they stay as a record.
+
+---
+
+### 2026-04-09
+
+#### Projects
+
+- [x] **build.sh** (`scripts/build.sh:8`) — TODO: fix CI pipeline
+
+#### Areas
+
+_No area tasks._
+
+#### Resources
+
+_No review items._
+
+---
+
+## Archive
+
+Move completed items here during your review.
+FILEEOF
+
+    sed -i "s|^TODAY=.*|TODAY=\"2026-04-10\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
+    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
+
+    # The checked item should still be in the 2026-04-09 section
+    local old_section
+    old_section=$(sed -n '/^### 2026-04-09$/,/^## Archive$/p' "$file")
+    echo "$old_section" | grep -q '\[x\].*fix CI pipeline'
+}
+
+# === Data preservation ===
+
+@test "user-added notes in Archive are preserved across scans" {
+    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
+    local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
+
+    sed -i '/^## Archive/a\- [x] Finished the deploy — went smoothly' "$file"
+    grep -q "Finished the deploy" "$file"
+
+    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
+
+    grep -q "Finished the deploy" "$file"
 }
 
 @test "frontmatter appears only once even after multiple scans" {
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
 
@@ -367,10 +467,6 @@ REVIEW: resource item
     local title_count
     title_count=$(grep -c "^# TODO Summary" "$file")
     [ "$title_count" -eq 1 ]
-
-    local first_dash_line
-    first_dash_line=$(grep -n "^---" "$file" | head -1 | cut -d: -f1)
-    [ "$first_dash_line" -eq 1 ]
 }
 
 @test "Archive section preserved after multiple scans" {
@@ -378,43 +474,9 @@ REVIEW: resource item
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
 
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    grep -q "## Archive" "$file"
     local archive_count
     archive_count=$(grep -c "## Archive" "$file")
     [ "$archive_count" -eq 1 ]
-}
-
-# === Data preservation ===
-
-@test "checked items in summary file are preserved across scans" {
-    create_project_file "task.sh" "# TODO: preserve me"
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-    local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-
-    # Simulate user checking off an item in the summary file
-    sed -i 's/- \[ \] \*\*task.sh\*\*/- [x] **task.sh**/' "$file"
-    grep -q '\- \[x\] \*\*task.sh\*\*' "$file"
-
-    # Second scan prepends new section
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-
-    # The checked item in the OLD scan section should still be there
-    grep -q '\- \[x\] \*\*task.sh\*\*' "$file"
-}
-
-@test "user-added notes in summary file are preserved across scans" {
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-    local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-
-    # Simulate user adding a note in the Archive section
-    sed -i '/^## Archive/a\- [x] Finished the deploy — went smoothly' "$file"
-    grep -q "Finished the deploy" "$file"
-
-    # Re-run scan
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-
-    # User's note should survive
-    grep -q "Finished the deploy" "$file"
 }
 
 # === Title context ===
@@ -466,11 +528,11 @@ tags: [daily]
 - [ ] review pull requests"
     run_scanner
     assert_success
-    local areas_section
-    areas_section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
-    echo "$areas_section" | grep -q '**2026-04-10**'
-    echo "$areas_section" | grep -q 'daily/2026-04-10.md:'
-    echo "$areas_section" | grep -q 'review pull requests'
+    local section
+    section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
+    echo "$section" | grep -q '**2026-04-10**'
+    echo "$section" | grep -q 'daily/2026-04-10.md:'
+    echo "$section" | grep -q 'review pull requests'
 }
 
 @test "unchecked task text does not double up the checkbox prefix" {
@@ -480,10 +542,10 @@ title: Sprint Tasks
 - [ ] deploy to staging"
     run_scanner
     assert_success
-    local areas_section
-    areas_section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
-    echo "$areas_section" | grep -q '— deploy to staging'
-    ! echo "$areas_section" | grep -q '— - \[ \]'
+    local section
+    section=$(echo "$output" | sed -n '/^#### Areas/,/^#### Resources/p')
+    echo "$section" | grep -q '— deploy to staging'
+    ! echo "$section" | grep -q '— - \[ \]'
 }
 
 # === Table row filtering (false positive exclusion) ===

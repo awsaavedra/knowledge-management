@@ -3,10 +3,9 @@
 #
 # Validates:
 #   - The documented cron schedule (7:00, 12:00, 15:00 daily) is consistent
-#     across all documentation and config files
 #   - The cron-invoked command (todo-summary.sh --output) works correctly
-#   - Repeated invocations (simulating multiple cron fires per day) behave correctly
-#   - The yearly file uses prepend behavior (living document)
+#   - Same-day re-runs replace (not duplicate) today's section
+#   - The yearly file uses carry-forward for unchecked items
 
 load 'helpers/test_helper'
 
@@ -20,7 +19,6 @@ EXPECTED_CRON_LINES=(
 setup() {
     eval "$(cat "${BATS_TEST_DIRNAME}/helpers/test_helper.bash" | grep -A999 '^setup()'  | tail -n +2 | sed '/^}/q' | head -n -1)"
 
-    # Patch todo-summary.sh for sandboxed execution
     cp "${PROJECT_ROOT}/scripts/todo-summary.sh" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^PROJECT_DIR=.*|PROJECT_DIR=\"${FAKE_PROJECT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^VAULT_DIR=.*|VAULT_DIR=\"${FAKE_VAULT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
@@ -94,8 +92,7 @@ setup() {
     create_project_file "job.sh" "# TODO: cron test item"
     run bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
     assert_success
-    local expected="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    [ -f "$expected" ]
+    [ -f "${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md" ]
 }
 
 @test "cron command output file contains PARA structure" {
@@ -114,26 +111,21 @@ setup() {
     grep -q 'tags: \[todo-summary, para, automated\]' "$file"
 }
 
-# === Multiple cron fires per day ===
+# === Multiple cron fires same day: replace behavior ===
 
-@test "re-run prepends new scan (not overwrites) the yearly file" {
+@test "same-day re-run replaces today's section" {
     create_project_file "first.sh" "# TODO: first run item"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    [ -f "$file" ]
 
-    # Add a new item and re-run (simulating the 12:00 cron)
     create_project_file "second.sh" "# TODO: second run item"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
 
-    # Should contain both items (data preserved, not overwritten)
-    grep -q "first run item" "$file"
-    grep -q "second run item" "$file"
+    local day_count
+    day_count=$(grep -c "^### $(date +%F)$" "$file")
+    [ "$day_count" -eq 1 ]
 
-    # Should have two scan sections
-    local scan_count
-    scan_count=$(grep -c "^### Scan" "$file")
-    [ "$scan_count" -eq 2 ]
+    grep -q "second run item" "$file"
 }
 
 @test "only one yearly file exists after multiple runs" {
@@ -146,42 +138,18 @@ setup() {
 }
 
 @test "later cron run picks up items added since earlier run" {
-    # Simulate 07:00 run with one item
     create_project_file "morning.sh" "# TODO: morning task"
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
     local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
     grep -q "morning task" "$file"
 
-    # Simulate work done between 07:00 and 12:00
     create_vault_file "inbox/new-note.md" "- [ ] added after morning scan"
     create_project_file "afternoon.sh" "# FIXME: afternoon bugfix"
 
-    # Simulate 12:00 run
     bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
 
-    # All items preserved across both scans
-    grep -q "morning task" "$file"
     grep -q "added after morning scan" "$file"
     grep -q "afternoon bugfix" "$file"
-}
-
-@test "completed items disappear from new scan but old scan preserved" {
-    # First run: unchecked task exists
-    create_vault_file "daily/today.md" "- [ ] pending task"
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-    local file="${FAKE_PROJECT_DIR}/inbox/todo-summary-$(date +%Y).md"
-    grep -q "pending task" "$file"
-
-    # User checks off the task in source file between runs
-    create_vault_file "daily/today.md" "- [x] pending task"
-
-    # Next cron run
-    bash "${TEST_TEMP_DIR}/todo-summary.sh" --output
-
-    # Two scan sections exist (old data preserved)
-    local scan_count
-    scan_count=$(grep -c "^### Scan" "$file")
-    [ "$scan_count" -eq 2 ]
 }
 
 # === Cron script path ===

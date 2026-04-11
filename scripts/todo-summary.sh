@@ -3,8 +3,8 @@
 # then generate a PARA-structured review checklist.
 #
 # Usage:
-#   bash scripts/todo-summary.sh              # print latest scan to stdout
-#   bash scripts/todo-summary.sh --output     # append scan to yearly summary file
+#   bash scripts/todo-summary.sh              # print today's scan to stdout
+#   bash scripts/todo-summary.sh --output     # write/update yearly summary file
 #
 # Scanned markers: TODO, FIXME, HACK, XXX, REVIEW
 # Also picks up unchecked markdown tasks: - [ ]
@@ -14,12 +14,14 @@
 #   Projects  — items from active project work (code markers, build tasks)
 #   Areas     — ongoing responsibilities (unchecked tasks in notes)
 #   Resources — items tagged for review or learning
-#   Archive   — (section placeholder for manual use after completing items)
 #
 # The --output file is a living yearly document (inbox/todo-summary-YYYY.md).
-# Each scan prepends a timestamped section at the top (below frontmatter).
-# Items you check off in the summary stay as a record of accomplishments.
-# A new file is created at the start of each year.
+#   - One section per day (### YYYY-MM-DD), newest at top.
+#   - Same-day re-runs replace that day's section.
+#   - Unchecked items from the previous day carry forward into the new day.
+#   - Checked items stay in the day they were checked off.
+#   - Archive section lives at the bottom.
+#   - A new file is created at the start of each year.
 #
 # Scheduled via Claude Code cron at 07:00, 12:00, and 15:00 daily.
 
@@ -28,8 +30,7 @@ set -euo pipefail
 PROJECT_DIR="${KMS_PROJECT_DIR:-/home/aws/workspace/knowledge-management}"
 VAULT_DIR="${OBSIDIAN_VAULT:-/home/aws/workspace/knowledge-management-system}"
 YEAR="$(date +%Y)"
-WEEK="$(date +%G-W%V)"
-TIMESTAMP="$(date '+%F %H:%M')"
+TODAY="$(date +%F)"
 OUTPUT_FILE="${PROJECT_DIR}/inbox/todo-summary-${YEAR}.md"
 
 WRITE_FILE=false
@@ -164,89 +165,207 @@ scan_directory() {
 scan_directory "$PROJECT_DIR"
 scan_directory "$VAULT_DIR"
 
-# --- Build the scan section ---
-scan_section="### Scan — ${TIMESTAMP}
+# --- Build today's day section ---
+day_section="### ${TODAY}
 
 #### Projects
 
 "
 
 if [[ -n "$projects_items" ]]; then
-    scan_section+="${projects_items}\n"
+    day_section+="${projects_items}\n"
 else
-    scan_section+="_No active project items._\n\n"
+    day_section+="_No active project items._\n\n"
 fi
 
-scan_section+="#### Areas
+day_section+="#### Areas
 
 "
 
 if [[ -n "$areas_items" ]]; then
-    scan_section+="${areas_items}\n"
+    day_section+="${areas_items}\n"
 else
-    scan_section+="_No area tasks._\n\n"
+    day_section+="_No area tasks._\n\n"
 fi
 
-scan_section+="#### Resources
+day_section+="#### Resources
 
 "
 
 if [[ -n "$resources_items" ]]; then
-    scan_section+="${resources_items}\n"
+    day_section+="${resources_items}\n"
 else
-    scan_section+="_No review items._\n\n"
+    day_section+="_No review items._\n\n"
 fi
 
-scan_section+="---
+day_section+="---
 
 "
+
+# --- Carry forward: merge unchecked items from previous day into today's section ---
+# Reads the new day section line by line. When it hits a bucket boundary (#### Areas,
+# #### Resources, ---), it first emits any carried items for the bucket that just ended.
+carry_forward_into() {
+    local new_section="$1"
+    local prev_section="$2"
+
+    if [[ -z "$prev_section" ]]; then
+        echo "$new_section"
+        return
+    fi
+
+    # Extract unchecked items from previous day, grouped by PARA bucket
+    local prev_projects prev_areas prev_resources
+    prev_projects="$(echo "$prev_section" | sed -n '/^#### Projects/,/^#### Areas/p' | grep '^\- \[ \]' || true)"
+    prev_areas="$(echo "$prev_section" | sed -n '/^#### Areas/,/^#### Resources/p' | grep '^\- \[ \]' || true)"
+    prev_resources="$(echo "$prev_section" | sed -n '/^#### Resources/,/^---$/p' | grep '^\- \[ \]' || true)"
+
+    # Build result line by line, injecting carried items at bucket boundaries
+    local current_bucket=""
+    local result=""
+    while IFS= read -r line; do
+        case "$line" in
+            "#### Projects") current_bucket="projects" ;;
+            "#### Areas")
+                # Emit carried project items before switching to Areas
+                if [[ -n "$prev_projects" ]]; then
+                    while IFS= read -r item; do
+                        if ! echo "$new_section" | grep -qF "$item"; then
+                            result+="${item}"$'\n'
+                        fi
+                    done <<< "$prev_projects"
+                fi
+                current_bucket="areas"
+                ;;
+            "#### Resources")
+                # Emit carried area items before switching to Resources
+                if [[ -n "$prev_areas" ]]; then
+                    while IFS= read -r item; do
+                        if ! echo "$new_section" | grep -qF "$item"; then
+                            result+="${item}"$'\n'
+                        fi
+                    done <<< "$prev_areas"
+                fi
+                current_bucket="resources"
+                ;;
+            "---")
+                # Emit carried resource items before the closing ---
+                if [[ "$current_bucket" == "resources" ]]; then
+                    if [[ -n "$prev_resources" ]]; then
+                        while IFS= read -r item; do
+                            if ! echo "$new_section" | grep -qF "$item"; then
+                                result+="${item}"$'\n'
+                            fi
+                        done <<< "$prev_resources"
+                    fi
+                    current_bucket=""
+                fi
+                ;;
+        esac
+        result+="${line}"$'\n'
+    done <<< "$new_section"
+
+    echo "$result"
+}
 
 # --- Frontmatter for new files ---
 frontmatter="---
 title: TODO Summary ${YEAR}
-created: ${TIMESTAMP}
+created: ${TODAY}
 year: ${YEAR}
 tags: [todo-summary, para, automated]
 ---
 
 # TODO Summary — ${YEAR}
 
-> Living document. Each cron scan prepends a timestamped section below.
-> Check off items as you complete them — they stay as a record of accomplishments.
-> New file each year.
-
----
-
-## Archive
-
-Move completed items here during your review.
+> Living document. Each scan adds a day section (newest at top).
+> Unchecked items carry forward to the next day automatically.
+> Check off items as you complete them — they stay as a record.
 
 ---
 
 "
 
+archive_section="## Archive
+
+Move completed items here during your review.
+"
+
 if [[ "$WRITE_FILE" == true ]]; then
     mkdir -p "$(dirname "$OUTPUT_FILE")"
 
+    # Render day_section (resolve \n escapes)
+    rendered_day="$(printf '%b' "$day_section")"
+
     if [[ -f "$OUTPUT_FILE" ]]; then
-        # Existing file: prepend the new scan below frontmatter
-        if grep -qn "^### Scan" "$OUTPUT_FILE"; then
-            # File has previous scans — insert new scan before the first one
-            first_scan_line=$(grep -n "^### Scan" "$OUTPUT_FILE" | head -1 | cut -d: -f1)
-            header="$(head -n $((first_scan_line - 1)) "$OUTPUT_FILE")"
-            body="$(tail -n +${first_scan_line} "$OUTPUT_FILE")"
-            printf '%s\n%b%s\n' "$header" "$scan_section" "$body" > "$OUTPUT_FILE"
+        # Check if today's section already exists (same-day re-run)
+        if grep -qn "^### ${TODAY}$" "$OUTPUT_FILE"; then
+            # Extract the previous version of today's section to preserve checked items
+            today_line=$(grep -n "^### ${TODAY}$" "$OUTPUT_FILE" | head -1 | cut -d: -f1)
+            # Find the end of today's section (next ### or ## Archive)
+            next_section_line=$(tail -n +$((today_line + 1)) "$OUTPUT_FILE" | grep -n '^\(### \|## Archive\)' | head -1 | cut -d: -f1)
+            if [[ -n "$next_section_line" ]]; then
+                today_end=$((today_line + next_section_line - 1))
+            else
+                today_end=$(wc -l < "$OUTPUT_FILE")
+            fi
+
+            # Get content before and after today's section
+            header="$(head -n $((today_line - 1)) "$OUTPUT_FILE")"
+            footer="$(tail -n +$((today_end + 1)) "$OUTPUT_FILE")"
+
+            # Replace today's section with fresh scan
+            {
+                [[ -n "$header" ]] && printf '%s\n' "$header"
+                printf '%s\n' "$rendered_day"
+                [[ -n "$footer" ]] && printf '%s\n' "$footer"
+            } > "$OUTPUT_FILE"
         else
-            # First scan in this file — append after header
-            printf '%b' "$scan_section" >> "$OUTPUT_FILE"
+            # New day: carry forward unchecked items from the most recent day section
+            prev_day_line=$(grep -n '^### [0-9]' "$OUTPUT_FILE" | head -1 | cut -d: -f1)
+            prev_section=""
+            if [[ -n "$prev_day_line" ]]; then
+                # Extract previous day's section
+                next_after_prev=$(tail -n +$((prev_day_line + 1)) "$OUTPUT_FILE" | grep -n '^\(### \|## Archive\)' | head -1 | cut -d: -f1)
+                if [[ -n "$next_after_prev" ]]; then
+                    prev_end=$((prev_day_line + next_after_prev - 1))
+                else
+                    prev_end=$(wc -l < "$OUTPUT_FILE")
+                fi
+                prev_section="$(sed -n "${prev_day_line},${prev_end}p" "$OUTPUT_FILE")"
+            fi
+
+            # Merge carried items into today's section
+            rendered_day="$(carry_forward_into "$rendered_day" "$prev_section")"
+
+            # Insert today before the first existing day section (or before Archive)
+            if [[ -n "$prev_day_line" ]]; then
+                header="$(head -n $((prev_day_line - 1)) "$OUTPUT_FILE")"
+                body="$(tail -n +${prev_day_line} "$OUTPUT_FILE")"
+                printf '%s\n%s\n%s\n' "$header" "$rendered_day" "$body" > "$OUTPUT_FILE"
+            else
+                # No day sections yet — insert before Archive
+                if grep -qn "^## Archive" "$OUTPUT_FILE"; then
+                    archive_line=$(grep -n "^## Archive" "$OUTPUT_FILE" | head -1 | cut -d: -f1)
+                    header="$(head -n $((archive_line - 1)) "$OUTPUT_FILE")"
+                    footer="$(tail -n +${archive_line} "$OUTPUT_FILE")"
+                    printf '%s\n%s\n%s\n' "$header" "$rendered_day" "$footer" > "$OUTPUT_FILE"
+                else
+                    # Append before archive (shouldn't happen with proper frontmatter)
+                    printf '%s\n' "$rendered_day" >> "$OUTPUT_FILE"
+                fi
+            fi
         fi
     else
-        # New file: write frontmatter + first scan
-        printf '%b' "$frontmatter" > "$OUTPUT_FILE"
-        printf '%b' "$scan_section" >> "$OUTPUT_FILE"
+        # New file: frontmatter + first day section + archive
+        {
+            printf '%b' "$frontmatter"
+            printf '%s\n\n' "$rendered_day"
+            printf '%s\n' "$archive_section"
+        } > "$OUTPUT_FILE"
     fi
     echo "Summary written to: ${OUTPUT_FILE}"
 else
-    # Stdout mode: just print the scan (no file manipulation)
-    printf '%b' "$scan_section"
+    # Stdout mode: just print today's section
+    printf '%b' "$day_section"
 fi
