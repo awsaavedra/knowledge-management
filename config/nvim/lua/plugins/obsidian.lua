@@ -1,6 +1,8 @@
--- Resolve vault path from the same env var that okm uses, with a hardcoded fallback.
+-- Resolve vault path from the same env var that okm uses.
+-- Fallback: sibling directory relative to this config's project root.
+local config_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h:h:h")
 local vault = vim.env.OBSIDIAN_VAULT
-  or (vim.fn.expand("~") .. "/workspace/knowledge-management-system")
+  or (vim.fn.fnamemodify(config_root, ":h") .. "/knowledge-management-system")
 
 return {
   "epwalsh/obsidian.nvim",

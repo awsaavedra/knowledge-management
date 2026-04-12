@@ -27,8 +27,8 @@ bash scripts/todo-summary.sh --output
 
 ### Directories scanned
 
-1. `/home/aws/workspace/knowledge-management` (this project)
-2. `$OBSIDIAN_VAULT` or `/home/aws/workspace/knowledge-management-system` (vault, if it exists)
+1. Project root (this repo)
+2. `$OBSIDIAN_VAULT` (vault, if it exists)
 
 ### Scheduled runs
 
@@ -46,10 +46,10 @@ CronCreate: "3 15 * * *" — PARA TODO scan, 15:00 daily
 **System crontab (persistent across reboots):**
 
 ```bash
-# Add with: crontab -e
-3 7 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
-3 12 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
-3 15 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
+# Add with: crontab -e (replace $KM with your project path)
+3 7 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 12 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
 ```
 
 ### Output
@@ -62,3 +62,38 @@ Each year gets a single file `inbox/todo-summary-YYYY.md`. Each cron run prepend
 ## Resources   — REVIEW markers
 ## Archive     — Manual section for completed items
 ```
+
+---
+
+## compress-images.py
+
+Converts PNG, JPG, JPEG, and static GIF images in `attachments/` to WebP. Updates `![[wikilinks]]` in vault notes so Obsidian embeds don't break. Animated GIFs are skipped.
+
+### Usage
+
+```bash
+# Convert all images in attachments/
+python3 scripts/compress-images.py
+
+# Preview what would change (no writes)
+python3 scripts/compress-images.py --dry-run
+
+# Convert but keep original files alongside .webp
+python3 scripts/compress-images.py --keep
+```
+
+### Scheduled run
+
+Runs daily at **17:00** to compress screenshots and images captured during the day.
+
+**System crontab (persistent):**
+
+```bash
+# Add with: crontab -e (replace $KM with your project path)
+0 17 * * * $KM/venv/bin/python $KM/scripts/compress-images.py
+```
+
+### Dependencies
+
+- Pillow (installed in project venv by `setup-kms.sh`)
+- `OBSIDIAN_VAULT` env var (or defaults to sibling `../knowledge-management-system`)

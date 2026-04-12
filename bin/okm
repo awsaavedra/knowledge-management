@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-/home/aws/workspace/knowledge-management-system}"
+OKM_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VAULT="${OBSIDIAN_VAULT:-$(cd "${OKM_SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
 EDITOR_CMD="${EDITOR:-vim}"
 DAILY_DIR="${OBSIDIAN_DAILY_DIR:-daily}"
 NOTES_DIR="${OBSIDIAN_NOTES_DIR:-inbox}"

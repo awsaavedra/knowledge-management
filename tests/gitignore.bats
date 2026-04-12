@@ -49,6 +49,6 @@ setup() {
     ! grep -q '^bin/okm$' "$GITIGNORE"
 }
 
-@test "bin/obs is NOT ignored" {
-    ! grep -q '^bin/obs$' "$GITIGNORE"
+@test "venv/ is ignored" {
+    grep -q '^venv/$' "$GITIGNORE"
 }

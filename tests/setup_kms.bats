@@ -80,13 +80,13 @@ setup() {
     assert_output --partial "SKIP"
 }
 
-# === ensure_nvim_config_link (NVIM_APPNAME=kms) ===
+# === ensure_nvim_config_link (NVIM_APPNAME=km) ===
 
-@test "ensure_nvim_config_link creates symlink at ~/.config/kms" {
+@test "ensure_nvim_config_link creates symlink at ~/.config/km" {
     mkdir -p "${FAKE_PROJECT_DIR}/config/nvim"
     ensure_nvim_config_link
-    [ -L "${HOME}/.config/kms" ]
-    [ "$(readlink "${HOME}/.config/kms")" = "${FAKE_PROJECT_DIR}/config/nvim" ]
+    [ -L "${HOME}/.config/km" ]
+    [ "$(readlink "${HOME}/.config/km")" = "${FAKE_PROJECT_DIR}/config/nvim" ]
 }
 
 @test "ensure_nvim_config_link is idempotent" {
@@ -98,19 +98,19 @@ setup() {
 
 @test "ensure_nvim_config_link updates stale symlink" {
     mkdir -p "${FAKE_PROJECT_DIR}/config/nvim"
-    ln -s "/wrong/target" "${HOME}/.config/kms"
+    ln -s "/wrong/target" "${HOME}/.config/km"
     ensure_nvim_config_link
-    [ "$(readlink "${HOME}/.config/kms")" = "${FAKE_PROJECT_DIR}/config/nvim" ]
+    [ "$(readlink "${HOME}/.config/km")" = "${FAKE_PROJECT_DIR}/config/nvim" ]
 }
 
 @test "ensure_nvim_config_link skips real directory" {
     mkdir -p "${FAKE_PROJECT_DIR}/config/nvim"
-    mkdir -p "${HOME}/.config/kms"
+    mkdir -p "${HOME}/.config/km"
     run ensure_nvim_config_link
     assert_output --partial "manual merge required"
     # Should still be a directory, not a symlink
-    [ -d "${HOME}/.config/kms" ]
-    [ ! -L "${HOME}/.config/kms" ]
+    [ -d "${HOME}/.config/km" ]
+    [ ! -L "${HOME}/.config/km" ]
 }
 
 # === Scoping guarantees ===
@@ -122,7 +122,7 @@ setup() {
 }
 
 @test "setup-kms.sh does not symlink ~/.config/nvim" {
-    # Should only reference ~/.config/kms, never ~/.config/nvim for symlinking
+    # Should only reference ~/.config/km, never ~/.config/nvim for symlinking
     local nvim_refs
     nvim_refs=$(grep '\.config/nvim' "${PROJECT_ROOT}/setup-kms.sh" | grep -cv '#\|log_info\|log_warn\|echo' || true)
     [ "$nvim_refs" -eq 0 ]

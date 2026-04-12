@@ -14,7 +14,7 @@ _lib_dir="$(cd "$(dirname "$_helper_dir")/../tests/lib" 2>/dev/null || cd "$_hel
 load "${_lib_dir}/bats-support/load"
 load "${_lib_dir}/bats-assert/load"
 
-PROJECT_ROOT="/home/aws/workspace/knowledge-management"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 common_setup() {
     # Create a unique temp directory for this test
@@ -34,6 +34,7 @@ common_setup() {
     mkdir -p "${FAKE_VAULT_DIR}/daily"
     mkdir -p "${FAKE_VAULT_DIR}/inbox"
     mkdir -p "${FAKE_VAULT_DIR}/attachments"
+    mkdir -p "${FAKE_VAULT_DIR}/archive"
 
     # Set vault env var to fake vault
     export OBSIDIAN_VAULT="${FAKE_VAULT_DIR}"

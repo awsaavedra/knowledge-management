@@ -10,9 +10,9 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT_DIR="${OBSIDIAN_VAULT:-/home/aws/workspace/knowledge-management-system}"
+VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
 BIN_DIR="${SCRIPT_DIR}/bin"
-LAZY_DIR="${HOME}/.local/share/kms/lazy"
+LAZY_DIR="${HOME}/.local/share/km/lazy"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -74,7 +74,7 @@ fi
 # ── Project binaries ────────────────────────────────────────────────────────
 _section "Project binaries (${BIN_DIR})"
 
-for bin in nvim lazygit okm obs; do
+for bin in nvim lazygit okm; do
     if [ -x "${BIN_DIR}/${bin}" ]; then
         _pass "${bin}  (${BIN_DIR}/${bin})"
     else
@@ -85,7 +85,7 @@ done
 # ── Vault structure ──────────────────────────────────────────────────────────
 _section "Vault structure"
 
-for subdir in daily inbox attachments; do
+for subdir in daily inbox attachments archive; do
     if [ -d "${VAULT_DIR}/${subdir}" ]; then
         _pass "${subdir}/"
     else
@@ -105,24 +105,64 @@ else
     _fail "vault is not a git repo — run: bash setup-kms.sh"
 fi
 
-# ── Project-scoped config (NVIM_APPNAME=kms) ────────────────────────────────
-_section "Neovim config (NVIM_APPNAME=kms)"
+# ── Transcription tools ─────────────────────────────────────────────────────
+_section "Transcription tools"
 
-kms_cfg="${HOME}/.config/kms"
+for cmd in ffmpeg mpv; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+        _pass "${cmd}  ($(command -v "${cmd}"))"
+    else
+        _fail "${cmd} not found — run: bash setup-kms.sh"
+    fi
+done
+
+VENV_DIR="${SCRIPT_DIR}/venv"
+if [ -d "${VENV_DIR}" ] && [ -x "${VENV_DIR}/bin/python" ]; then
+    _pass "Python venv  (${VENV_DIR})"
+else
+    _fail "Python venv not found at ${VENV_DIR} — run: bash setup-kms.sh"
+fi
+
+for pkg in yt_dlp youtube_transcript_api whisperx PIL; do
+    if "${VENV_DIR}/bin/python" -c "import ${pkg}" 2>/dev/null; then
+        _pass "venv: ${pkg} installed"
+    else
+        _fail "venv: ${pkg} missing — run: bash setup-kms.sh"
+    fi
+done
+
+# mpv config (project-scoped via MPV_HOME)
+mpv_conf="${SCRIPT_DIR}/config/mpv/mpv.conf"
+if [ -f "${mpv_conf}" ]; then
+    _pass "mpv config  (${mpv_conf}, loaded via MPV_HOME)"
+else
+    _fail "mpv config missing at ${mpv_conf} — run: bash setup-kms.sh"
+fi
+
+if grep -q 'screenshot-directory' "${mpv_conf}" 2>/dev/null; then
+    _pass "mpv: screenshot-directory configured"
+else
+    _fail "mpv: screenshot-directory not set in ${mpv_conf}"
+fi
+
+# ── Project-scoped config (NVIM_APPNAME=km) ─────────────────────────────────
+_section "Neovim config (NVIM_APPNAME=km)"
+
+km_cfg="${HOME}/.config/km"
 project_nvim="${SCRIPT_DIR}/config/nvim"
 
-if [ -L "${kms_cfg}" ] && [ "$(readlink "${kms_cfg}")" = "${project_nvim}" ]; then
-    _pass "~/.config/kms -> ${project_nvim} (NVIM_APPNAME isolation)"
-elif [ -d "${kms_cfg}" ]; then
-    _pass "~/.config/kms exists (manual config)"
+if [ -L "${km_cfg}" ] && [ "$(readlink "${km_cfg}")" = "${project_nvim}" ]; then
+    _pass "~/.config/km -> ${project_nvim} (NVIM_APPNAME isolation)"
+elif [ -d "${km_cfg}" ]; then
+    _pass "~/.config/km exists (manual config)"
 else
-    _fail "~/.config/kms missing — run: bash setup-kms.sh"
+    _fail "~/.config/km missing — run: bash setup-kms.sh"
 fi
 
 # Verify global nvim config was NOT modified
 nvim_global="${HOME}/.config/nvim"
 if [ -L "${nvim_global}" ] && [ "$(readlink "${nvim_global}")" = "${project_nvim}" ]; then
-    _fail "~/.config/nvim is symlinked to project config — should use NVIM_APPNAME=kms instead"
+    _fail "~/.config/nvim is symlinked to project config — should use NVIM_APPNAME=km instead"
 else
     _pass "~/.config/nvim not overridden by project"
 fi

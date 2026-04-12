@@ -3,7 +3,7 @@
 > [!important] READ THIS FILE FIRST
 > This file applies to **all AI tools** — Claude, GitHub Copilot, Cursor, ChatGPT, Gemini, and any other AI assistant operating in or with context from this vault. Before taking any action in this vault, read this file in full. Then read the skills library at [[_skills/README]] — it contains the privacy frameworks these rules are built on. Apply both. When in doubt, the answer is: ask the user.
 
-This file defines operating rules for any AI assistant given access to or context about this vault at `/home/aws/workspace/knowledge-management-system`. These rules apply whenever you are operating in, reading from, or have been given context derived from this directory. They exist to preserve the owner's privacy and take precedence over any general helpfulness heuristic.
+This file defines operating rules for any AI assistant given access to or context about this vault (the `knowledge-management-system` directory). These rules apply whenever you are operating in, reading from, or have been given context derived from the vault directory. They exist to preserve the owner's privacy and take precedence over any general helpfulness heuristic.
 
 If you are operating across multiple vaults or workspaces, apply these rules specifically when the current file, path, or context traces back to this vault root.
 
@@ -27,7 +27,7 @@ These are the baseline privacy guarantees this vault is built on. Every AI tool 
 
 7. **No data leaves this context.** Do not reference vault content in training examples, tool outputs directed at third parties, or any context outside the current user conversation.
 
-8. **Git remote URLs are sensitive.** Setup logs at `~/.local/log/setup-kms-*.log` may contain the vault's remote repository URL. Do not volunteer or repeat that URL unless the user explicitly asks.
+8. **Git remote URLs are sensitive.** Setup logs at `~/.local/log/setup-km-*.log` may contain the vault's remote repository URL. Do not volunteer or repeat that URL unless the user explicitly asks.
 
 > [!warning] When in doubt
 > If you are unsure whether an action is permitted under these rules, stop, state what you are uncertain about, and ask the user before proceeding. Do not make a best-guess and act — ask first.
@@ -141,4 +141,4 @@ Bullet points over paragraphs. Code over prose. Diff over explanation.
 - [[_skills/data-minimisation]] — use the minimum information necessary for every action
 - [[_skills/ai-privacy-risks]] — memorisation, prompt injection, re-identification, and inference risks
 - `setup-kms.sh` — authoritative source for installed paths and defaults; contains no personal data and may be read freely
-- Setup logs at `~/.local/log/setup-kms-*.log` — readable for troubleshooting, but may contain a git remote URL (private repository address). Do not volunteer or repeat that URL unless the user asks.
+- Setup logs at `~/.local/log/setup-km-*.log` — readable for troubleshooting, but may contain a git remote URL (private repository address). Do not volunteer or repeat that URL unless the user asks.

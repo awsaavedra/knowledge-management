@@ -26,14 +26,14 @@ source env.sh            # activate the project environment
 bash verify-kms.sh       # confirm all tools installed correctly
 ```
 
-> **Project-scoped:** `source env.sh` sets PATH, EDITOR, and vault variables for the current shell only. Your `~/.zshrc`, `~/.config/nvim`, and `~/.config/lazygit` are never modified. Neovim uses `NVIM_APPNAME=kms` so the project config lives at `~/.config/kms/`, isolated from your global nvim setup.
+> **Project-scoped:** `source env.sh` sets PATH, EDITOR, and vault variables for the current shell only. Your `~/.zshrc`, `~/.config/nvim`, and `~/.config/lazygit` are never modified. Neovim uses `NVIM_APPNAME=km` so the project config lives at `~/.config/km/`, isolated from your global nvim setup.
 
 Then pick your editor:
 
 | Editor | How to start | Notes |
 |---|---|---|
-| **Obsidian** | `obs` | First launch: open `/home/aws/workspace/knowledge-management-system` as vault |
-| **Neovim** | `okm today` | Uses project config via `NVIM_APPNAME=kms`. `:Lazy sync` if needed |
+| **Obsidian** | `obs` | First launch: open `$(okm path)` as vault |
+| **Neovim** | `okm today` | Uses project config via `NVIM_APPNAME=km`. `:Lazy sync` if needed |
 | **Vim** | `EDITOR=vim okm today` | No plugins — plain Markdown editing |
 
 **Core `okm` commands:**
@@ -55,33 +55,85 @@ okm sync "message"       # git add + commit + pull --rebase + push
 
 ---
 
+## Fork & Use
+
+This repo is portable. No hardcoded paths — everything derives from the project root.
+
+```bash
+# 1. Fork or clone
+git clone <your-fork-url> ~/projects/knowledge-management
+cd ~/projects/knowledge-management
+
+# 2. (Optional) Set a custom vault location. Default: sibling directory.
+export OBSIDIAN_VAULT="$HOME/my-vault"
+
+# 3. Run setup (installs tools, creates vault dirs, bootstraps plugins)
+bash setup-kms.sh
+
+# 4. Activate
+source env.sh
+
+# 5. Verify
+bash verify-kms.sh
+```
+
+**What you get:** `okm` CLI, Obsidian (offline), Neovim + obsidian.nvim, lazygit, transcription tools (yt-dlp, whisperX, ffmpeg, mpv), and image compression — all project-scoped.
+
+**What you configure:**
+- `OBSIDIAN_VAULT` — override vault location (default: `../knowledge-management-system`)
+- `EDITOR` — override editor (default: `nvim`)
+- Git remote — `git -C "$(okm path)" remote add origin <url>`
+- SSH key — `ssh-keygen -t ed25519 -C km-vault`
+- Cron jobs — see [Automated TODO Summary](#automated-todo-summary-cron)
+
+**Platform support:** Linux (apt + Flatpak) and macOS. Binary downloads auto-detect architecture (x86_64 / arm64).
+
+**Python dependencies** are installed into a project-local `venv/` by `setup-kms.sh`.
+
+---
+
 ## Project Structure
 
 ```
-knowledge-management/               ← this repo (tools, config, setup)
-  env.sh                            ← source this to activate the project environment
-  setup-kms.sh                      ← idempotent bootstrap script
-  verify-kms.sh                     ← post-install verification script
-  bin/
-    okm                             ← vault CLI (tracked in git)
-    obs                             ← Obsidian launcher (tracked in git)
-    nvim                            ← Neovim binary (gitignored; created by setup)
-    lazygit                         ← lazygit binary (gitignored; created by setup)
-  config/
-    nvim/                           ← project nvim config (via NVIM_APPNAME=kms)
-    lazygit/                        ← project lazygit config (via LG_CONFIG_FILE)
-  scripts/
-    todo-summary.sh                 ← PARA-structured TODO/task scanner (runs on cron)
-  _skills/                          ← privacy framework reference library for AI tools
-  ai-instructions.md                ← rules for AI assistants in this vault
+.
+├── env.sh                          # source to activate
+├── setup-kms.sh                    # idempotent bootstrap
+├── verify-kms.sh                   # post-install checks
+├── ai-instructions.md              # AI privacy rules
+├── bin/
+│   ├── okm                         # vault CLI
+│   ├── nvim                        # neovim (gitignored, setup creates)
+│   └── lazygit                     # lazygit (gitignored, setup creates)
+├── config/
+│   ├── nvim/                       # NVIM_APPNAME=km → ~/.config/km/
+│   ├── lazygit/                    # LG_CONFIG_FILE → no global symlink
+│   └── mpv/                        # MPV_HOME → screenshot config (generated)
+├── scripts/
+│   ├── todo-summary.sh             # PARA TODO scanner (cron: 07/12/15:00)
+│   └── compress-images.py          # PNG/JPG → WebP (cron: 17:00)
+├── _skills/                        # privacy framework docs
+├── tests/                          # BATS test suite (151 tests)
+└── venv/                           # Python venv (gitignored, setup creates)
 
-knowledge-management-system/        ← vault (notes live here)
-  daily/                            ← one file per day (YYYY-MM-DD.md)
-  inbox/                            ← named notes and quick captures
-  attachments/                      ← images, PDFs, other assets
+../knowledge-management-system/     # vault (sibling directory, override with $OBSIDIAN_VAULT)
+├── daily/                          # Areas — one file per day (YYYY-MM-DD.md)
+├── inbox/                          # Projects — named notes, quick captures, active work
+├── attachments/                    # Resources — images, PDFs, screenshots
+└── archive/                        # Archive — completed/inactive notes (manual move)
 ```
 
-**Scoping:** all project config and binaries live inside this repo. Global config files (`~/.zshrc`, `~/.config/nvim`, `~/.config/lazygit`) are never modified. `source env.sh` activates the project for the current shell; closing the shell deactivates it.
+The vault follows [Tiago Forte's PARA method](https://fortelabs.com/blog/para/):
+
+| PARA bucket | Vault folder | What goes here |
+|---|---|---|
+| **Projects** | `inbox/` | Active notes with a clear end goal — new ideas, drafts, research |
+| **Areas** | `daily/` | Ongoing responsibilities — daily logs, recurring reviews |
+| **Resources** | `attachments/` | Reference material — images, PDFs, screenshots, diagrams |
+| **Archive** | `archive/` | Completed or inactive notes — moved here during review |
+
+`okm new` and `okm capture` write to `inbox/`. `okm today` writes to `daily/`. The TODO scanner maps code markers to PARA buckets (see [Automated TODO Summary](#automated-todo-summary-cron)).
+
+No global config files are modified. `source env.sh` activates; closing the shell deactivates.
 
 ---
 
@@ -119,7 +171,7 @@ knowledge-management-system/        ← vault (notes live here)
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OBSIDIAN_VAULT` | `/home/aws/workspace/knowledge-management-system` | Vault root |
+| `OBSIDIAN_VAULT` | `../knowledge-management-system` (sibling dir) | Vault root |
 | `OBSIDIAN_DAILY_DIR` | `daily` | Where `okm today` writes |
 | `OBSIDIAN_NOTES_DIR` | `inbox` | Where `okm new` / `okm capture` write |
 | `EDITOR` | `nvim` | Editor for all note commands |
@@ -137,7 +189,7 @@ knowledge-management-system/        ← vault (notes live here)
 | `:ObsidianFollowLink` | Follow `[[wikilink]]` under cursor |
 | `:ObsidianBacklinks` | Show notes linking to current note |
 
-Config: `config/nvim/lua/plugins/obsidian.lua` (available via `NVIM_APPNAME=kms` → `~/.config/kms/`). Your global `~/.config/nvim` is not affected.
+Config: `config/nvim/lua/plugins/obsidian.lua` (available via `NVIM_APPNAME=km` → `~/.config/km/`). Your global `~/.config/nvim` is not affected.
 
 ---
 
@@ -160,12 +212,13 @@ bash scripts/todo-summary.sh              # print to stdout
 bash scripts/todo-summary.sh --output     # write to inbox/todo-summary-YYYY.md (yearly living doc)
 ```
 
-**System crontab (persistent):**
+**System crontab (persistent):** replace `$KM` with your project path.
 ```bash
-# crontab -e
-3 7 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
-3 12 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
-3 15 * * * /usr/bin/bash /home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output
+# KM=/path/to/knowledge-management && crontab -e
+3 7 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 12 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+0 17 * * * $KM/venv/bin/python $KM/scripts/compress-images.py
 ```
 
 See `scripts/README.md` for full details.
@@ -180,9 +233,9 @@ See `scripts/README.md` for full details.
 2. Installs Obsidian via Flatpak; revokes its network permission
 3. Downloads Neovim and lazygit binaries to `bin/` (project-local, gitignored)
 4. Creates vault directories (`daily/`, `inbox/`, `attachments/`)
-5. Writes `bin/okm` and `bin/obs` scripts (project-local, tracked in git)
-6. Symlinks `~/.config/kms/` → `config/nvim/` for `NVIM_APPNAME=kms` isolation
-7. Bootstraps Neovim plugins under `~/.local/share/kms/` (isolated from global nvim)
+5. Verifies `bin/okm` CLI (project-local, tracked in git)
+6. Symlinks `~/.config/km/` → `config/nvim/` for `NVIM_APPNAME=km` isolation
+7. Bootstraps Neovim plugins under `~/.local/share/km/` (isolated from global nvim)
 8. Initialises git repo, optionally sets remote
 9. Enforces offline mode as the final step
 
@@ -190,7 +243,7 @@ See `scripts/README.md` for full details.
 
 Safe to re-run — every step is guarded (checks `dpkg -s`, SHA-256 hashes, existing dirs/files).
 
-Logs: `~/.local/log/setup-kms-YYYYMMDD-HHMMSS.log`
+Logs: `~/.local/log/setup-km-YYYYMMDD-HHMMSS.log`
 
 ### Activation
 
@@ -340,10 +393,10 @@ The example note `inbox/top-10-stocks-to-get-rich-in-2026.md` is the reference. 
 During video playback, press `s` in mpv to capture screenshots of key visuals (charts, tables, diagrams). Screenshots save to `attachments/` and get embedded as `![[screenshot-name.png]]` in the note.
 
 ```bash
-# mpv config (~/.config/mpv/mpv.conf or passed via flag)
-screenshot-directory=/home/aws/workspace/knowledge-management-system/attachments
+# mpv config (generated by setup-kms.sh, loaded via MPV_HOME in env.sh)
+screenshot-directory=$(okm path)/attachments
 screenshot-format=png
-screenshot-template="%F-%wH%wM%wS"
+screenshot-template=%F-%wH%wM%wS
 ```
 
 ### Implementation status
@@ -382,11 +435,11 @@ Single prioritized list. Open Items and Feature Roadmap consolidated here.
 
 | Item | Status |
 |---|---|
-| Install yt-dlp + whisperX + ffmpeg + mpv | Not started |
+| Install yt-dlp + whisperX + ffmpeg + mpv | Done |
+| Configure mpv screenshot directory → `attachments/` | Done |
 | Get HuggingFace token for pyannote (speaker diarization) | Not started |
 | Add `okm yt` subcommand (fetch transcript + metadata + thumbnail → note skeleton) | Not started |
 | Add `okm pod` subcommand (local audio → whisperX → note) | Not started |
-| Configure mpv screenshot directory → `attachments/` | Not started |
 | Add `okm distill` subcommand (caveman summary + structured tables + key quotes) | Not started |
 
 ### High — Security
@@ -427,13 +480,8 @@ These looked useful but add complexity without proportional value:
 | R4 | Consolidated `find` pipelines into `list_notes()` |
 | R5 | Single source for vault path (`$OBSIDIAN_VAULT` with fallback) |
 | R7 | PATH dedup guard in `env.sh` |
-
-### New refactors identified
-
-| ID | Refactor | Status |
-|---|---|---|
-| R8 | Remove dead `bin/obs` reference — file doesn't exist; `okm obs` handles launch directly | Not started |
-| R9 | Remove `obs` verification block from `setup-kms.sh` (lines 317-321) — verifies a missing file | Not started |
+| R8 | Removed dead `bin/obs` references — `okm obs` handles launch directly |
+| R9 | Removed `obs` verification block from `setup-kms.sh` and `verify-kms.sh` |
 
 ---
 

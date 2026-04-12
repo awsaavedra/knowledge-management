@@ -27,5 +27,15 @@ Thumbs.db
 bin/nvim
 bin/lazygit
 
+# Python venv (re-created by setup-kms.sh)
+venv/
+
+# Generated config (contains vault-specific paths; re-created by setup-kms.sh)
+config/mpv/mpv.conf
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+
 # Generated TODO summaries
 inbox/todo-summary-*.md

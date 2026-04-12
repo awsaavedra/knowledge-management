@@ -5,7 +5,7 @@ set -euo pipefail
 
 # --- Logging setup (must be first) ---
 LOG_DIR="${HOME}/.local/log"
-LOG_FILE="${LOG_DIR}/setup-kms-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="${LOG_DIR}/setup-km-$(date +%Y%m%d-%H%M%S).log"
 mkdir -p "${LOG_DIR}"
 
 _log() {
@@ -32,7 +32,7 @@ trap '_on_error ${LINENO}' ERR
 
 # --- Variables ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT_DIR="/home/aws/workspace/knowledge-management-system"
+VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
 BIN_DIR="${SCRIPT_DIR}/bin"
 GIT_REMOTE="${1:-}"
 
@@ -167,18 +167,39 @@ ensure_git_remote() {
     git -C "${dir}" push -u origin main || log_warn "git push failed — continuing (remote may not be accessible yet)"
 }
 
+detect_platform() {
+    local os arch
+    os="$(uname -s)"
+    arch="$(uname -m)"
+    case "${os}" in
+        Linux)  PLATFORM_OS="linux" ;;
+        Darwin) PLATFORM_OS="macos" ;;
+        *)      log_error "Unsupported OS: ${os}"; exit 1 ;;
+    esac
+    case "${arch}" in
+        x86_64|amd64)  PLATFORM_ARCH="x86_64" ;;
+        aarch64|arm64) PLATFORM_ARCH="arm64" ;;
+        *)             log_error "Unsupported architecture: ${arch}"; exit 1 ;;
+    esac
+    log_info "Platform: ${PLATFORM_OS}/${PLATFORM_ARCH}"
+}
+
 install_nvim() {
     if [ -x "${BIN_DIR}/nvim" ]; then
         log_info "SKIP: neovim already installed at ${BIN_DIR}/nvim"
         return 0
     fi
     log_info "ACTION: Installing Neovim (latest stable)"
-    local tmp_dir
+    local tmp_dir nvim_tarball nvim_dir
     tmp_dir="$(mktemp -d)"
+    case "${PLATFORM_OS}" in
+        linux)  nvim_tarball="nvim-linux-${PLATFORM_ARCH}.tar.gz"; nvim_dir="nvim-linux-${PLATFORM_ARCH}" ;;
+        macos)  nvim_tarball="nvim-macos-${PLATFORM_ARCH}.tar.gz"; nvim_dir="nvim-macos-${PLATFORM_ARCH}" ;;
+    esac
     curl -fsSL -o "${tmp_dir}/nvim.tar.gz" \
-        "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+        "https://github.com/neovim/neovim/releases/latest/download/${nvim_tarball}"
     tar -xf "${tmp_dir}/nvim.tar.gz" -C "${tmp_dir}"
-    cp "${tmp_dir}/nvim-linux-x86_64/bin/nvim" "${BIN_DIR}/nvim"
+    cp "${tmp_dir}/${nvim_dir}/bin/nvim" "${BIN_DIR}/nvim"
     chmod +x "${BIN_DIR}/nvim"
     rm -rf "${tmp_dir}"
     log_info "OK: neovim installed at ${BIN_DIR}/nvim"
@@ -194,8 +215,17 @@ install_lazygit() {
     tmp_dir="$(mktemp -d)"
     version="$(curl -fsSL "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" \
         | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')"
+    local lg_os lg_arch
+    case "${PLATFORM_OS}" in
+        linux)  lg_os="Linux" ;;
+        macos)  lg_os="Darwin" ;;
+    esac
+    case "${PLATFORM_ARCH}" in
+        x86_64) lg_arch="x86_64" ;;
+        arm64)  lg_arch="arm64" ;;
+    esac
     curl -fsSL -o "${tmp_dir}/lazygit.tar.gz" \
-        "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${version}_Linux_x86_64.tar.gz"
+        "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${version}_${lg_os}_${lg_arch}.tar.gz"
     tar -xf "${tmp_dir}/lazygit.tar.gz" -C "${BIN_DIR}" lazygit
     chmod +x "${BIN_DIR}/lazygit"
     rm -rf "${tmp_dir}"
@@ -203,10 +233,10 @@ install_lazygit() {
 }
 
 ensure_nvim_config_link() {
-    # Use NVIM_APPNAME=kms so the project nvim config lives at ~/.config/kms/
+    # Use NVIM_APPNAME=km so the project nvim config lives at ~/.config/km/
     # and does NOT touch the user's global ~/.config/nvim config.
     local project_nvim="${SCRIPT_DIR}/config/nvim"
-    local target="${HOME}/.config/kms"
+    local target="${HOME}/.config/km"
 
     mkdir -p "${HOME}/.config"
 
@@ -214,18 +244,18 @@ ensure_nvim_config_link() {
         local current_target
         current_target="$(readlink "${target}")"
         if [ "${current_target}" = "${project_nvim}" ]; then
-            log_info "SKIP: ~/.config/kms already linked to ${project_nvim}"
+            log_info "SKIP: ~/.config/km already linked to ${project_nvim}"
             return 0
         fi
-        log_warn "~/.config/kms symlinks to ${current_target} — updating to ${project_nvim}"
+        log_warn "~/.config/km symlinks to ${current_target} — updating to ${project_nvim}"
         rm "${target}"
     elif [ -d "${target}" ]; then
-        log_warn "~/.config/kms exists as a real directory — skipping symlink (manual merge required)"
+        log_warn "~/.config/km exists as a real directory — skipping symlink (manual merge required)"
         return 0
     fi
 
     ln -s "${project_nvim}" "${target}"
-    log_info "OK: ~/.config/kms -> ${project_nvim} (NVIM_APPNAME=kms isolates from global nvim config)"
+    log_info "OK: ~/.config/km -> ${project_nvim} (NVIM_APPNAME=km isolates from global nvim config)"
 }
 
 verify_lazygit_config() {
@@ -239,6 +269,46 @@ verify_lazygit_config() {
     fi
 }
 
+ensure_transcription_venv() {
+    local venv_dir="${SCRIPT_DIR}/venv"
+
+    if [ -d "${venv_dir}" ] && [ -x "${venv_dir}/bin/python" ]; then
+        log_info "SKIP: Python venv already exists at ${venv_dir}"
+    else
+        log_info "ACTION: Creating Python venv at ${venv_dir}"
+        python3 -m venv "${venv_dir}"
+        log_info "OK: venv created"
+    fi
+
+    log_info "ACTION: Installing transcription packages into venv"
+    "${venv_dir}/bin/pip" install --quiet --upgrade pip
+    "${venv_dir}/bin/pip" install --quiet \
+        yt-dlp \
+        "youtube-transcript-api>=1.0" \
+        whisperx \
+        Pillow
+
+    log_info "OK: transcription packages installed (see requirements.txt)"
+}
+
+ensure_mpv_config() {
+    # Always regenerate — vault path may have changed.
+    local mpv_dir="${SCRIPT_DIR}/config/mpv"
+    local mpv_conf="${mpv_dir}/mpv.conf"
+
+    mkdir -p "${mpv_dir}"
+    cat > "${mpv_conf}" <<MPV_CONF
+# Project-scoped mpv config for knowledge-management.
+# Loaded via MPV_HOME in env.sh — does NOT touch ~/.config/mpv.
+
+# Screenshots save directly into the vault attachments directory.
+screenshot-directory=${VAULT_DIR}/attachments
+screenshot-format=png
+screenshot-template=%F-%wH%wM%wS
+MPV_CONF
+    log_info "OK: mpv config written at ${mpv_conf} (loaded via MPV_HOME in env.sh)"
+}
+
 # Bootstrap all Neovim plugins while the network is still available.
 # After this runs, nvim operates fully offline — no plugin auto-updates.
 bootstrap_nvim_plugins() {
@@ -247,18 +317,18 @@ bootstrap_nvim_plugins() {
         return 0
     fi
 
-    # NVIM_APPNAME=kms stores plugin data under ~/.local/share/kms/ (isolated from global nvim)
-    local lazy_path="${HOME}/.local/share/kms/lazy/lazy.nvim"
-    local obsidian_path="${HOME}/.local/share/kms/lazy/obsidian.nvim"
+    # NVIM_APPNAME=km stores plugin data under ~/.local/share/km/ (isolated from global nvim)
+    local lazy_path="${HOME}/.local/share/km/lazy/lazy.nvim"
+    local obsidian_path="${HOME}/.local/share/km/lazy/obsidian.nvim"
 
     if [ -d "${lazy_path}" ] && [ -d "${obsidian_path}" ]; then
-        log_info "SKIP: Neovim plugins already bootstrapped (NVIM_APPNAME=kms)"
+        log_info "SKIP: Neovim plugins already bootstrapped (NVIM_APPNAME=km)"
         return 0
     fi
 
-    log_info "ACTION: Bootstrapping Neovim plugins (one-time; requires network; NVIM_APPNAME=kms)"
-    if timeout 180 env NVIM_APPNAME=kms "${BIN_DIR}/nvim" --headless "+Lazy! sync" +qa 2>/dev/null; then
-        log_info "OK: Neovim plugins bootstrapped under ~/.local/share/kms/"
+    log_info "ACTION: Bootstrapping Neovim plugins (one-time; requires network; NVIM_APPNAME=km)"
+    if timeout 180 env NVIM_APPNAME=km "${BIN_DIR}/nvim" --headless "+Lazy! sync" +qa 2>/dev/null; then
+        log_info "OK: Neovim plugins bootstrapped under ~/.local/share/km/"
     else
         log_warn "Plugin bootstrap exited non-zero — run 'source env.sh && nvim' once to finish install"
     fi
@@ -282,8 +352,12 @@ ensure_obsidian_offline() {
 
 # --- Install steps ---
 
+log_info "==> Detecting platform"
+detect_platform
+
 log_info "==> Installing packages"
-install_apt_packages vim git ripgrep fzf xdg-utils flatpak xclip wl-clipboard curl
+install_apt_packages vim git ripgrep fzf xdg-utils flatpak xclip wl-clipboard curl \
+    ffmpeg mpv python3-venv python3-pip
 
 log_info "==> Ensuring Flathub is configured"
 ensure_flathub_remote
@@ -295,6 +369,7 @@ log_info "==> Creating vault structure"
 ensure_dir "${VAULT_DIR}/daily"
 ensure_dir "${VAULT_DIR}/inbox"
 ensure_dir "${VAULT_DIR}/attachments"
+ensure_dir "${VAULT_DIR}/archive"
 ensure_dir "${BIN_DIR}"
 
 log_info "==> Verifying okm CLI"
@@ -312,15 +387,6 @@ if [ -f "${SCRIPT_DIR}/env.sh" ]; then
 else
     log_error "env.sh not found at ${SCRIPT_DIR}/env.sh — project environment cannot be activated"
 fi
-
-log_info "==> Verifying obs binary"
-# bin/obs is tracked in git — just ensure it exists and is executable.
-if [ ! -f "${BIN_DIR}/obs" ]; then
-    log_error "bin/obs not found at ${BIN_DIR}/obs — project repo may be incomplete"
-    exit 1
-fi
-chmod +x "${BIN_DIR}/obs"
-log_info "OK: bin/obs is present and executable"
 
 log_info "==> Writing .gitignore"
 ensure_gitignore "${VAULT_DIR}"
@@ -345,6 +411,12 @@ verify_lazygit_config
 
 log_info "==> Bootstrapping Neovim plugins"
 bootstrap_nvim_plugins
+
+log_info "==> Setting up transcription tools"
+ensure_transcription_venv
+
+log_info "==> Configuring mpv screenshots"
+ensure_mpv_config
 
 log_info "==> Enforcing offline mode"
 ensure_obsidian_offline

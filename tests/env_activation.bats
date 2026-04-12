@@ -14,8 +14,11 @@ setup() {
 }
 
 @test "OBSIDIAN_VAULT is set correctly" {
+    unset OBSIDIAN_VAULT
     source "${PROJECT_ROOT}/env.sh"
-    [ "$OBSIDIAN_VAULT" = "/home/aws/workspace/knowledge-management-system" ]
+    local expected
+    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management-system"
+    [ "$OBSIDIAN_VAULT" = "$expected" ]
 }
 
 @test "OBSIDIAN_DAILY_DIR is set to daily" {
@@ -33,9 +36,9 @@ setup() {
     [ "$EDITOR" = "nvim" ]
 }
 
-@test "NVIM_APPNAME is set to kms" {
+@test "NVIM_APPNAME is set to km" {
     source "${PROJECT_ROOT}/env.sh"
-    [ "$NVIM_APPNAME" = "kms" ]
+    [ "$NVIM_APPNAME" = "km" ]
 }
 
 @test "LG_CONFIG_FILE points to project lazygit config" {

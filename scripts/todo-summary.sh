@@ -27,8 +27,9 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${KMS_PROJECT_DIR:-/home/aws/workspace/knowledge-management}"
-VAULT_DIR="${OBSIDIAN_VAULT:-/home/aws/workspace/knowledge-management-system}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_DIR="${KMS_PROJECT_DIR:-${SCRIPT_DIR}}"
+VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
 YEAR="$(date +%Y)"
 TODAY="$(date +%F)"
 OUTPUT_FILE="${PROJECT_DIR}/inbox/todo-summary-${YEAR}.md"

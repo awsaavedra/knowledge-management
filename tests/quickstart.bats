@@ -33,9 +33,11 @@ setup() {
     ensure_dir "${VAULT_DIR}/daily"
     ensure_dir "${VAULT_DIR}/inbox"
     ensure_dir "${VAULT_DIR}/attachments"
+    ensure_dir "${VAULT_DIR}/archive"
     [ -d "${VAULT_DIR}/daily" ]
     [ -d "${VAULT_DIR}/inbox" ]
     [ -d "${VAULT_DIR}/attachments" ]
+    [ -d "${VAULT_DIR}/archive" ]
 }
 
 @test "quickstart: setup creates .gitignore" {
@@ -52,10 +54,10 @@ setup() {
     assert_output "main"
 }
 
-@test "quickstart: setup creates nvim config symlink at ~/.config/kms" {
+@test "quickstart: setup creates nvim config symlink at ~/.config/km" {
     ensure_nvim_config_link
-    [ -L "${HOME}/.config/kms" ]
-    [ "$(readlink "${HOME}/.config/kms")" = "${PROJECT_ROOT}/config/nvim" ]
+    [ -L "${HOME}/.config/km" ]
+    [ "$(readlink "${HOME}/.config/km")" = "${PROJECT_ROOT}/config/nvim" ]
 }
 
 @test "quickstart: setup does NOT create ~/.config/nvim" {
@@ -82,7 +84,7 @@ setup() {
     [ -n "$OBSIDIAN_DAILY_DIR" ]
     [ -n "$OBSIDIAN_NOTES_DIR" ]
     [ "$EDITOR" = "nvim" ]
-    [ "$NVIM_APPNAME" = "kms" ]
+    [ "$NVIM_APPNAME" = "km" ]
     [ -n "$LG_CONFIG_FILE" ]
 }
 
@@ -98,7 +100,9 @@ setup() {
     run "${PROJECT_ROOT}/bin/okm" path
     assert_success
     # Should print the vault path (from OBSIDIAN_VAULT set by env.sh)
-    assert_output "/home/aws/workspace/knowledge-management-system"
+    local expected
+    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management-system"
+    assert_output "$expected"
 }
 
 @test "quickstart: okm today creates daily note in vault" {

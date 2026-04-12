@@ -154,11 +154,9 @@ setup() {
 
 # === Cron script path ===
 
-@test "documented crontab command points to correct script path" {
-    grep -q '/home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output' \
-        "${PROJECT_ROOT}/scripts/README.md"
-    grep -q '/home/aws/workspace/knowledge-management/scripts/todo-summary.sh --output' \
-        "${PROJECT_ROOT}/README.md"
+@test "documented crontab command references todo-summary.sh --output" {
+    grep -q 'todo-summary.sh --output' "${PROJECT_ROOT}/scripts/README.md"
+    grep -q 'todo-summary.sh --output' "${PROJECT_ROOT}/README.md"
 }
 
 @test "todo-summary.sh is executable" {
