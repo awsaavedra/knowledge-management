@@ -1,3 +1,5 @@
+> **Disclaimer:** Content in this vault (especially financial, health, and investment topics) is for educational purposes only. See [`disclaimer.md`](disclaimer.md) for full terms.
+
 # Knowledge Management
 
 ## What This Is
@@ -316,11 +318,39 @@ tags: [source/podcast, topic/machine-learning]
 ---
 ```
 
+### YouTube note anatomy (target format)
+
+The example note `inbox/top-10-stocks-to-get-rich-in-2026.md` is the reference. A finished YouTube summary note has these sections:
+
+| Section | Purpose | How it's produced |
+|---|---|---|
+| **Frontmatter** | source_type, source_url, author, tags | `okm yt` (auto-generated) |
+| **Thumbnail** | `![[filename.png]]` Obsidian embed | `okm yt` saves thumbnail |
+| **Summary** | 3-5 caveman-speech bullets — key takeaways only | `okm distill` or manual |
+| **Structured data table** | e.g. stocks mentioned with ticker symbols, frameworks | `okm distill` or manual |
+| **Key quotes** | Timestamped quotes `> [MM:SS] "..."` | `okm distill` or manual |
+| **Screenshots** | `![[screenshot-HHMMSS.png]]` of key visuals (charts, diagrams) | mpv screenshot during playback |
+| **Timestamps** | Chapter markers from video | `okm yt` (auto-extracted) |
+| **Transcript** | Full text with timestamps | `okm yt` (fetched or whisperX) |
+
+**Caveman speech rules for summaries:** Short sentences. No filler. Bullets over paragraphs. Lead with the fact, not the context. Numbers and tickers over prose. Tables over lists when there's structured data (tickers, comparisons, frameworks).
+
+### Screenshots via mpv
+
+During video playback, press `s` in mpv to capture screenshots of key visuals (charts, tables, diagrams). Screenshots save to `attachments/` and get embedded as `![[screenshot-name.png]]` in the note.
+
+```bash
+# mpv config (~/.config/mpv/mpv.conf or passed via flag)
+screenshot-directory=/home/aws/workspace/knowledge-management-system/attachments
+screenshot-format=png
+screenshot-template="%F-%wH%wM%wS"
+```
+
 ### Implementation status
 
-- **Phase 1** (core pipeline): install yt-dlp, whisperX, ffmpeg, mpv. Add `okm yt` and `okm pod`.
+- **Phase 1** (core pipeline): install yt-dlp, whisperX, ffmpeg, mpv. Add `okm yt` and `okm pod`. Configure mpv screenshot directory.
 - **Phase 2** (online toggle): add `okm online` / `okm offline`.
-- **Phase 3** (summarisation): add `okm distill` with Claude and Ollama backends.
+- **Phase 3** (summarisation): add `okm distill` with Claude and Ollama backends. Output: caveman summary + structured data tables + timestamped quotes.
 
 ---
 
@@ -344,53 +374,66 @@ See `ai-instructions.md` for AI-specific rules. This covers system-level control
 
 ---
 
-## Open Items
+## Roadmap
 
-| Item | Priority |
+Single prioritized list. Open Items and Feature Roadmap consolidated here.
+
+### High — YouTube/audio pipeline
+
+| Item | Status |
 |---|---|
-| Initialise git-crypt | High |
-| Install yt-dlp + whisperX + ffmpeg + mpv | High |
-| Get HuggingFace token for pyannote (speaker diarization) | High |
-| Add `okm yt` and `okm pod` subcommands | High |
-| Add `okm online` / `okm offline` toggle | Medium |
-| Configure mpv screenshot directory | Medium |
-| SSH key generation | Medium |
-| Add `okm distill` subcommand | Low |
-| Install Ollama + `llm` CLI | Low |
-| Audit `.obsidian/` plugin configs | Low |
+| Install yt-dlp + whisperX + ffmpeg + mpv | Not started |
+| Get HuggingFace token for pyannote (speaker diarization) | Not started |
+| Add `okm yt` subcommand (fetch transcript + metadata + thumbnail → note skeleton) | Not started |
+| Add `okm pod` subcommand (local audio → whisperX → note) | Not started |
+| Configure mpv screenshot directory → `attachments/` | Not started |
+| Add `okm distill` subcommand (caveman summary + structured tables + key quotes) | Not started |
 
----
+### High — Security
 
-## Feature Roadmap
-
-New `okm` subcommands and infrastructure planned beyond the open items above.
-
-| Feature | What it does |
+| Item | Status |
 |---|---|
-| `okm link <file>` | List outgoing `[[wikilinks]]` from a note (pure ripgrep) |
-| `okm backlinks <file>` | List notes that link to a given note (pure ripgrep) |
-| `okm move <src> <dst>` | Rename/refile a note and update all `[[wikilinks]]` across vault |
-| `okm archive [--days N]` | Move daily notes older than N days to `daily/archive/YYYY/` |
-| `okm tags` / `okm tags <name>` | List all unique tags, or filter notes by tag (ripgrep + awk on frontmatter) |
-| `okm stats` | Vault health dashboard: note count, this week's notes, orphans, inbox size |
-| `okm template <name> <title>` | Create note from `templates/` skeleton (aligns CLI with `:ObsidianTemplate`) |
-| Auto-sync cron | End-of-day `okm sync` via cron (guarded: skip if no upstream) |
+| Initialise git-crypt | Not started |
+| SSH key generation | Not started |
 
----
+### Medium
 
-## Refactor Checklist
+| Item | Status |
+|---|---|
+| Add `okm online` / `okm offline` toggle | Not started |
+| Install Ollama + `llm` CLI (local distill backend) | Not started |
+| `okm move <src> <dst>` — rename note + update all `[[wikilinks]]` across vault | Not started |
 
-Simplifications to reduce complexity and maintenance burden.
+### Deferred / Won't do
+
+These looked useful but add complexity without proportional value:
+
+| Item | Reason to skip |
+|---|---|
+| `okm link`, `okm backlinks` | One-liner `rg` commands — document as recipes, don't add subcommands |
+| `okm tags`, `okm stats` | Same — `rg` + `awk` one-liners, not worth code in `bin/okm` |
+| `okm archive` | Daily notes are small; archiving adds folder churn |
+| `okm template` | Obsidian `:ObsidianTemplate` already does this |
+| Auto-sync cron | Silent pushes are risky; `okm sync` is explicit and intentional |
+| Shared logging lib (R2) | `setup-kms.sh` and `verify-kms.sh` logging functions differ more than they overlap |
+| Audit `.obsidian/` plugin configs | Low risk — Obsidian is sandboxed offline |
+
+### Completed refactors
+
+| ID | Refactor |
+|---|---|
+| R1 | Removed self-copy blocks in `setup-kms.sh` |
+| R3 | Fixed BATS test boilerplate (`common_setup()`) |
+| R4 | Consolidated `find` pipelines into `list_notes()` |
+| R5 | Single source for vault path (`$OBSIDIAN_VAULT` with fallback) |
+| R7 | PATH dedup guard in `env.sh` |
+
+### New refactors identified
 
 | ID | Refactor | Status |
 |---|---|---|
-| R1 | Remove self-copy blocks in `setup-kms.sh` (bin/okm and bin/obs are tracked in git) | Done |
-| R2 | Shared logging lib (`lib/common.sh`) for setup + verify scripts | Deferred — functions differ more than they overlap |
-| R3 | Fix BATS test `setup()` boilerplate — rename to `common_setup()`, remove fragile `eval/grep/sed` | Done |
-| R4 | Consolidate `find` pipelines in `bin/okm` into `list_notes()` helper | Done |
-| R5 | Single source for vault path — scripts already use `$OBSIDIAN_VAULT` with fallback | Already done |
-| R6 | Simplify `todo-summary.sh` carry-forward logic | Deferred — working, well-tested |
-| R7 | PATH dedup guard in `env.sh` (prevents duplicates on repeated `source`) | Done |
+| R8 | Remove dead `bin/obs` reference — file doesn't exist; `okm obs` handles launch directly | Not started |
+| R9 | Remove `obs` verification block from `setup-kms.sh` (lines 317-321) — verifies a missing file | Not started |
 
 ---
 

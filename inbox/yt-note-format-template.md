@@ -15,6 +15,8 @@ tags:
 
 # Top 10 Stocks I'm Buying to Get Rich in 2026 (Without Getting Lucky)
 
+> **Disclaimer:** Educational content only. Not financial advice. See [`disclaimer.md`](../disclaimer.md).
+
 ![[top-10-stocks-2026-thumbnail.png]]
 
 ## Summary
