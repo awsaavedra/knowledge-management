@@ -16,6 +16,7 @@ Usage:
   okm new <title>
   okm capture [text]
   okm today
+  okm spot <spotify-url>
   okm grep <pattern>
   okm files [pattern]
   okm recent
@@ -175,6 +176,130 @@ sync_git() {
   fi
 }
 
+spot_note() {
+  ensure_dirs
+  local url="${1:-}"
+  [ -n "$url" ] || { echo "Spotify URL required" >&2; exit 1; }
+
+  # Validate it's a Spotify URL
+  case "$url" in
+    *open.spotify.com/*|*spotify:*) ;;
+    *) echo "Not a Spotify URL: $url" >&2; exit 1 ;;
+  esac
+
+  # Determine content type from URL
+  local spot_type="track"
+  case "$url" in
+    *episode*) spot_type="episode" ;;
+    *show*)    spot_type="show" ;;
+    *album*)   spot_type="album" ;;
+    *playlist*) spot_type="playlist" ;;
+    *track*)   spot_type="track" ;;
+  esac
+
+  # Extract Spotify ID for embed URL
+  local spot_id embed_url
+  spot_id="$(echo "$url" | sed -E 's#.*/[a-z]+/([a-zA-Z0-9]+)(\?.*)?$#\1#')"
+  embed_url="https://open.spotify.com/embed/${spot_type}/${spot_id}"
+
+  # Try spotdl for metadata (tracks/albums/playlists)
+  local title="" artist=""
+  if command -v spotdl >/dev/null 2>&1 && [ "$spot_type" != "episode" ] && [ "$spot_type" != "show" ]; then
+    local meta
+    meta="$(spotdl url "$url" --output "{artist} - {title}" --print-errors 2>/dev/null | head -1 || true)"
+    if [ -n "$meta" ]; then
+      artist="$(echo "$meta" | sed 's/ - .*//')"
+      title="$(echo "$meta" | sed 's/^[^-]*- //')"
+    fi
+  fi
+
+  # Fallback title from URL slug
+  if [ -z "$title" ]; then
+    title="$(echo "$url" | sed -E 's|.*/[a-zA-Z]+/[a-zA-Z0-9]+[?/]?||; s/[?#].*//' | tr '-' ' ')"
+    [ -n "$title" ] || title="Spotify ${spot_type} ${spot_id}"
+  fi
+
+  local slug file
+  slug="$(slugify "$title")"
+  file="$VAULT/$NOTES_DIR/$slug.md"
+
+  local source_tag="source/spotify"
+  case "$spot_type" in
+    episode|show) source_tag="source/podcast" ;;
+    track|album)  source_tag="source/music" ;;
+    playlist)     source_tag="source/playlist" ;;
+  esac
+
+  if [ ! -f "$file" ]; then
+    case "$spot_type" in
+      episode|show)
+        cat > "$file" <<EOF
+---
+title: "${title}"
+source_type: spotify-${spot_type}
+source_url: "${url}"
+author: "${artist}"
+created: $(iso_now)
+tags: [${source_tag}]
+---
+
+# ${title}
+
+## Player
+
+[Listen on Spotify](${url})
+
+<iframe src="${embed_url}" width="100%" height="352" frameBorder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+
+## Summary
+
+<!-- caveman speech: short sentences, no filler, bullets over paragraphs -->
+
+-
+
+## Key Quotes
+
+> [MM:SS] "..."
+
+## Transcript
+
+<!-- okm distill or whisperX after downloading audio -->
+
+EOF
+        ;;
+      *)
+        cat > "$file" <<EOF
+---
+title: "${title}"
+source_type: spotify-${spot_type}
+source_url: "${url}"
+author: "${artist}"
+created: $(iso_now)
+tags: [${source_tag}]
+---
+
+# ${title}
+
+## Player
+
+[Listen on Spotify](${url})
+
+<iframe src="${embed_url}" width="100%" height="352" frameBorder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+
+## Notes
+
+-
+
+EOF
+        ;;
+    esac
+    echo "Created: $file"
+  else
+    echo "Exists: $file"
+  fi
+  exec "$EDITOR_CMD" "$file"
+}
+
 open_obsidian() {
   flatpak run md.obsidian.Obsidian >/dev/null 2>&1 &
 }
@@ -184,6 +309,7 @@ case "${1:-help}" in
   new) shift; new_note "$*" ;;
   capture) shift; capture_note "$*" ;;
   today) shift; today_note ;;
+  spot) shift; spot_note "${1:-}" ;;
   grep) shift; grep_vault "${1:-}" ;;
   files) shift; files_vault "${1:-}" ;;
   recent) shift; recent_notes ;;

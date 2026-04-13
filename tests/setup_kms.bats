@@ -51,12 +51,34 @@ setup() {
     grep -q "attachments/*.pdf" "${target}/.gitignore"
 }
 
+@test "ensure_gitignore excludes notes by default (KM_TRACK_NOTES=false)" {
+    local target="${TEST_TEMP_DIR}/vault-test"
+    mkdir -p "$target"
+    KM_TRACK_NOTES=false ensure_gitignore "$target"
+    grep -q "daily/*.md" "${target}/.gitignore"
+    grep -q "inbox/*.md" "${target}/.gitignore"
+    grep -q "archive/*.md" "${target}/.gitignore"
+}
+
+@test "ensure_gitignore tracks notes when KM_TRACK_NOTES=true" {
+    local target="${TEST_TEMP_DIR}/vault-test"
+    mkdir -p "$target"
+    KM_TRACK_NOTES=true ensure_gitignore "$target"
+    ! grep -q "daily/*.md" "${target}/.gitignore"
+    ! grep -q "inbox/*.md" "${target}/.gitignore"
+    ! grep -q "archive/*.md" "${target}/.gitignore"
+}
+
 @test "ensure_gitignore is idempotent" {
     local target="${TEST_TEMP_DIR}/vault-test"
     mkdir -p "$target"
     ensure_gitignore "$target"
-    run ensure_gitignore "$target"
-    assert_output --partial "SKIP"
+    local hash1
+    hash1="$(sha256sum "${target}/.gitignore" | cut -d' ' -f1)"
+    ensure_gitignore "$target"
+    local hash2
+    hash2="$(sha256sum "${target}/.gitignore" | cut -d' ' -f1)"
+    [ "$hash1" = "$hash2" ]
 }
 
 # === ensure_git_repo ===

@@ -37,5 +37,8 @@ config/mpv/mpv.conf
 __pycache__/
 *.pyc
 
-# Generated TODO summaries
-inbox/todo-summary-*.md
+# Personal notes (vault content should not live in the tooling repo)
+inbox/*.md
+!inbox/*-template.md
+daily/*.md
+archive/*.md

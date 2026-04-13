@@ -96,11 +96,9 @@ ensure_dir() {
 ensure_gitignore() {
     local dir="$1"
     local gitignore="${dir}/.gitignore"
-    if [ -f "${gitignore}" ]; then
-        log_info "SKIP: .gitignore already exists at ${gitignore}"
-    else
-        log_info "ACTION: Writing .gitignore at ${gitignore}"
-        cat > "${gitignore}" <<'GITIGNORE'
+
+    log_info "ACTION: Writing .gitignore at ${gitignore} (KM_TRACK_NOTES=${KM_TRACK_NOTES:-false})"
+    cat > "${gitignore}" <<'GITIGNORE'
 # Obsidian workspace state (changes constantly, not worth tracking)
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
@@ -126,7 +124,20 @@ Thumbs.db
 *.swo
 *~
 GITIGNORE
-        log_info "OK: .gitignore written"
+
+    # KM_TRACK_NOTES=true: notes are tracked in git (user wants full history/git-crypt).
+    # KM_TRACK_NOTES=false (default): notes are gitignored for privacy.
+    if [ "${KM_TRACK_NOTES:-false}" != "true" ]; then
+        cat >> "${gitignore}" <<'PRIVATE'
+
+# Private notes — set KM_TRACK_NOTES=true before setup to track these in git
+daily/*.md
+inbox/*.md
+archive/*.md
+PRIVATE
+        log_info "OK: .gitignore written (notes excluded — private mode)"
+    else
+        log_info "OK: .gitignore written (notes tracked — KM_TRACK_NOTES=true)"
     fi
 }
 
@@ -286,7 +297,8 @@ ensure_transcription_venv() {
         yt-dlp \
         "youtube-transcript-api>=1.0" \
         whisperx \
-        Pillow
+        Pillow \
+        spotdl
 
     log_info "OK: transcription packages installed (see requirements.txt)"
 }
@@ -387,6 +399,24 @@ if [ -f "${SCRIPT_DIR}/env.sh" ]; then
 else
     log_error "env.sh not found at ${SCRIPT_DIR}/env.sh — project environment cannot be activated"
 fi
+
+# Ask about note tracking if the user hasn't already set KM_TRACK_NOTES
+if [ -z "${KM_TRACK_NOTES:-}" ]; then
+    echo ""
+    echo "Do you want to track your notes in git history?"
+    echo "  yes — notes (daily/, inbox/, archive/) are committed to git. (default)"
+    echo "        Pair with git-crypt for encrypted remote backups."
+    echo "  no  — notes are gitignored. They stay local only."
+    echo ""
+    printf "Track notes in git? [Y/n] "
+    read -r track_answer
+    case "${track_answer}" in
+        [Nn]|[Nn][Oo]) KM_TRACK_NOTES=false ;;
+        *)             KM_TRACK_NOTES=true ;;
+    esac
+    log_info "KM_TRACK_NOTES=${KM_TRACK_NOTES} (user selected)"
+fi
+export KM_TRACK_NOTES
 
 log_info "==> Writing .gitignore"
 ensure_gitignore "${VAULT_DIR}"

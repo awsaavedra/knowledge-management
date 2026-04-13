@@ -188,6 +188,87 @@ setup() {
     assert_output --partial "test commit message"
 }
 
+# === okm spot ===
+
+@test "okm spot requires a URL" {
+    run "${OKM}" spot
+    assert_failure
+    assert_output --partial "Spotify URL required"
+}
+
+@test "okm spot rejects non-Spotify URLs" {
+    run "${OKM}" spot "https://youtube.com/watch?v=abc123"
+    assert_failure
+    assert_output --partial "Not a Spotify URL"
+}
+
+@test "okm spot creates episode note with podcast template" {
+    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
+    assert_success
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-episode-5snnwbraj8xpzcz87iasxi.md"
+    [ -f "$file" ]
+    grep -q "source_type: spotify-episode" "$file"
+    grep -q "source_url:" "$file"
+    grep -q "source/podcast" "$file"
+    grep -q "## Player" "$file"
+    grep -q "embed/episode" "$file"
+    grep -q "## Summary" "$file"
+    grep -q "## Transcript" "$file"
+}
+
+@test "okm spot creates track note with music template" {
+    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6"
+    assert_success
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-track-6rqhfgbbkwnb9mlmuqdhg6.md"
+    [ -f "$file" ]
+    grep -q "source_type: spotify-track" "$file"
+    grep -q "source/music" "$file"
+    grep -q "## Player" "$file"
+    grep -q "embed/track" "$file"
+    grep -q "## Notes" "$file"
+    # Track notes should NOT have transcript section
+    ! grep -q "## Transcript" "$file"
+}
+
+@test "okm spot creates album note" {
+    run "${OKM}" spot "https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3"
+    assert_success
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-album-1dfixlwupkv3kt3tnv35m3.md"
+    [ -f "$file" ]
+    grep -q "source_type: spotify-album" "$file"
+}
+
+@test "okm spot creates playlist note" {
+    run "${OKM}" spot "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+    assert_success
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-playlist-37i9dqzf1dxcbwigoybm5m.md"
+    [ -f "$file" ]
+    grep -q "source_type: spotify-playlist" "$file"
+    grep -q "source/playlist" "$file"
+}
+
+@test "okm spot is idempotent (does not overwrite existing)" {
+    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-episode-5snnwbraj8xpzcz87iasxi.md"
+    [ -f "$file" ]
+    echo "user added content" >> "$file"
+    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
+    assert_output --partial "Exists:"
+    grep -q "user added content" "$file"
+}
+
+@test "okm spot embed URL has correct format" {
+    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-episode-5snnwbraj8xpzcz87iasxi.md"
+    grep -q "https://open.spotify.com/embed/episode/5sNnwbraj8xpzCZ87iASXi" "$file"
+}
+
+@test "okm spot includes Listen on Spotify link" {
+    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6"
+    local file="${FAKE_VAULT_DIR}/inbox/spotify-track-6rqhfgbbkwnb9mlmuqdhg6.md"
+    grep -q "Listen on Spotify" "$file"
+}
+
 @test "okm sync with no changes says so" {
     git -C "${FAKE_VAULT_DIR}" init -b main
     git -C "${FAKE_VAULT_DIR}" config user.email "test@test.com"

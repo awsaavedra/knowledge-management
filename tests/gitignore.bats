@@ -20,8 +20,12 @@ setup() {
     grep -q '^bin/lazygit$' "$GITIGNORE"
 }
 
-@test "inbox/todo-summary-*.md is ignored" {
-    grep -q 'inbox/todo-summary-\*.md' "$GITIGNORE"
+@test "inbox/*.md is ignored" {
+    grep -q 'inbox/\*.md' "$GITIGNORE"
+}
+
+@test "template files are exempted from inbox ignore" {
+    grep -q '!inbox/\*-template.md' "$GITIGNORE"
 }
 
 @test "swap files *.swp are ignored" {

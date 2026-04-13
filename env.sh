@@ -19,6 +19,11 @@ export OBSIDIAN_VAULT="${OBSIDIAN_VAULT:-$(cd "${KMS_ROOT}/.." && pwd)/knowledge
 export OBSIDIAN_DAILY_DIR=daily
 export OBSIDIAN_NOTES_DIR=inbox
 
+# --- Note tracking: set before running setup to control vault .gitignore ---
+# Default (true): notes are tracked in git (pair with git-crypt for encryption).
+# Set to "false" if you want notes gitignored and local-only.
+export KM_TRACK_NOTES="${KM_TRACK_NOTES:-true}"
+
 # --- Editor: use project-scoped nvim config via NVIM_APPNAME ---
 # This makes nvim read from ~/.config/km/ instead of ~/.config/nvim/
 # Your global nvim config is not affected.

@@ -67,20 +67,25 @@ cd ~/projects/knowledge-management
 # 2. (Optional) Set a custom vault location. Default: sibling directory.
 export OBSIDIAN_VAULT="$HOME/my-vault"
 
-# 3. Run setup (installs tools, creates vault dirs, bootstraps plugins)
+# 3. (Optional) Track notes in git. Default: false (notes gitignored for privacy).
+#    Set to true if you want full git history of notes (e.g. with git-crypt).
+export KM_TRACK_NOTES=true
+
+# 4. Run setup (installs tools, creates vault dirs, bootstraps plugins)
 bash setup-kms.sh
 
-# 4. Activate
+# 5. Activate
 source env.sh
 
-# 5. Verify
+# 6. Verify
 bash verify-kms.sh
 ```
 
-**What you get:** `okm` CLI, Obsidian (offline), Neovim + obsidian.nvim, lazygit, transcription tools (yt-dlp, whisperX, ffmpeg, mpv), and image compression — all project-scoped.
+**What you get:** `okm` CLI, Obsidian (offline), Neovim + obsidian.nvim, lazygit, transcription tools (yt-dlp, whisperX, spotdl, ffmpeg, mpv), and image compression — all project-scoped.
 
 **What you configure:**
 - `OBSIDIAN_VAULT` — override vault location (default: `../knowledge-management-system`)
+- `KM_TRACK_NOTES` — `true` to track notes in git, `false` (default) to gitignore them
 - `EDITOR` — override editor (default: `nvim`)
 - Git remote — `git -C "$(okm path)" remote add origin <url>`
 - SSH key — `ssh-keygen -t ed25519 -C km-vault`
@@ -160,6 +165,7 @@ No global config files are modified. `source env.sh` activates; closing the shel
 | `new` | `okm new <title>` | Create slugified note in `inbox/` with frontmatter |
 | `capture` | `okm capture [text]` | Timestamped quick-capture note |
 | `today` | `okm today` | Open/create today's daily note at `daily/YYYY-MM-DD.md` |
+| `spot` | `okm spot <spotify-url>` | Create note from Spotify link (episode, track, album, playlist) |
 | `grep` | `okm grep <pattern>` | ripgrep across all `.md` files |
 | `files` | `okm files [pattern]` | List all `.md` paths, optionally filtered |
 | `recent` | `okm recent` | fzf picker over 200 most recently modified notes |
@@ -175,6 +181,7 @@ No global config files are modified. `source env.sh` activates; closing the shel
 | `OBSIDIAN_DAILY_DIR` | `daily` | Where `okm today` writes |
 | `OBSIDIAN_NOTES_DIR` | `inbox` | Where `okm new` / `okm capture` write |
 | `EDITOR` | `nvim` | Editor for all note commands |
+| `KM_TRACK_NOTES` | `true` | Track notes in git (`true` = full history, `false` = gitignored) |
 
 ---
 
@@ -344,6 +351,7 @@ Transcribe podcasts, YouTube videos, and audio into searchable notes. All tools 
 | Tool | Role |
 |---|---|
 | yt-dlp / youtube-transcript-api | YouTube transcript extraction + audio download |
+| spotdl | Spotify metadata extraction + audio download |
 | whisperX (large-v3-turbo model) | Local transcription with speaker diarization |
 | ffmpeg | Audio format conversion |
 | mpv | Video playback with screenshot capture |
@@ -355,6 +363,8 @@ Transcribe podcasts, YouTube videos, and audio into searchable notes. All tools 
 |---|---|---|
 | YouTube (has captions) | `okm yt <URL>` | One-time fetch |
 | YouTube (no captions) | `okm yt <URL>` → downloads audio → whisperX | Fetch, then local |
+| Spotify episode | `okm spot <URL>` → note + embed + optional audio download | One-time fetch |
+| Spotify track/album/playlist | `okm spot <URL>` → note + embed | One-time fetch |
 | Podcast (known show) | Check [Happy Scribe](https://podcasts.happyscribe.com) first | One-time fetch |
 | Local audio/podcast file | `okm pod <file> "Title"` | Fully offline |
 | Distillation | `okm distill <note>` (Claude) or `okm distill --local <note>` (Ollama) | Claude: yes / Ollama: no |
@@ -364,7 +374,7 @@ Transcribe podcasts, YouTube videos, and audio into searchable notes. All tools 
 ```yaml
 ---
 title: "Episode Title"
-source_type: podcast | youtube | audio
+source_type: podcast | youtube | audio | spotify-episode | spotify-track
 source_url: "https://..."
 author: "Host / Channel"
 tags: [source/podcast, topic/machine-learning]
@@ -388,6 +398,27 @@ The example note `inbox/top-10-stocks-to-get-rich-in-2026.md` is the reference. 
 
 **Caveman speech rules for summaries:** Short sentences. No filler. Bullets over paragraphs. Lead with the fact, not the context. Numbers and tickers over prose. Tables over lists when there's structured data (tickers, comparisons, frameworks).
 
+### Spotify note anatomy (target format)
+
+`okm spot <URL>` creates notes from Spotify links. Supports episodes, tracks, albums, and playlists.
+
+| Section | Purpose | How it's produced |
+|---|---|---|
+| **Frontmatter** | source_type, source_url, author, tags | `okm spot` (auto-generated) |
+| **Player** | Spotify embed iframe + direct link | `okm spot` (auto-generated) |
+| **Summary** | 3-5 caveman-speech bullets (episodes/podcasts) | `okm distill` or manual |
+| **Key quotes** | Timestamped quotes `> [MM:SS] "..."` (episodes) | `okm distill` or manual |
+| **Transcript** | Full text (episodes) | whisperX after `spotdl` audio download |
+
+**Episode vs track notes:** Episodes get the full podcast template (summary, quotes, transcript). Tracks/albums/playlists get a lighter template (player embed + notes section).
+
+**Transcription workflow for Spotify episodes:**
+```bash
+okm spot <episode-url>           # create note skeleton with embed
+spotdl <episode-url>             # download audio
+okm pod <downloaded-file> "Title"  # transcribe with whisperX
+```
+
 ### Screenshots via mpv
 
 During video playback, press `s` in mpv to capture screenshots of key visuals (charts, tables, diagrams). Screenshots save to `attachments/` and get embedded as `![[screenshot-name.png]]` in the note.
@@ -401,7 +432,7 @@ screenshot-template=%F-%wH%wM%wS
 
 ### Implementation status
 
-- **Phase 1** (core pipeline): install yt-dlp, whisperX, ffmpeg, mpv. Add `okm yt` and `okm pod`. Configure mpv screenshot directory.
+- **Phase 1** (core pipeline): install yt-dlp, whisperX, ffmpeg, mpv, spotdl. Add `okm yt`, `okm pod`, `okm spot`. Configure mpv screenshot directory.
 - **Phase 2** (online toggle): add `okm online` / `okm offline`.
 - **Phase 3** (summarisation): add `okm distill` with Claude and Ollama backends. Output: caveman summary + structured data tables + timestamped quotes.
 
