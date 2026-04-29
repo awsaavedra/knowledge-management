@@ -2,6 +2,8 @@
 
 # Knowledge Management
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Offline-first personal knowledge system. Plain Markdown notes managed by the `okm` CLI, visualised in Obsidian, edited in Neovim or Vim. Git handles sync. No cloud dependencies after initial setup.
 
 - **Plain Markdown** — no proprietary format lock-in
@@ -15,7 +17,7 @@ Offline-first personal knowledge system. Plain Markdown notes managed by the `ok
 ## Quickstart
 
 ```bash
-git clone <your-fork-url> ~/projects/knowledge-management
+git clone --recurse-submodules <your-fork-url> ~/projects/knowledge-management
 cd ~/projects/knowledge-management
 
 # (Optional) Custom vault location. Default: sibling directory.
@@ -25,6 +27,8 @@ bash setup-kms.sh        # install everything — prompts whether to track notes
 source env.sh            # activate project environment
 bash verify-kms.sh       # confirm all tools installed
 ```
+
+`--recurse-submodules` pulls the BATS submodules under `tests/lib/` so the test suite runs. If you cloned without it, run `git submodule update --init --recursive`.
 
 Setup asks: **Track notes in git?** (default: yes). To skip the prompt, set `KM_TRACK_NOTES=true` or `false` beforehand. Notes tracked = full git history (pair with git-crypt). Notes untracked = local only.
 
@@ -311,6 +315,8 @@ See `ai-instructions.md` for AI rules. System-level controls:
 | `okm online` / `okm offline` toggle | Not started |
 | HuggingFace token for pyannote (speaker diarization) | Not started |
 | git-crypt initialisation | Not started |
+| GitHub Actions CI for the BATS suite | Not started |
+| Private PARA mirror folder (managed within git or another VCS) | Not started |
 
 ### Deferred
 
