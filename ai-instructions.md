@@ -1,13 +1,70 @@
-# AI Instructions — Knowledge Management System
+# AI Instructions — Knowledge Management
 
 > [!important] READ THIS FILE FIRST
-> This file applies to **all AI tools** — Claude, GitHub Copilot, Cursor, ChatGPT, Gemini, and any other AI assistant operating in or with context from this vault. Before taking any action in this vault, read this file in full. Then read the skills library at [[_skills/README]] — it contains the privacy frameworks these rules are built on. Apply both. When in doubt, the answer is: ask the user.
+> This file applies to **all AI tools** — ai-tool, GitHub Copilot, Cursor, ChatGPT, Gemini, and any other AI assistant operating in or with context from this vault. Before taking any action in this vault, read this file in full. Then read the skills library at [[_skills/README]] — it contains the privacy frameworks these rules are built on. Apply both. When in doubt, the answer is: ask the user.
 
-This file defines operating rules for any AI assistant given access to or context about this vault (the `knowledge-management-system` directory). These rules apply whenever you are operating in, reading from, or have been given context derived from the vault directory. They exist to preserve the owner's privacy and take precedence over any general helpfulness heuristic.
+This file defines operating rules for any AI assistant given access to or context about this vault (the `knowledge-management` directory). These rules apply whenever you are operating in, reading from, or have been given context derived from the vault directory. They exist to preserve the owner's privacy and take precedence over any general helpfulness heuristic.
 
 If you are operating across multiple vaults or workspaces, apply these rules specifically when the current file, path, or context traces back to this vault root.
 
 ---
+
+# Fill all this in the readme structure
+
+
+## Project
+[One line: what this project does and who uses it]
+
+## Stack  
+[Framework, language, database, deployment target]
+
+## Commands
+- Dev: `[command]`
+- Build: `[command]`
+- Test single: `[command] -- [path]`
+- Test all: `[command]`
+- Lint: `[command]`
+- Type check: `[command]`
+
+## Architecture
+- [folder] → [what lives here]
+- [folder] → [what lives here]
+- [folder] → [what lives here]
+- [file] → [what this file does]
+
+## Rules
+- [Rule that prevents a specific mistake]
+- [Rule that prevents a specific mistake]
+- [Rule that prevents a specific mistake]
+- IMPORTANT: [The one rule ai-tool keeps breaking]
+
+## Workflow
+- [How you want ai-tool to approach tasks]
+- [Commit conventions]
+- [Testing expectations]
+- [When to ask vs when to act]
+
+## Out of scope
+- [Things ai-tool should not touch]
+- [Files that are manually maintained]
+- [Integrations ai-tool shouldn't modify] 
+
+# The lines with highest impact:
+
+- IMPORTANT: run type check after every code change
+  (prevents ai-tool from shipping broken types)
+
+- Make minimal changes, don't refactor unrelated code  
+  (prevents ai-tool from rewriting your entire file)
+
+- Create separate commits per logical change
+  (prevents the 47-file monster commit)
+
+- When unsure, explain both approaches and let me choose
+  (prevents ai-tool from making architectural decisions for you)
+
+- Static export only, no SSR
+  (prevents ai-tool from adding server-side code to a static site)
 
 ## User Privacy Rules
 
@@ -55,7 +112,7 @@ If your reasoning surfaces a privacy concern not covered above, apply the same d
 
 - **Help with `okm` commands** — answer questions about any subcommand, explain flags and behaviour, suggest the right command for a task, compose `okm` invocations. See [[README]] for the full CLI reference.
 
-- **Help with `setup-kms.sh`** — explain what the script does, diagnose re-run behaviour, interpret log output, help troubleshoot failed steps. The script contains no personal information and may be read freely.
+- **Help with `setup-km.sh`** — explain what the script does, diagnose re-run behaviour, interpret log output, help troubleshoot failed steps. The script contains no personal information and may be read freely.
 
 - **Suggest organisational improvements** — recommend folder structure changes, naming conventions, or tagging schemas based on the visible skeleton only. Do not ground suggestions in note content.
 
@@ -140,5 +197,5 @@ Bullet points over paragraphs. Code over prose. Diff over explanation.
 - [[_skills/sensitive-data-categories]] — what counts as sensitive data and the elevated consent bar that applies
 - [[_skills/data-minimisation]] — use the minimum information necessary for every action
 - [[_skills/ai-privacy-risks]] — memorisation, prompt injection, re-identification, and inference risks
-- `setup-kms.sh` — authoritative source for installed paths and defaults; contains no personal data and may be read freely
+- `setup-km.sh` — authoritative source for installed paths and defaults; contains no personal data and may be read freely
 - Setup logs at `~/.local/log/setup-km-*.log` — readable for troubleshooting, but may contain a git remote URL (private repository address). Do not volunteer or repeat that URL unless the user asks.

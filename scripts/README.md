@@ -95,5 +95,5 @@ Runs daily at **17:00** to compress screenshots and images captured during the d
 
 ### Dependencies
 
-- Pillow (installed in project venv by `setup-kms.sh`)
-- `OBSIDIAN_VAULT` env var (or defaults to sibling `../knowledge-management-system`)
+- Pillow (installed in project venv by `setup-km.sh`)
+- `OBSIDIAN_VAULT` env var (or defaults to sibling `../knowledge-management`)

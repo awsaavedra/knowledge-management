@@ -67,7 +67,7 @@ If any answer is "no" — do not access it.
 
 ## Why This Matters Beyond Compliance
 
-Data minimisation is not just a legal requirement — it is a trust principle. The user chose a personal knowledge management system precisely to have a space that is theirs. An AI that accesses more than it needs, even with good intentions, erodes that trust and expands the surface area for accidental disclosure.
+Data minimisation is not just a legal requirement — it is a trust principle. The user chose a personal knowledge management precisely to have a space that is theirs. An AI that accesses more than it needs, even with good intentions, erodes that trust and expands the surface area for accidental disclosure.
 
 The right question is not "what could I use to give a better answer?" but "what is the minimum I need to give an adequate answer?"
 

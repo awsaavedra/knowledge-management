@@ -2,7 +2,7 @@
 -- Fallback: sibling directory relative to this config's project root.
 local config_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h:h:h")
 local vault = vim.env.OBSIDIAN_VAULT
-  or (vim.fn.fnamemodify(config_root, ":h") .. "/knowledge-management-system")
+  or (vim.fn.fnamemodify(config_root, ":h") .. "/knowledge-management")
 
 return {
   "epwalsh/obsidian.nvim",

@@ -10,7 +10,7 @@ Offline-first personal knowledge system. Plain Markdown notes managed by the `ok
 - **Offline by default** — Obsidian's network is revoked at the container level
 - **Privacy-first** — AI assistants follow strict rules in `ai-instructions.md`
 - **Project-scoped** — `source env.sh` activates; no global configs modified
-- **One script** — `setup-kms.sh` is idempotent and safe to re-run
+- **One script** — `setup-km.sh` is idempotent and safe to re-run
 
 ---
 
@@ -23,9 +23,9 @@ cd ~/projects/knowledge-management
 # (Optional) Custom vault location. Default: sibling directory.
 export OBSIDIAN_VAULT="$HOME/my-vault"
 
-bash setup-kms.sh        # install everything — prompts whether to track notes in git
+bash setup-km.sh        # install everything — prompts whether to track notes in git
 source env.sh            # activate project environment
-bash verify-kms.sh       # confirm all tools installed
+bash verify-km.sh       # confirm all tools installed
 ```
 
 `--recurse-submodules` pulls the BATS submodules under `tests/lib/` so the test suite runs. If you cloned without it, run `git submodule update --init --recursive`.
@@ -53,8 +53,8 @@ Then pick your editor:
 ```
 .
 ├── env.sh                          # source to activate
-├── setup-kms.sh                    # idempotent bootstrap
-├── verify-kms.sh                   # post-install checks
+├── setup-km.sh                    # idempotent bootstrap
+├── verify-km.sh                   # post-install checks
 ├── ai-instructions.md              # AI privacy rules
 ├── bin/
 │   ├── okm                         # vault CLI (tracked)
@@ -70,7 +70,7 @@ Then pick your editor:
 ├── tests/                          # BATS test suite (163 tests)
 └── venv/                           # Python venv (gitignored, setup creates)
 
-../knowledge-management-system/     # vault (override with $OBSIDIAN_VAULT)
+../knowledge-management/     # vault (override with $OBSIDIAN_VAULT)
 ├── daily/                          # Areas — one file per day (YYYY-MM-DD.md)
 ├── inbox/                          # Projects — named notes, quick captures, active work
 ├── attachments/                    # Resources — images, PDFs, screenshots
@@ -87,6 +87,8 @@ Vault follows [Tiago Forte's PARA method](https://fortelabs.com/blog/para/):
 | **Archive** | `archive/` | Completed or inactive notes — moved here during review |
 
 ---
+
+
 
 ## okm CLI
 
@@ -110,7 +112,7 @@ Set by `source env.sh`:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OBSIDIAN_VAULT` | `../knowledge-management-system` | Vault root |
+| `OBSIDIAN_VAULT` | `../knowledge-management` | Vault root |
 | `OBSIDIAN_DAILY_DIR` | `daily` | Where `okm today` writes |
 | `OBSIDIAN_NOTES_DIR` | `inbox` | Where `okm new` / `okm capture` write |
 | `EDITOR` | `nvim` | Editor for all note commands |
@@ -297,7 +299,7 @@ See `ai-instructions.md` for AI rules. System-level controls:
 | ffmpeg / mpv | Audio/video processing | apt |
 | ripgrep / fzf | Search and fuzzy picking | apt |
 
-`setup-kms.sh` installs everything. Safe to re-run. Logs: `~/.local/log/setup-km-*.log`
+`setup-km.sh` installs everything. Safe to re-run. Logs: `~/.local/log/setup-km-*.log`
 
 **Platform support:** Linux (apt + Flatpak) and macOS. Auto-detects x86_64 / arm64.
 
@@ -333,4 +335,4 @@ See `ai-instructions.md` for AI rules. System-level controls:
 - `ai-instructions.md` — AI assistant rules
 - `_skills/README.md` — privacy skills library
 - `scripts/README.md` — cron job documentation
-- `setup-kms.sh` — canonical source for versions and defaults
+- `setup-km.sh` — canonical source for versions and defaults

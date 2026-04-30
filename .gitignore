@@ -23,14 +23,14 @@ Thumbs.db
 *.swo
 *~
 
-# Downloaded binaries (large; re-created by setup-kms.sh)
+# Downloaded binaries (large; re-created by setup-km.sh)
 bin/nvim
 bin/lazygit
 
-# Python venv (re-created by setup-kms.sh)
+# Python venv (re-created by setup-km.sh)
 venv/
 
-# Generated config (contains vault-specific paths; re-created by setup-kms.sh)
+# Generated config (contains vault-specific paths; re-created by setup-km.sh)
 config/mpv/mpv.conf
 
 # Python bytecode cache
