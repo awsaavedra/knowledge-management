@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for setup-kms.sh helper functions and scoping guarantees.
+# Tests for setup-km.sh helper functions and scoping guarantees.
 # Does NOT run apt/flatpak/binary downloads — only tests file-level operations.
 
 load 'helpers/test_helper'
@@ -7,7 +7,7 @@ load 'helpers/test_helper'
 setup() {
     common_setup
 
-    # Source just the function definitions from setup-kms.sh (stop before install steps).
+    # Source just the function definitions from setup-km.sh (stop before install steps).
     # We patch set -e to set +e so function failures don't kill the test harness,
     # and redirect LOG_FILE to our temp dir.
     export LOG_FILE="${TEST_TEMP_DIR}/setup.log"
@@ -17,7 +17,7 @@ setup() {
 
     # Extract function definitions up to "# --- Install steps ---"
     local funcs_src
-    funcs_src="$(sed -n '1,/^# --- Install steps ---/p' "${PROJECT_ROOT}/setup-kms.sh" \
+    funcs_src="$(sed -n '1,/^# --- Install steps ---/p' "${PROJECT_ROOT}/setup-km.sh" \
         | sed 's/^set -euo pipefail/set +e; set -uo pipefail/' \
         | grep -v '^mkdir -p "\${LOG_DIR}"' \
         | grep -v "^trap ")"
@@ -137,16 +137,16 @@ setup() {
 
 # === Scoping guarantees ===
 
-@test "setup-kms.sh does not reference ~/.zshrc for writes" {
+@test "setup-km.sh does not reference ~/.zshrc for writes" {
     # The script should not contain ensure_shell_line or replace_shell_line calls
-    run grep -c 'ensure_shell_line\|replace_shell_line' "${PROJECT_ROOT}/setup-kms.sh"
+    run grep -c 'ensure_shell_line\|replace_shell_line' "${PROJECT_ROOT}/setup-km.sh"
     assert_output "0"
 }
 
-@test "setup-kms.sh does not symlink ~/.config/nvim" {
+@test "setup-km.sh does not symlink ~/.config/nvim" {
     # Should only reference ~/.config/km, never ~/.config/nvim for symlinking
     local nvim_refs
-    nvim_refs=$(grep '\.config/nvim' "${PROJECT_ROOT}/setup-kms.sh" | grep -cv '#\|log_info\|log_warn\|echo' || true)
+    nvim_refs=$(grep '\.config/nvim' "${PROJECT_ROOT}/setup-km.sh" | grep -cv '#\|log_info\|log_warn\|echo' || true)
     [ "$nvim_refs" -eq 0 ]
 }
 

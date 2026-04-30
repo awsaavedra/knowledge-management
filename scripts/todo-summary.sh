@@ -28,8 +28,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT_DIR="${KMS_PROJECT_DIR:-${SCRIPT_DIR}}"
-VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
+PROJECT_DIR="${KM_PROJECT_DIR:-${SCRIPT_DIR}}"
+VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management}"
 YEAR="$(date +%Y)"
 TODAY="$(date +%F)"
 OUTPUT_FILE="${PROJECT_DIR}/inbox/todo-summary-${YEAR}.md"

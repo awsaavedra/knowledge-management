@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# verify-kms.sh — check that all KMS stack components are properly installed
+# verify-km.sh — check that all KM stack components are properly installed
 #
-# Usage:  bash verify-kms.sh
-#         source env.sh && bash verify-kms.sh
+# Usage:  bash verify-km.sh
+#         source env.sh && bash verify-km.sh
 #
 # Exits 0 if all required checks pass; exits 1 if any FAIL.
 # WARN items are advisory and do not affect the exit code.
@@ -10,7 +10,7 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
+VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management}"
 BIN_DIR="${SCRIPT_DIR}/bin"
 LAZY_DIR="${HOME}/.local/share/km/lazy"
 
@@ -78,7 +78,7 @@ for bin in nvim lazygit okm; do
     if [ -x "${BIN_DIR}/${bin}" ]; then
         _pass "${bin}  (${BIN_DIR}/${bin})"
     else
-        _fail "${bin} not found at ${BIN_DIR}/${bin} — run: bash setup-kms.sh"
+        _fail "${bin} not found at ${BIN_DIR}/${bin} — run: bash setup-km.sh"
     fi
 done
 
@@ -89,20 +89,20 @@ for subdir in daily inbox attachments archive; do
     if [ -d "${VAULT_DIR}/${subdir}" ]; then
         _pass "${subdir}/"
     else
-        _fail "${VAULT_DIR}/${subdir}/ missing — run: bash setup-kms.sh"
+        _fail "${VAULT_DIR}/${subdir}/ missing — run: bash setup-km.sh"
     fi
 done
 
 if [ -f "${VAULT_DIR}/.gitignore" ]; then
     _pass ".gitignore present"
 else
-    _fail ".gitignore missing — run: bash setup-kms.sh"
+    _fail ".gitignore missing — run: bash setup-km.sh"
 fi
 
 if [ -d "${VAULT_DIR}/.git" ]; then
     _pass "git repo initialised"
 else
-    _fail "vault is not a git repo — run: bash setup-kms.sh"
+    _fail "vault is not a git repo — run: bash setup-km.sh"
 fi
 
 # ── Transcription tools ─────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ for cmd in ffmpeg mpv; do
     if command -v "${cmd}" >/dev/null 2>&1; then
         _pass "${cmd}  ($(command -v "${cmd}"))"
     else
-        _fail "${cmd} not found — run: bash setup-kms.sh"
+        _fail "${cmd} not found — run: bash setup-km.sh"
     fi
 done
 
@@ -120,14 +120,14 @@ VENV_DIR="${SCRIPT_DIR}/venv"
 if [ -d "${VENV_DIR}" ] && [ -x "${VENV_DIR}/bin/python" ]; then
     _pass "Python venv  (${VENV_DIR})"
 else
-    _fail "Python venv not found at ${VENV_DIR} — run: bash setup-kms.sh"
+    _fail "Python venv not found at ${VENV_DIR} — run: bash setup-km.sh"
 fi
 
 for pkg in yt_dlp youtube_transcript_api whisperx PIL; do
     if "${VENV_DIR}/bin/python" -c "import ${pkg}" 2>/dev/null; then
         _pass "venv: ${pkg} installed"
     else
-        _fail "venv: ${pkg} missing — run: bash setup-kms.sh"
+        _fail "venv: ${pkg} missing — run: bash setup-km.sh"
     fi
 done
 
@@ -136,7 +136,7 @@ mpv_conf="${SCRIPT_DIR}/config/mpv/mpv.conf"
 if [ -f "${mpv_conf}" ]; then
     _pass "mpv config  (${mpv_conf}, loaded via MPV_HOME)"
 else
-    _fail "mpv config missing at ${mpv_conf} — run: bash setup-kms.sh"
+    _fail "mpv config missing at ${mpv_conf} — run: bash setup-km.sh"
 fi
 
 if grep -q 'screenshot-directory' "${mpv_conf}" 2>/dev/null; then
@@ -156,7 +156,7 @@ if [ -L "${km_cfg}" ] && [ "$(readlink "${km_cfg}")" = "${project_nvim}" ]; then
 elif [ -d "${km_cfg}" ]; then
     _pass "~/.config/km exists (manual config)"
 else
-    _fail "~/.config/km missing — run: bash setup-kms.sh"
+    _fail "~/.config/km missing — run: bash setup-km.sh"
 fi
 
 # Verify global nvim config was NOT modified
@@ -268,7 +268,7 @@ _section "Security (advisory)"
 if [ -f "${HOME}/.ssh/id_ed25519.pub" ]; then
     _pass "SSH key present (~/.ssh/id_ed25519)"
 else
-    _warn "no ed25519 SSH key — run: ssh-keygen -t ed25519 -C kms-vault"
+    _warn "no ed25519 SSH key — run: ssh-keygen -t ed25519 -C km-vault"
 fi
 
 if [ -f "${VAULT_DIR}/.gitattributes" ] \
@@ -285,7 +285,7 @@ printf "  ${GREEN}PASS: %-4d${NC}  ${RED}FAIL: %-4d${NC}  ${YELLOW}WARN: %-4d${N
 printf "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 
 if [ "${FAIL_COUNT}" -gt 0 ]; then
-    printf "\n${RED}%d check(s) failed.${NC} Run 'bash setup-kms.sh' to fix most issues.\n" \
+    printf "\n${RED}%d check(s) failed.${NC} Run 'bash setup-km.sh' to fix most issues.\n" \
         "${FAIL_COUNT}"
     exit 1
 else

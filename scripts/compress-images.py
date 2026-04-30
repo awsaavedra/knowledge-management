@@ -21,7 +21,7 @@ from PIL import Image
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(_SCRIPT_DIR)
-_DEFAULT_VAULT = os.path.join(os.path.dirname(_PROJECT_DIR), "knowledge-management-system")
+_DEFAULT_VAULT = os.path.join(os.path.dirname(_PROJECT_DIR), "knowledge-management")
 VAULT_DIR = os.environ.get("OBSIDIAN_VAULT", _DEFAULT_VAULT)
 ATTACHMENTS_DIR = os.path.join(VAULT_DIR, "attachments")
 EXTENSIONS = ("*.png", "*.jpg", "*.jpeg", "*.gif")

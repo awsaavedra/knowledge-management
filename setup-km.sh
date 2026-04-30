@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Setting up all tools for my knowledge management system
+# Setting up all tools for my knowledge management
 
 set -euo pipefail
 
@@ -32,7 +32,7 @@ trap '_on_error ${LINENO}' ERR
 
 # --- Variables ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management-system}"
+VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management}"
 BIN_DIR="${SCRIPT_DIR}/bin"
 GIT_REMOTE="${1:-}"
 

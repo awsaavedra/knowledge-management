@@ -17,7 +17,7 @@ setup() {
     unset OBSIDIAN_VAULT
     source "${PROJECT_ROOT}/env.sh"
     local expected
-    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management-system"
+    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management"
     [ "$OBSIDIAN_VAULT" = "$expected" ]
 }
 
@@ -81,9 +81,9 @@ setup() {
     [ "$count" -le 2 ]
 }
 
-@test "KMS_ROOT resolves correctly regardless of cwd" {
+@test "KM_ROOT resolves correctly regardless of cwd" {
     cd /tmp
     source "${PROJECT_ROOT}/env.sh"
-    [ -d "${KMS_ROOT}" ]
-    [ -f "${KMS_ROOT}/env.sh" ]
+    [ -d "${KM_ROOT}" ]
+    [ -f "${KM_ROOT}/env.sh" ]
 }

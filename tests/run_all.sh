@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_all.sh — Run the full KMS test suite.
+# run_all.sh — Run the full KM test suite.
 #
 # Usage:
 #   bash tests/run_all.sh                          # run all tests

@@ -2,9 +2,9 @@
 # Quickstart integration test — validates the full setup → activate → verify flow.
 #
 # Simulates the quickstart guide in a sandboxed environment:
-#   1. setup-kms.sh (file-level operations only — apt/flatpak/binary downloads mocked)
+#   1. setup-km.sh (file-level operations only — apt/flatpak/binary downloads mocked)
 #   2. source env.sh
-#   3. verify-kms.sh (validates what we can in the sandbox)
+#   3. verify-km.sh (validates what we can in the sandbox)
 #
 # Uses fake HOME and temp directories. Everything is cleaned up in teardown.
 
@@ -20,14 +20,14 @@ setup() {
     export BIN_DIR="${FAKE_PROJECT_DIR}/bin"
 
     local funcs_src
-    funcs_src="$(sed -n '1,/^# --- Install steps ---/p' "${PROJECT_ROOT}/setup-kms.sh" \
+    funcs_src="$(sed -n '1,/^# --- Install steps ---/p' "${PROJECT_ROOT}/setup-km.sh" \
         | sed 's/^set -euo pipefail/set +e; set -uo pipefail/' \
         | grep -v '^mkdir -p "\${LOG_DIR}"' \
         | grep -v "^trap ")"
     eval "$funcs_src"
 }
 
-# === Step 1: setup-kms.sh creates vault structure ===
+# === Step 1: setup-km.sh creates vault structure ===
 
 @test "quickstart: setup creates vault directories" {
     ensure_dir "${VAULT_DIR}/daily"
@@ -101,7 +101,7 @@ setup() {
     assert_success
     # Should print the vault path (from OBSIDIAN_VAULT set by env.sh)
     local expected
-    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management-system"
+    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management"
     assert_output "$expected"
 }
 

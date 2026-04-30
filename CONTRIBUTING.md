@@ -8,9 +8,9 @@ Thanks for your interest. This is a small offline-first vault tool, so contribut
 git clone --recurse-submodules https://github.com/awsaavedra/knowledge-management.git
 cd knowledge-management
 
-bash setup-kms.sh        # idempotent — installs deps and Python venv
+bash setup-km.sh        # idempotent — installs deps and Python venv
 source env.sh            # activate project environment
-bash verify-kms.sh       # confirm install
+bash verify-km.sh       # confirm install
 ```
 
 `tests/lib/` contains BATS submodules. If you cloned without `--recurse-submodules`, run `git submodule update --init --recursive` before running the test suite.
