@@ -389,7 +389,7 @@ bootstrap_nvim_plugins() {
 # On macOS: installs to ~/Library/Fonts.
 install_nerd_font() {
     local font_name="JetBrainsMono"
-    local font_family="JetBrainsMono Nerd Font"
+    local font_family="JetBrainsMono NF"
     local font_url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${font_name}.zip"
     local tmp_dir
 

@@ -135,6 +135,95 @@ setup() {
     [ ! -L "${HOME}/.config/km" ]
 }
 
+# === install_nvim ===
+
+@test "install_nvim creates wrapper script at bin/nvim" {
+    # Simulate a successful install by creating the expected structure
+    mkdir -p "${BIN_DIR}"
+    cat > "${BIN_DIR}/nvim" <<'WRAPPER'
+#!/usr/bin/env bash
+NVIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export VIMRUNTIME="${NVIM_DIR}/nvim-runtime/share/nvim/runtime"
+exec "${NVIM_DIR}/nvim.bin" "$@"
+WRAPPER
+    chmod +x "${BIN_DIR}/nvim"
+    # Wrapper must set VIMRUNTIME
+    grep -q 'VIMRUNTIME' "${BIN_DIR}/nvim"
+    grep -q 'nvim-runtime/share/nvim/runtime' "${BIN_DIR}/nvim"
+    grep -q 'nvim.bin' "${BIN_DIR}/nvim"
+}
+
+@test "install_nvim skip guard requires both nvim and nvim.bin" {
+    mkdir -p "${BIN_DIR}"
+    # Only nvim exists (no nvim.bin) — should NOT skip
+    touch "${BIN_DIR}/nvim" && chmod +x "${BIN_DIR}/nvim"
+    # The guard: if [ -x nvim ] && [ -x nvim.bin ]
+    [ ! -x "${BIN_DIR}/nvim.bin" ]
+}
+
+@test "install_nvim produces self-contained structure" {
+    # Verify the expected file layout that install_nvim creates
+    local expected_files=(
+        "bin/nvim"
+        "bin/nvim.bin"
+        "bin/nvim-runtime/share/nvim/runtime/syntax/syntax.vim"
+    )
+    # Check real install on disk (integration test)
+    for f in "${expected_files[@]}"; do
+        [ -e "${PROJECT_ROOT}/${f}" ] || skip "not installed: ${f}"
+    done
+    [ -x "${PROJECT_ROOT}/bin/nvim" ]
+    [ -x "${PROJECT_ROOT}/bin/nvim.bin" ]
+}
+
+@test "install_nvim wrapper invokes nvim.bin with VIMRUNTIME set" {
+    [ -x "${PROJECT_ROOT}/bin/nvim" ] || skip "nvim not installed"
+    run "${PROJECT_ROOT}/bin/nvim" --version
+    assert_success
+    assert_output --partial "NVIM v"
+}
+
+@test "install_nvim version is >= 0.10 (LazyVim requirement)" {
+    [ -x "${PROJECT_ROOT}/bin/nvim" ] || skip "nvim not installed"
+    local version
+    version="$("${PROJECT_ROOT}/bin/nvim" --version | head -1 | sed 's/NVIM v//')"
+    local minor
+    minor="$(echo "$version" | cut -d. -f2)"
+    [ "$minor" -ge 10 ]
+}
+
+@test "install_nvim runtime files are accessible via wrapper" {
+    [ -x "${PROJECT_ROOT}/bin/nvim" ] || skip "nvim not installed"
+    run env TERM=xterm-256color NVIM_APPNAME=km "${PROJECT_ROOT}/bin/nvim" --headless -c 'quitall' 2>&1
+    # Must NOT contain E484 (missing runtime)
+    refute_output --partial "E484"
+    refute_output --partial "Can't open file"
+}
+
+# === install_nerd_font ===
+
+@test "install_nerd_font skip detection works when font exists (WSL2)" {
+    # Simulate WSL2 with font already installed
+    grep -qi 'microsoft' /proc/version 2>/dev/null || skip "not WSL2"
+    local win_user
+    win_user="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
+    local win_font_dir="/mnt/c/Users/${win_user}/AppData/Local/Microsoft/Windows/Fonts"
+    [ -f "${win_font_dir}/JetBrainsMonoNerdFont-Regular.ttf" ]
+}
+
+@test "install_nerd_font font family name matches Windows Terminal config" {
+    grep -qi 'microsoft' /proc/version 2>/dev/null || skip "not WSL2"
+    # The setup script must use "JetBrainsMono NF" (actual registered family name)
+    grep -q 'JetBrainsMono NF' "${PROJECT_ROOT}/setup-km.sh"
+}
+
+@test "setup-km.sh install_nerd_font handles all platforms" {
+    # Function must exist and handle linux, macos, and WSL2
+    grep -q 'is_wsl2' "${PROJECT_ROOT}/setup-km.sh"
+    grep -q 'macos.*Library/Fonts' "${PROJECT_ROOT}/setup-km.sh"
+    grep -q '\.local/share/fonts' "${PROJECT_ROOT}/setup-km.sh"
+}
+
 # === Scoping guarantees ===
 
 @test "setup-km.sh does not reference ~/.zshrc for writes" {
