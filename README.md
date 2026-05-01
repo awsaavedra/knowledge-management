@@ -47,7 +47,7 @@ export OBSIDIAN_VAULT="$HOME/my-vault"
 bash setup-km.sh         # install everything (idempotent, safe to re-run)
 source env.sh            # activate project environment
 bash verify-km.sh        # confirm all tools installed
-bash tests/run_all.sh    # run BATS test suite (163 tests)
+bash tests/run_all.sh    # run BATS test suite (244 tests)
 ```
 
 `--recurse-submodules` pulls the BATS submodules under `tests/lib/` so the test suite runs. If you cloned without it, run `git submodule update --init --recursive`.
@@ -55,6 +55,83 @@ bash tests/run_all.sh    # run BATS test suite (163 tests)
 Setup asks: **Track notes in git?** (default: yes). To skip the prompt, set `KM_TRACK_NOTES=true` or `false` beforehand. Notes tracked = full git history (pair with git-crypt). Notes untracked = local only.
 
 Setup logs: `~/.local/log/setup-km-*.log`. For day-to-day commands, see [okm CLI](#okm-cli).
+
+### Quickstart — verify Obsidian, Neovim, and Vim
+
+After `bash setup-km.sh` finishes and you've sourced `env.sh`, seed the demo dataset once and use it to confirm all three editors are wired up:
+
+```bash
+bash scripts/seed-demo.sh                  # 11 demo-* files across daily/, inbox/, attachments/, archive/
+okm files demo-                            # confirm what got seeded
+```
+
+Then verify each editor in turn. They share the seeded files and the same project-scoped configs.
+
+#### 1. Obsidian (GUI)
+
+```bash
+okm obs                                    # launches the Flatpak with network revoked
+```
+
+- First launch: choose **"Open folder as vault"** and point it at `$(okm path)`.
+- In the file tree you should see `daily/demo-YYYY-MM-DD.md`, `inbox/demo-*.md`, `archive/demo-completed-project.md`, `attachments/demo-screenshot.png`.
+- Open `inbox/demo-yt-example.md` — confirm the YAML frontmatter renders, the embedded `![[demo-screenshot.png]]` resolves, and the `## Sources Cited` / `## Actionable Insights` / `## Follow-ups` sections are present.
+- Obsidian has no banner integration yet — the public/private warning is editor-side only (Neovim winbar, Vim statusline). Use the file path itself as the visual cue in Obsidian.
+
+#### 2. Neovim
+
+`setup-km.sh` already ran `Lazy! sync` headlessly during install, so plugins are present.
+
+```bash
+nvim daily/demo-$(date +%Y-%m-%d).md
+```
+
+In that buffer you should see:
+
+| What | Where it comes from |
+|---|---|
+| Green **winbar** at the top: `PUBLIC PARA · daily` | `config/nvim/lua/config/autocmds.lua` (KMBanner) |
+| Yellow `TODO:`, orange `FIXME:`, red `BUG:` when you type them | `config/nvim/lua/plugins/todo-comments.lua` |
+| `<leader>od / on / os / oo / ob / og` keymaps work | `config/nvim/lua/plugins/obsidian.lua` |
+
+Flip to the private side to confirm the banner turns red:
+
+```bash
+mkdir -p private-inbox && echo '# private test' > private-inbox/demo-private.md
+nvim private-inbox/demo-private.md         # red "⚠ PRIVATE PARA · private-inbox" winbar
+rm private-inbox/demo-private.md
+```
+
+If the banner or highlights are missing, re-run `bash setup-km.sh` (idempotent) or sync plugins manually: `NVIM_APPNAME=km nvim --headless "+Lazy! sync" +qa`.
+
+#### 3. Vim
+
+`env.sh` exports `VIMINIT="source $KM_ROOT/config/vim/vimrc"`, so plain vim picks up the project config automatically without symlinking your `~/.vimrc`.
+
+```bash
+EDITOR=vim okm open inbox/demo-meeting-notes.md
+```
+
+You should see:
+
+| What | Where it comes from |
+|---|---|
+| Green **statusline** band: `PUBLIC PARA · inbox` | `config/vim/vimrc` (KMBanner) |
+| Yellow `TODO:`, orange `FIXME:`, red `BUG:` | `config/vim/vimrc` (KMTodoHighlights via `matchadd`) |
+
+The same private-side test works:
+
+```bash
+EDITOR=vim vim private-inbox/demo-private.md  # red "⚠ PRIVATE PARA" statusline
+```
+
+#### Tear down
+
+```bash
+bash scripts/seed-demo.sh --teardown       # removes only demo-* files; real notes untouched
+```
+
+For full reference: [Templates](#templates) · [Demo Dataset](#demo-dataset) · [Workflow](#workflow).
 
 ### Manual setup steps (not automated)
 
@@ -86,7 +163,7 @@ Setup logs: `~/.local/log/setup-km-*.log`. For day-to-day commands, see [okm CLI
 │   ├── todo-summary.sh             # PARA TODO scanner → yearly file (cron: 07/12/15:00)
 │   ├── weekly-tasks.sh             # PARA TODO scanner → weekly file (cron: 07/12/15:00)
 │   └── compress-images.py          # PNG/JPG → WebP (cron: 17:00)
-├── tests/                          # BATS test suite (163 tests)
+├── tests/                          # BATS test suite (244 tests)
 ├── _skills/                        # AI skills library (extensible)
 └── venv/                           # Python venv (gitignored, setup creates)
 
@@ -400,12 +477,12 @@ Tracked features migrated from `_skills/`. Check off as shipped.
 - [x] **TODO/FIXME/BUG highlighting** — `TODO:` yellow, `FIXME:` orange, `BUG:` red. Neovim via `todo-comments.nvim` (`config/nvim/lua/plugins/todo-comments.lua`); Vim via `matchadd` in `config/vim/vimrc`.
 - [x] **Public/private PARA banners** — Neovim winbar / Vim statusline shows green `PUBLIC PARA · <subdir>` or red `⚠ PRIVATE PARA · <subdir>` based on the buffer's path. Wired in `config/nvim/lua/config/autocmds.lua` and `config/vim/vimrc`.
 - [x] **Typed templates + demo dataset** — every markdown type has a template in `inbox/templates/` with a Format Specification header. `bash scripts/seed-demo.sh` populates `demo-*` files across the public PARA folders; `--teardown` removes them.
-- [ ] **Auto-loading project-scoped config** — `direnv` (or shell hook) auto-sources `env.sh` on `cd` so `NVIM_APPNAME`, `VIMINIT`, `LG_CONFIG_FILE`, `MPV_HOME` activate without manual `source`. Currently opt-in via `.envrc`.
-- [ ] **Richer video/podcast templates** — actionable insights with URLs (e.g., "tutorial at <link>"), follow-up actions, tools/books cited inline.
-- [ ] **Required screenshots for video notes** — `okm yt` / mpv `s` capture at every key visual moment so the note replaces re-watching. Spotify (audio-only) substitutes Key Quotes with timestamps.
-- [ ] **High-fidelity transcripts** — whisperX large-v3-turbo, no compression, speaker diarization on; document required flags in `_skills/transcripts.md`.
-- [ ] **Beyond summarization → insights** — `okm distill` prompt extracts decisions, contradictions, follow-ups, not just bullet recap.
-- [ ] **Source citation in distill output** — books, papers, URLs cited directly in the note's Sources section.
+- [x] **Auto-loading project-scoped config** — `.envrc` at the project root makes direnv auto-source `env.sh` on `cd`, activating `NVIM_APPNAME`, `VIMINIT`, `LG_CONFIG_FILE`, `MPV_HOME`, and the venv. One-time setup: `direnv allow .`.
+- [x] **Richer video/podcast templates** — `yt-template`, `spotify-episode-template`, and `podcast-template` now require `## Actionable Insights`, `## Sources Cited`, and `## Follow-ups` sections.
+- [x] **Required screenshots for video notes** — `yt-template` marks `## Screenshots` as REQUIRED with mpv `s` capture at every key visual moment so the note replaces re-watching. Spotify and podcast templates mark `## Key Quotes` as the audio-only equivalent.
+- [x] **High-fidelity transcripts** — required whisperX flags (`large-v3-turbo`, `compute_type float32`, `--diarize`, `--vad_filter`) documented in `_skills/transcripts.md`.
+- [x] **Beyond summarization → insights** — `_skills/distill-prompt.md` defines the four-section distill output (Summary / Actionable Insights / Sources Cited / Follow-ups), with hard rules against hallucinated citations and explicit handling of contradictions.
+- [x] **Source citation in distill output** — `## Sources Cited` is part of every video/podcast template; the distill prompt spec mandates `Title — Author — URL/DOI/ISBN` formatting.
 
 ---
 

@@ -1,7 +1,7 @@
 <!--
 Format Specification: yt-template
 Required frontmatter: title, source_type=youtube, source_url, author, publish_date, captured_date, captured_via, tags
-Required sections: Disclaimer, Thumbnail, Summary, Structured Data, Key Quotes, Screenshots, Timestamps, Transcript
+Required sections: Disclaimer, Thumbnail, Summary, Actionable Insights, Sources Cited, Follow-ups, Structured Data, Key Quotes, Screenshots (REQUIRED — capture every key visual moment so the note replaces re-watching), Timestamps, Transcript
 Producer: okm yt <URL> (planned) + mpv `s` for screenshots
 -->
 ---
@@ -33,6 +33,29 @@ tags:
 - Key takeaway 2
 - Key takeaway 3
 
+## Actionable Insights
+
+<!-- Specific things to do with this content. Each bullet is a verb + URL or concrete next step. -->
+<!-- Example: "Build openclaw on mac mini — tutorial: https://example.com/openclaw-mac" -->
+
+- Insight 1 — what to do, where to learn more
+- Insight 2 — tool/library to try, link
+
+## Sources Cited
+
+<!-- External references the author/speaker mentions: books, papers, websites, tools. -->
+<!-- Format: short title — author — URL (or DOI / ISBN). Distinct from Key Quotes. -->
+
+- Reference 1 — Author — https://example.com/source
+- Reference 2 — Book Title (Author, Year) — ISBN
+
+## Follow-ups
+
+<!-- Open questions, contradictions to resolve, or topics to investigate further. -->
+
+- [ ] Follow-up 1
+- [ ] Follow-up 2
+
 ## Structured Data
 
 <!-- use tables for structured data: comparisons, frameworks, lists with attributes -->
@@ -49,7 +72,10 @@ tags:
 
 ## Screenshots
 
-<!-- press 's' in mpv during playback to capture key visuals -->
+<!-- REQUIRED for video notes. Press 's' in mpv at every key visual moment: -->
+<!-- diagrams, code, slides, demos, charts, faces during quotes. -->
+<!-- The goal is for the note to replace re-watching the video. -->
+<!-- Audio-only sources (Spotify) substitute Key Quotes for this requirement. -->
 
 ![[screenshot-HHMMSS.png]]
 
