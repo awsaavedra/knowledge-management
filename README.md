@@ -129,7 +129,7 @@ Pick your editor:
 |---|---|---|
 | **Obsidian** | `okm obs` | First launch: open `$(okm path)` as vault |
 | **Neovim** | `okm today` | Project config via `NVIM_APPNAME=km` |
-| **Vim** | `EDITOR=vim okm today` | No plugins, plain Markdown |
+| **Vim** | `EDITOR=vim okm today` | Project vimrc via `VIMINIT` (sources `~/.vimrc` first); TODO/FIXME/BUG colored |
 
 - **Capture**: `okm today` (daily note) or `okm capture <text>` (timestamped)
 - **Search**: `okm grep <pattern>` (content) or `okm files [pattern]` (paths)
@@ -228,7 +228,7 @@ Transcribe podcasts, YouTube videos, Spotify episodes, and local audio into sear
 
 ### Note anatomy
 
-Templates in `inbox/yt-note-format-template.md` and `inbox/spotify-note-format-template.md`.
+Templates live in `inbox/templates/` — one file per markdown type the system produces. Each starts with a `Format Specification:` HTML comment block declaring required frontmatter, sections, and the producing command/script. See [Templates](#templates) for the full list.
 
 **YouTube notes** (`okm yt`):
 
@@ -255,6 +255,49 @@ Templates in `inbox/yt-note-format-template.md` and `inbox/spotify-note-format-t
 
 ---
 
+## Templates
+
+`inbox/templates/` holds one canonical template per markdown file type. Each begins with a `<!-- Format Specification: ... -->` block declaring required frontmatter, required sections, and the producing command. Use these as references when writing notes by hand or when the LLM needs to know what a "podcast note" should look like.
+
+| Template | Producer | Purpose |
+|---|---|---|
+| `daily-template.md` | `okm today` | Daily note (Captures / Notes / Tasks / Reflection) |
+| `note-template.md` | `okm new <title>` | Generic project note (Context / Notes / Links) |
+| `capture-template.md` | `okm capture [text]` | Timestamped quick-capture |
+| `yt-template.md` | `okm yt <URL>` (planned) + mpv | YouTube video with screenshots, quotes, transcript |
+| `spotify-episode-template.md` | `okm spot <URL>` → `spotdl` → `okm pod` | Spotify episode (full transcript flow) |
+| `spotify-track-template.md` | `okm spot <URL>` | Track / album / playlist (no transcript) |
+| `podcast-template.md` | `okm pod <file> "Title"` (planned) | Local audio transcribed via whisperX |
+| `todo-summary-template.md` | `scripts/todo-summary.sh --output` | Yearly PARA TODO scan (cron) |
+| `weekly-template.md` | `scripts/weekly-tasks.sh --output` | Weekly task summary (cron) |
+| `archive-template.md` | manual move to `archive/` | Archived note with `archived_date` + `archive_reason` |
+
+---
+
+## Demo Dataset
+
+Populate the public PARA folders with demo content derived from the templates so you can exercise every part of the system end-to-end.
+
+```bash
+bash scripts/seed-demo.sh             # seed demo-* files (idempotent)
+# ...verify with the printed checklist (okm files demo-, okm grep, okm today, ...)
+bash scripts/seed-demo.sh --teardown  # remove every demo-* file
+bash scripts/seed-demo.sh --help      # usage
+```
+
+What gets seeded (11 files, all gitignored automatically):
+
+| Folder | Files |
+|---|---|
+| `daily/` | `demo-YYYY-MM-DD.md` |
+| `inbox/` | `demo-meeting-notes.md`, `demo-capture.md`, `demo-yt-example.md`, `demo-spotify-episode.md`, `demo-spotify-track.md`, `demo-podcast.md`, `demo-todo-summary-YYYY.md`, `demo-weekly-START-to-END.md` |
+| `attachments/` | `demo-screenshot.png` (1×1 placeholder) |
+| `archive/` | `demo-completed-project.md` |
+
+Demo content is **only seeded into the public PARA folders**. The `private-*/` mirrors are never touched — banners are how you tell which side you're editing on.
+
+---
+
 ## Cron Jobs
 
 | Schedule | Script | What it does |
@@ -278,8 +321,12 @@ bash scripts/todo-summary.sh --output     # write yearly living doc
 
 **System crontab** — replace `$KM` with your project path:
 ```bash
-3 7,12,15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
-0 7,12,15 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
+3 7 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 12 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+0 7 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
+0 12 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
+0 15 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
 0 17 * * * $KM/venv/bin/python $KM/scripts/compress-images.py
 ```
 
@@ -345,6 +392,20 @@ All tools run offline. Network only for explicit `git push/pull`.
 - git-crypt initialisation
 - GitHub Actions CI for the BATS suite
 - Private PARA mirror folder
+
+### Skills Roadmap
+
+Tracked features migrated from `_skills/`. Check off as shipped.
+
+- [x] **TODO/FIXME/BUG highlighting** — `TODO:` yellow, `FIXME:` orange, `BUG:` red. Neovim via `todo-comments.nvim` (`config/nvim/lua/plugins/todo-comments.lua`); Vim via `matchadd` in `config/vim/vimrc`.
+- [x] **Public/private PARA banners** — Neovim winbar / Vim statusline shows green `PUBLIC PARA · <subdir>` or red `⚠ PRIVATE PARA · <subdir>` based on the buffer's path. Wired in `config/nvim/lua/config/autocmds.lua` and `config/vim/vimrc`.
+- [x] **Typed templates + demo dataset** — every markdown type has a template in `inbox/templates/` with a Format Specification header. `bash scripts/seed-demo.sh` populates `demo-*` files across the public PARA folders; `--teardown` removes them.
+- [ ] **Auto-loading project-scoped config** — `direnv` (or shell hook) auto-sources `env.sh` on `cd` so `NVIM_APPNAME`, `VIMINIT`, `LG_CONFIG_FILE`, `MPV_HOME` activate without manual `source`. Currently opt-in via `.envrc`.
+- [ ] **Richer video/podcast templates** — actionable insights with URLs (e.g., "tutorial at <link>"), follow-up actions, tools/books cited inline.
+- [ ] **Required screenshots for video notes** — `okm yt` / mpv `s` capture at every key visual moment so the note replaces re-watching. Spotify (audio-only) substitutes Key Quotes with timestamps.
+- [ ] **High-fidelity transcripts** — whisperX large-v3-turbo, no compression, speaker diarization on; document required flags in `_skills/transcripts.md`.
+- [ ] **Beyond summarization → insights** — `okm distill` prompt extracts decisions, contradictions, follow-ups, not just bullet recap.
+- [ ] **Source citation in distill output** — books, papers, URLs cited directly in the note's Sources section.
 
 ---
 
