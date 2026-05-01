@@ -4,17 +4,35 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+## Project
+
 Offline-first personal knowledge system. Plain Markdown notes managed by the `okm` CLI, visualised in Obsidian, edited in Neovim or Vim. Git handles sync. No cloud dependencies after initial setup.
 
 - **Plain Markdown** — no proprietary format lock-in
 - **Offline by default** — Obsidian's network is revoked at the container level
-- **Privacy-first** — AI assistants follow strict rules in `ai-instructions.md`
+- **Privacy-first** — `private-*/` folders are off-limits to AI assistants (see `ai-instructions.md`)
 - **Project-scoped** — `source env.sh` activates; no global configs modified
 - **One script** — `setup-km.sh` is idempotent and safe to re-run
 
 ---
 
-## Quickstart
+## Stack
+
+| Tool | Role | Installed by |
+|---|---|---|
+| Obsidian | GUI vault viewer, graph view | Flatpak (network revoked) |
+| Neovim + obsidian.nvim | Terminal editor + vault integration | `bin/nvim` + lazy.nvim |
+| lazygit | TUI git client | `bin/lazygit` via GitHub release |
+| okm | Vault CLI | `bin/okm` (tracked in git) |
+| yt-dlp / whisperX / spotdl | Media transcription | Python venv |
+| ffmpeg / mpv | Audio/video processing | apt |
+| ripgrep / fzf | Search and fuzzy picking | apt |
+
+**Platform support:** Linux (apt + Flatpak) and macOS. Auto-detects x86_64 / arm64.
+
+---
+
+## Commands
 
 ```bash
 git clone --recurse-submodules <your-fork-url> ~/projects/knowledge-management
@@ -23,39 +41,36 @@ cd ~/projects/knowledge-management
 # (Optional) Custom vault location. Default: sibling directory.
 export OBSIDIAN_VAULT="$HOME/my-vault"
 
-bash setup-km.sh        # install everything — prompts whether to track notes in git
+bash setup-km.sh         # install everything (idempotent, safe to re-run)
 source env.sh            # activate project environment
-bash verify-km.sh       # confirm all tools installed
+bash verify-km.sh        # confirm all tools installed
+bash tests/run_all.sh    # run BATS test suite (163 tests)
 ```
 
 `--recurse-submodules` pulls the BATS submodules under `tests/lib/` so the test suite runs. If you cloned without it, run `git submodule update --init --recursive`.
 
 Setup asks: **Track notes in git?** (default: yes). To skip the prompt, set `KM_TRACK_NOTES=true` or `false` beforehand. Notes tracked = full git history (pair with git-crypt). Notes untracked = local only.
 
-Then pick your editor:
+Setup logs: `~/.local/log/setup-km-*.log`. For day-to-day commands, see [okm CLI](#okm-cli).
 
-| Editor | Command | Notes |
-|---|---|---|
-| **Obsidian** | `okm obs` | First launch: open `$(okm path)` as vault |
-| **Neovim** | `okm today` | Project config via `NVIM_APPNAME=km` |
-| **Vim** | `EDITOR=vim okm today` | No plugins, plain Markdown |
-
-### Manual steps (not automated)
+### Manual setup steps (not automated)
 
 - **SSH key** — `ssh-keygen -t ed25519 -C km-vault` then add to git host
 - **Git remote** — `git -C "$(okm path)" remote add origin <url>`
-- **git-crypt** — initialise before first push (see [git-crypt](#git-crypt))
+- **git-crypt** — optional, initialise before first push (see [Advanced: git-crypt](#advanced-git-crypt))
 
 ---
 
-## Project Structure
+## Architecture
+
+> **Maintenance:** keep the tree below in sync with disk. Update after any major refactor (file moves, renames, new top-level dirs).
 
 ```
 .
 ├── env.sh                          # source to activate
-├── setup-km.sh                    # idempotent bootstrap
-├── verify-km.sh                   # post-install checks
-├── ai-instructions.md              # AI privacy rules
+├── setup-km.sh                     # idempotent bootstrap
+├── verify-km.sh                    # post-install checks
+├── ai-instructions.md              # AI assistant rules
 ├── bin/
 │   ├── okm                         # vault CLI (tracked)
 │   ├── nvim                        # neovim (gitignored, setup creates)
@@ -68,13 +83,15 @@ Then pick your editor:
 │   ├── todo-summary.sh             # PARA TODO scanner (cron: 07/12/15:00)
 │   └── compress-images.py          # PNG/JPG → WebP (cron: 17:00)
 ├── tests/                          # BATS test suite (163 tests)
+├── _skills/                        # AI skills library (extensible)
 └── venv/                           # Python venv (gitignored, setup creates)
 
-../knowledge-management/     # vault (override with $OBSIDIAN_VAULT)
+../knowledge-management/            # vault (override with $OBSIDIAN_VAULT)
 ├── daily/                          # Areas — one file per day (YYYY-MM-DD.md)
 ├── inbox/                          # Projects — named notes, quick captures, active work
 ├── attachments/                    # Resources — images, PDFs, screenshots
-└── archive/                        # Archive — completed/inactive notes (manual move)
+├── archive/                        # Archive — completed/inactive notes (manual move)
+└── private-*/                      # Mirror of above; off-limits to AI assistants
 ```
 
 Vault follows [Tiago Forte's PARA method](https://fortelabs.com/blog/para/):
@@ -86,9 +103,53 @@ Vault follows [Tiago Forte's PARA method](https://fortelabs.com/blog/para/):
 | **Resources** | `attachments/` | Reference material — images, PDFs, screenshots |
 | **Archive** | `archive/` | Completed or inactive notes — moved here during review |
 
+`private-{daily,inbox,attachments,archive}/` mirror the public PARA folders for AI-private content.
+
 ---
 
+## Rules
 
+- AI assistants don't read `private-*/` paths — see `ai-instructions.md`
+- Update the Architecture tree above after any major refactor (file moves, renames, new top-level dirs)
+- Notes are plain Markdown — no proprietary fields, no cross-tool dependencies
+- Project-scoped — never modify the user's global configs (`~/.config/nvim`, `~/.zshrc`, etc.)
+- IMPORTANT: this stack is offline-first — don't introduce cloud dependencies in the core flow
+
+---
+
+## Workflow
+
+Pick your editor:
+
+| Editor | Command | Notes |
+|---|---|---|
+| **Obsidian** | `okm obs` | First launch: open `$(okm path)` as vault |
+| **Neovim** | `okm today` | Project config via `NVIM_APPNAME=km` |
+| **Vim** | `EDITOR=vim okm today` | No plugins, plain Markdown |
+
+- **Capture**: `okm today` (daily note) or `okm capture <text>` (timestamped)
+- **Search**: `okm grep <pattern>` (content) or `okm files [pattern]` (paths)
+- **Sync**: `okm sync [message]` — stages all, commits, rebases, pushes
+- **Test before merge**: `bash tests/run_all.sh`
+- **Commit conventions**: one logical change per commit; `okm sync` defaults to `vault sync YYYY-MM-DD HH:MM:SS`
+- **Ask before**: destructive ops (`rm -rf`, force push), scope creep beyond requested files
+
+For auto-activation with [direnv](https://direnv.net/), create `.envrc`: `source_env env.sh`
+
+---
+
+## Out of scope
+
+| Item | Reason |
+|---|---|
+| `private-*/` note bodies | AI-private; only structural metadata is read |
+| `_skills/` content | Manually curated; agents don't auto-modify |
+| `disclaimer.md` | Manually maintained legal text |
+| `okm link/backlinks/tags/stats` | One-liner `rg` commands, not worth subcommands |
+| `okm archive/template` | Obsidian handles this; daily notes are small |
+| Auto-sync cron | Silent pushes are risky; `okm sync` is intentional |
+
+---
 
 ## okm CLI
 
@@ -117,8 +178,6 @@ Set by `source env.sh`:
 | `OBSIDIAN_NOTES_DIR` | `inbox` | Where `okm new` / `okm capture` write |
 | `EDITOR` | `nvim` | Editor for all note commands |
 | `KM_TRACK_NOTES` | `true` | Track notes in git (`false` = gitignored) |
-
-For auto-activation with [direnv](https://direnv.net/), create `.envrc`: `source_env env.sh`
 
 ---
 
@@ -214,15 +273,13 @@ bash scripts/todo-summary.sh --output     # write yearly living doc
 
 **System crontab** — replace `$KM` with your project path:
 ```bash
-3 7 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
-3 12 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
-3 15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+3 7,12,15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
 0 17 * * * $KM/venv/bin/python $KM/scripts/compress-images.py
 ```
 
 ---
 
-## Git Sync & SSH
+## Git Sync
 
 `okm sync [message]` stages all, commits, rebases, pushes. Skips push if no upstream.
 
@@ -235,9 +292,9 @@ git -C "$(okm path)" remote add origin git@github.com:user/repo.git
 
 ---
 
-## git-crypt
+## Advanced: git-crypt
 
-Encrypts `daily/*.md` and `inbox/*.md` in the remote repo (AES-256-CTR). Plaintext locally, opaque blobs on remote. Single symmetric key, no GPG.
+Optional. Encrypts `daily/*.md` and `inbox/*.md` in the remote repo (AES-256-CTR). Plaintext locally, opaque blobs on remote. Single symmetric key, no GPG.
 
 ```bash
 sudo apt install git-crypt
@@ -272,67 +329,22 @@ All tools run offline. Network only for explicit `git push/pull`.
 
 ---
 
-## Privacy & Security
-
-See `ai-instructions.md` for AI rules. System-level controls:
-
-| Control | Mechanism |
-|---|---|
-| AI note privacy | `ai-instructions.md` — note bodies private by default |
-| Offline enforcement | Obsidian sandbox, lazygit + lazy.nvim config |
-| Note tracking toggle | `KM_TRACK_NOTES` — choose during setup |
-| Binary exclusion | `.gitignore` excludes attachments, OS noise, swap files |
-| Generic commits | `okm sync` defaults to `vault sync YYYY-MM-DD HH:MM:SS` |
-| SSH transport | Key auth, no stored credentials |
-
----
-
-## Stack
-
-| Tool | Role | Installed by |
-|---|---|---|
-| Obsidian | GUI vault viewer, graph view | Flatpak (network revoked) |
-| Neovim + obsidian.nvim | Terminal editor + vault integration | `bin/nvim` + lazy.nvim |
-| lazygit | TUI git client | `bin/lazygit` via GitHub release |
-| okm | Vault CLI | `bin/okm` (tracked in git) |
-| yt-dlp / whisperX / spotdl | Media transcription | Python venv |
-| ffmpeg / mpv | Audio/video processing | apt |
-| ripgrep / fzf | Search and fuzzy picking | apt |
-
-`setup-km.sh` installs everything. Safe to re-run. Logs: `~/.local/log/setup-km-*.log`
-
-**Platform support:** Linux (apt + Flatpak) and macOS. Auto-detects x86_64 / arm64.
-
----
-
 ## Roadmap
 
-### In progress
-
-| Item | Status |
-|---|---|
-| `okm yt` — YouTube transcript + metadata → note | Not started |
-| `okm pod` — local audio → whisperX → note | Not started |
-| `okm distill` — AI summary (Claude + Ollama backends) | Not started |
-| `okm online` / `okm offline` toggle | Not started |
-| HuggingFace token for pyannote (speaker diarization) | Not started |
-| git-crypt initialisation | Not started |
-| GitHub Actions CI for the BATS suite | Not started |
-| Private PARA mirror folder (managed within git or another VCS) | Not started |
-
-### Deferred
-
-| Item | Reason |
-|---|---|
-| `okm link/backlinks/tags/stats` | One-liner `rg` commands, not worth subcommands |
-| `okm archive/template` | Obsidian handles this; daily notes are small |
-| Auto-sync cron | Silent pushes are risky; `okm sync` is intentional |
+- `okm yt` — YouTube transcript + metadata → note
+- `okm pod` — local audio → whisperX → note
+- `okm distill` — AI summary (Claude + Ollama backends)
+- `okm online` / `okm offline` toggle
+- HuggingFace token for pyannote (speaker diarization)
+- git-crypt initialisation
+- GitHub Actions CI for the BATS suite
+- Private PARA mirror folder
 
 ---
 
 ## See Also
 
 - `ai-instructions.md` — AI assistant rules
-- `_skills/README.md` — privacy skills library
+- `_skills/README.md` — AI skills library
 - `scripts/README.md` — cron job documentation
 - `setup-km.sh` — canonical source for versions and defaults
