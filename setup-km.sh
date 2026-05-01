@@ -196,11 +196,11 @@ detect_platform() {
 }
 
 install_nvim() {
-    if [ -x "${BIN_DIR}/nvim" ]; then
+    if [ -x "${BIN_DIR}/nvim" ] && [ -x "${BIN_DIR}/nvim.bin" ]; then
         log_info "SKIP: neovim already installed at ${BIN_DIR}/nvim"
         return 0
     fi
-    log_info "ACTION: Installing Neovim (latest stable)"
+    log_info "ACTION: Installing Neovim (latest stable) with runtime"
     local tmp_dir nvim_tarball nvim_dir
     tmp_dir="$(mktemp -d)"
     case "${PLATFORM_OS}" in
@@ -210,10 +210,28 @@ install_nvim() {
     curl -fsSL -o "${tmp_dir}/nvim.tar.gz" \
         "https://github.com/neovim/neovim/releases/latest/download/${nvim_tarball}"
     tar -xf "${tmp_dir}/nvim.tar.gz" -C "${tmp_dir}"
-    cp "${tmp_dir}/${nvim_dir}/bin/nvim" "${BIN_DIR}/nvim"
+
+    # Install binary
+    cp "${tmp_dir}/${nvim_dir}/bin/nvim" "${BIN_DIR}/nvim.bin"
+    chmod +x "${BIN_DIR}/nvim.bin"
+
+    # Install runtime (lib + share) for self-contained operation
+    rm -rf "${BIN_DIR}/nvim-runtime"
+    mkdir -p "${BIN_DIR}/nvim-runtime"
+    cp -r "${tmp_dir}/${nvim_dir}/lib" "${BIN_DIR}/nvim-runtime/"
+    cp -r "${tmp_dir}/${nvim_dir}/share" "${BIN_DIR}/nvim-runtime/"
+
+    # Create wrapper that sets VIMRUNTIME so nvim finds its runtime files
+    cat > "${BIN_DIR}/nvim" <<'WRAPPER'
+#!/usr/bin/env bash
+NVIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export VIMRUNTIME="${NVIM_DIR}/nvim-runtime/share/nvim/runtime"
+exec "${NVIM_DIR}/nvim.bin" "$@"
+WRAPPER
     chmod +x "${BIN_DIR}/nvim"
+
     rm -rf "${tmp_dir}"
-    log_info "OK: neovim installed at ${BIN_DIR}/nvim"
+    log_info "OK: neovim installed at ${BIN_DIR}/nvim (wrapper + runtime)"
 }
 
 install_lazygit() {
@@ -323,6 +341,10 @@ MPV_CONF
 
 # Bootstrap all Neovim plugins while the network is still available.
 # After this runs, nvim operates fully offline — no plugin auto-updates.
+#
+# Two-phase approach:
+#   1. First headless launch lets lazy.nvim clone itself (config/lazy.lua handles this).
+#   2. Once lazy.nvim exists, run "Lazy! sync" to install all plugins.
 bootstrap_nvim_plugins() {
     if [ ! -x "${BIN_DIR}/nvim" ]; then
         log_warn "nvim not found — skipping plugin bootstrap"
@@ -339,11 +361,124 @@ bootstrap_nvim_plugins() {
     fi
 
     log_info "ACTION: Bootstrapping Neovim plugins (one-time; requires network; NVIM_APPNAME=km)"
-    if timeout 180 env NVIM_APPNAME=km "${BIN_DIR}/nvim" --headless "+Lazy! sync" +qa 2>/dev/null; then
-        log_info "OK: Neovim plugins bootstrapped under ~/.local/share/km/"
-    else
-        log_warn "Plugin bootstrap exited non-zero — run 'source env.sh && nvim' once to finish install"
+
+    # Phase 1: first launch clones lazy.nvim itself (config/lazy.lua bootstrap block)
+    if [ ! -d "${lazy_path}" ]; then
+        log_info "Phase 1: cloning lazy.nvim plugin manager..."
+        timeout 60 env TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" \
+            --headless -c 'quitall' 2>/dev/null || true
     fi
+
+    # Phase 2: install all plugins via Lazy sync
+    if [ -d "${lazy_path}" ]; then
+        log_info "Phase 2: syncing plugins via Lazy..."
+        if timeout 180 env TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" \
+            --headless "+Lazy! sync" +qa 2>/dev/null; then
+            log_info "OK: Neovim plugins bootstrapped under ~/.local/share/km/"
+        else
+            log_warn "Lazy sync exited non-zero — run 'source env.sh && nvim' once to finish install"
+        fi
+    else
+        log_warn "lazy.nvim failed to clone — run 'source env.sh && nvim' once to finish install"
+    fi
+}
+
+# Install a Nerd Font so terminal renders LazyVim icons correctly.
+# On WSL2: installs to Windows user fonts + registers in registry + updates Windows Terminal.
+# On native Linux: installs to ~/.local/share/fonts.
+# On macOS: installs to ~/Library/Fonts.
+install_nerd_font() {
+    local font_name="JetBrainsMono"
+    local font_family="JetBrainsMono Nerd Font"
+    local font_url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${font_name}.zip"
+    local tmp_dir
+
+    # Skip if already installed
+    if is_wsl2; then
+        local win_user win_font_dir
+        win_user="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
+        win_font_dir="/mnt/c/Users/${win_user}/AppData/Local/Microsoft/Windows/Fonts"
+        if ls "${win_font_dir}"/JetBrainsMonoNerdFont-Regular.ttf >/dev/null 2>&1; then
+            log_info "SKIP: Nerd Font already installed (${win_font_dir})"
+            return 0
+        fi
+    elif [ "${PLATFORM_OS}" = "macos" ]; then
+        if ls "${HOME}/Library/Fonts"/JetBrainsMonoNerdFont-Regular.ttf >/dev/null 2>&1; then
+            log_info "SKIP: Nerd Font already installed (~/Library/Fonts)"
+            return 0
+        fi
+    else
+        if ls "${HOME}/.local/share/fonts"/JetBrainsMonoNerdFont-Regular.ttf >/dev/null 2>&1; then
+            log_info "SKIP: Nerd Font already installed (~/.local/share/fonts)"
+            return 0
+        fi
+    fi
+
+    log_info "ACTION: Installing ${font_family} (required for LazyVim icons)"
+    tmp_dir="$(mktemp -d)"
+    curl -fsSL -o "${tmp_dir}/font.zip" "${font_url}"
+    unzip -oq "${tmp_dir}/font.zip" -d "${tmp_dir}/font"
+
+    if is_wsl2; then
+        local win_user win_font_dir wt_settings
+        win_user="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
+        win_font_dir="/mnt/c/Users/${win_user}/AppData/Local/Microsoft/Windows/Fonts"
+        mkdir -p "${win_font_dir}"
+
+        # Copy font files to Windows user fonts
+        cp "${tmp_dir}"/font/JetBrainsMonoNerdFont-*.ttf "${win_font_dir}/"
+        log_info "OK: Font files copied to ${win_font_dir}"
+
+        # Register fonts in Windows registry (current user)
+        powershell.exe -c '
+            $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+            $regPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+            Get-ChildItem "$fontDir\JetBrainsMonoNerdFont-*.ttf" | ForEach-Object {
+                $name = $_.BaseName -replace "JetBrainsMonoNerdFont-", "JetBrainsMono Nerd Font "
+                New-ItemProperty -Path $regPath -Name "$name (TrueType)" -Value $_.FullName -PropertyType String -Force | Out-Null
+            }
+        ' 2>/dev/null
+        log_info "OK: Fonts registered in Windows registry"
+
+        # Update Windows Terminal settings to use the Nerd Font
+        wt_settings="/mnt/c/Users/${win_user}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
+        if [ -f "${wt_settings}" ]; then
+            python3 -c "
+import json
+with open('${wt_settings}', 'r') as f:
+    data = json.load(f)
+data.setdefault('profiles', {}).setdefault('defaults', {})['font'] = {
+    'face': '${font_family}',
+    'size': 12
+}
+with open('${wt_settings}', 'w') as f:
+    json.dump(data, f, indent=4)
+" 2>/dev/null
+            log_info "OK: Windows Terminal settings updated (font: ${font_family})"
+        else
+            log_warn "Windows Terminal settings.json not found — set font manually to '${font_family}'"
+        fi
+
+    elif [ "${PLATFORM_OS}" = "macos" ]; then
+        mkdir -p "${HOME}/Library/Fonts"
+        cp "${tmp_dir}"/font/JetBrainsMonoNerdFont-*.ttf "${HOME}/Library/Fonts/"
+        log_info "OK: Font installed to ~/Library/Fonts (restart terminal to use)"
+
+    else
+        # Native Linux (X11/Wayland)
+        mkdir -p "${HOME}/.local/share/fonts"
+        cp "${tmp_dir}"/font/JetBrainsMonoNerdFont-*.ttf "${HOME}/.local/share/fonts/"
+        fc-cache -f 2>/dev/null || true
+        log_info "OK: Font installed to ~/.local/share/fonts"
+    fi
+
+    rm -rf "${tmp_dir}"
+    log_info "OK: ${font_family} installed — restart terminal for icons to appear"
+}
+
+# Detect if running under WSL2
+is_wsl2() {
+    grep -qi 'microsoft' /proc/version 2>/dev/null
 }
 
 # Revoke Obsidian's network permission via the flatpak sandbox.
@@ -368,7 +503,7 @@ log_info "==> Detecting platform"
 detect_platform
 
 log_info "==> Installing packages"
-install_apt_packages vim git ripgrep fzf xdg-utils flatpak xclip wl-clipboard curl \
+install_apt_packages vim git ripgrep fzf xdg-utils flatpak xclip wl-clipboard curl unzip \
     ffmpeg mpv python3-venv python3-pip
 
 log_info "==> Ensuring Flathub is configured"
@@ -435,6 +570,9 @@ install_lazygit
 
 log_info "==> Linking Neovim config"
 ensure_nvim_config_link
+
+log_info "==> Installing Nerd Font (terminal icons)"
+install_nerd_font
 
 log_info "==> Verifying lazygit config"
 verify_lazygit_config

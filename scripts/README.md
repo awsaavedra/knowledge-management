@@ -65,6 +65,44 @@ Each year gets a single file `inbox/todo-summary-YYYY.md`. Each cron run prepend
 
 ---
 
+## weekly-tasks.sh
+
+Weekly PARA-structured scanner. Same markers as `todo-summary.sh` but outputs to per-week files instead of a yearly doc.
+
+### Output
+
+Each week gets its own file: `inbox/weekly-YYYY-MM-DD-to-YYYY-MM-DD.md` (Monday to Sunday). Uses `inbox/weekly-template.md` for new files.
+
+- One section per day (`### YYYY-MM-DD Weekday`), newest at top
+- Same-day re-runs replace that day's section
+- Unchecked items carry forward from previous day
+- On Monday, unchecked items carry forward from last week's file
+- Checked items stay in the day they were completed
+
+### Usage
+
+```bash
+# Print summary to stdout
+bash scripts/weekly-tasks.sh
+
+# Write summary to inbox/weekly-YYYY-MM-DD-to-YYYY-MM-DD.md
+bash scripts/weekly-tasks.sh --output
+```
+
+### Scheduled runs
+
+Runs daily at **07:00**, **12:00**, and **15:00**.
+
+**System crontab (persistent):**
+
+```bash
+0 7 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
+0 12 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
+0 15 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
+```
+
+---
+
 ## compress-images.py
 
 Converts PNG, JPG, JPEG, and static GIF images in `attachments/` to WebP. Updates `![[wikilinks]]` in vault notes so Obsidian embeds don't break. Animated GIFs are skipped.

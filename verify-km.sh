@@ -82,6 +82,45 @@ for bin in nvim lazygit okm; do
     fi
 done
 
+# ── Neovim installation integrity ──────────────────────────────────────────
+_section "Neovim installation"
+
+# Wrapper + binary + runtime must all be present
+if [ -x "${BIN_DIR}/nvim.bin" ]; then
+    _pass "nvim.bin binary present"
+else
+    _fail "nvim.bin missing at ${BIN_DIR}/nvim.bin — run: bash setup-km.sh"
+fi
+
+nvim_runtime="${BIN_DIR}/nvim-runtime/share/nvim/runtime"
+if [ -d "${nvim_runtime}" ] && [ -f "${nvim_runtime}/syntax/syntax.vim" ]; then
+    _pass "nvim runtime present (${BIN_DIR}/nvim-runtime/)"
+else
+    _fail "nvim runtime missing or incomplete — run: bash setup-km.sh"
+fi
+
+# Version check: must be >= 0.10 for LazyVim compatibility
+if [ -x "${BIN_DIR}/nvim" ]; then
+    nvim_version="$("${BIN_DIR}/nvim" --version 2>/dev/null | head -1 | sed 's/NVIM v//')"
+    nvim_major="$(echo "${nvim_version}" | cut -d. -f1)"
+    nvim_minor="$(echo "${nvim_version}" | cut -d. -f2)"
+    if [ "${nvim_major}" -gt 0 ] || [ "${nvim_minor}" -ge 10 ]; then
+        _pass "nvim version ${nvim_version} (>= 0.10 required for LazyVim)"
+    else
+        _fail "nvim version ${nvim_version} is too old (>= 0.10 required for LazyVim) — run: bash setup-km.sh"
+    fi
+fi
+
+# Startup sanity: headless launch must not error on missing runtime
+if [ -x "${BIN_DIR}/nvim" ]; then
+    nvim_startup_err="$(TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" --headless -c 'quitall' 2>&1 || true)"
+    if echo "${nvim_startup_err}" | grep -q "E484\|Can't open file.*syntax.vim"; then
+        _fail "nvim cannot find runtime files — VIMRUNTIME misconfigured"
+    else
+        _pass "nvim headless startup OK (runtime loads correctly)"
+    fi
+fi
+
 # ── Vault structure ──────────────────────────────────────────────────────────
 _section "Vault structure"
 
@@ -191,6 +230,33 @@ if [ -d "${LAZY_DIR}/obsidian.nvim" ]; then
     _pass "obsidian.nvim downloaded (${LAZY_DIR}/obsidian.nvim)"
 else
     _warn "obsidian.nvim not yet downloaded — run: source env.sh && nvim (triggers bootstrap)"
+fi
+
+# ── Nerd Font (terminal icons) ──────────────────────────────────────────────
+_section "Nerd Font"
+
+is_wsl2() { grep -qi 'microsoft' /proc/version 2>/dev/null; }
+
+if is_wsl2; then
+    win_user="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
+    win_font_dir="/mnt/c/Users/${win_user}/AppData/Local/Microsoft/Windows/Fonts"
+    if ls "${win_font_dir}"/JetBrainsMonoNerdFont-Regular.ttf >/dev/null 2>&1; then
+        _pass "JetBrainsMono Nerd Font installed (Windows user fonts)"
+    else
+        _fail "Nerd Font not installed — run: bash setup-km.sh (icons will show as '?')"
+    fi
+elif [ "$(uname -s)" = "Darwin" ]; then
+    if ls "${HOME}/Library/Fonts"/JetBrainsMonoNerdFont-Regular.ttf >/dev/null 2>&1; then
+        _pass "JetBrainsMono Nerd Font installed (~/Library/Fonts)"
+    else
+        _fail "Nerd Font not installed — run: bash setup-km.sh (icons will show as '?')"
+    fi
+else
+    if ls "${HOME}/.local/share/fonts"/JetBrainsMonoNerdFont-Regular.ttf >/dev/null 2>&1; then
+        _pass "JetBrainsMono Nerd Font installed (~/.local/share/fonts)"
+    else
+        _fail "Nerd Font not installed — run: bash setup-km.sh (icons will show as '?')"
+    fi
 fi
 
 # ── Project activation (env.sh) ─────────────────────────────────────────────

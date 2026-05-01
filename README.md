@@ -83,7 +83,8 @@ Setup logs: `~/.local/log/setup-km-*.log`. For day-to-day commands, see [okm CLI
 │   ├── lazygit/                    # LG_CONFIG_FILE → no global symlink
 │   └── mpv/                        # MPV_HOME → screenshot config (generated)
 ├── scripts/
-│   ├── todo-summary.sh             # PARA TODO scanner (cron: 07/12/15:00)
+│   ├── todo-summary.sh             # PARA TODO scanner → yearly file (cron: 07/12/15:00)
+│   ├── weekly-tasks.sh             # PARA TODO scanner → weekly file (cron: 07/12/15:00)
 │   └── compress-images.py          # PNG/JPG → WebP (cron: 17:00)
 ├── tests/                          # BATS test suite (163 tests)
 ├── _skills/                        # AI skills library (extensible)
@@ -259,6 +260,7 @@ Templates in `inbox/yt-note-format-template.md` and `inbox/spotify-note-format-t
 | Schedule | Script | What it does |
 |---|---|---|
 | 07:00, 12:00, 15:00 | `todo-summary.sh --output` | PARA-structured TODO scan → `inbox/todo-summary-YYYY.md` |
+| 07:00, 12:00, 15:00 | `weekly-tasks.sh --output` | PARA-structured TODO scan → `inbox/weekly-DATE-to-DATE.md` |
 | 17:00 | `compress-images.py` | Convert PNG/JPG/GIF → WebP, update `![[wikilinks]]` |
 
 **PARA mapping for TODO scanner:**
@@ -277,6 +279,7 @@ bash scripts/todo-summary.sh --output     # write yearly living doc
 **System crontab** — replace `$KM` with your project path:
 ```bash
 3 7,12,15 * * * /usr/bin/bash $KM/scripts/todo-summary.sh --output
+0 7,12,15 * * * /usr/bin/bash $KM/scripts/weekly-tasks.sh --output
 0 17 * * * $KM/venv/bin/python $KM/scripts/compress-images.py
 ```
 
