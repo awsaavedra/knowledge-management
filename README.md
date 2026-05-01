@@ -1,3 +1,6 @@
+# Objective of this project
+The open-source knowledge OS for Obsidian users who live in Vim, Neovim, and CLI-powered interactions, file-native, and continuously tested.
+
 > **Disclaimer:** Content in this vault (especially financial, health, and investment topics) is for educational purposes only. See [`disclaimer.md`](disclaimer.md) for full terms.
 
 # Knowledge Management
