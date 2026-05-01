@@ -1,3 +1,9 @@
+<!--
+Format Specification: yt-template
+Required frontmatter: title, source_type=youtube, source_url, author, publish_date, captured_date, captured_via, tags
+Required sections: Disclaimer, Thumbnail, Summary, Structured Data, Key Quotes, Screenshots, Timestamps, Transcript
+Producer: okm yt <URL> (planned) + mpv `s` for screenshots
+-->
 ---
 title: "Video Title Here"
 source_type: youtube

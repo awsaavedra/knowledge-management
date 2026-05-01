@@ -1,3 +1,9 @@
+<!--
+Format Specification: spotify-episode-template
+Required frontmatter: title, source_type=spotify-episode, source_url, author, created, tags
+Required sections: Player, Summary, Structured Data, Key Quotes, Transcript
+Producer: okm spot <URL> (skeleton) -> spotdl -> okm pod <file> (transcribe)
+-->
 ---
 title: "Episode or Track Title"
 source_type: spotify-episode

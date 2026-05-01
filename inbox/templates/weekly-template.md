@@ -1,3 +1,9 @@
+<!--
+Format Specification: weekly-template
+Required frontmatter: title, created, week_start, week_end, tags=[weekly-tasks, para, automated]
+Required sections: header callout, day sections (one per day, PARA-categorised tasks)
+Producer: scripts/weekly-tasks.sh --output (cron: 07:00, 12:00, 15:00)
+-->
 ---
 title: "Weekly Tasks — {{WEEK_START}} to {{WEEK_END}}"
 created: "{{WEEK_START}}"

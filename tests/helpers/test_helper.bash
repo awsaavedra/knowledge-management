@@ -17,6 +17,14 @@ load "${_lib_dir}/bats-assert/load"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 common_setup() {
+    # Normalize locale so child bash processes don't emit
+    # "setlocale: LC_ALL: cannot change locale" warnings on hosts where
+    # the configured UTF-8 locale isn't installed (e.g. minimal WSL2).
+    # Such warnings would otherwise pollute captured stdout/stderr and
+    # break exact-output assertions like assert_output.
+    export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C
+    export LANG="${LC_ALL}"
+
     # Create a unique temp directory for this test
     TEST_TEMP_DIR="$(mktemp -d)"
 

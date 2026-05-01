@@ -1,0 +1,67 @@
+" config/vim/vimrc — KM project-scoped vim config.
+"
+" Loaded via VIMINIT (set by env.sh). When VIMINIT is set, vim skips
+" ~/.vimrc, so we explicitly source it first to preserve user settings.
+"
+" Project additions: TODO/FIXME/BUG highlighting (yellow/orange/red),
+" matching the Neovim todo-comments.nvim setup.
+
+if filereadable(expand('~/.vimrc'))
+  source ~/.vimrc
+endif
+
+" --- TODO/FIXME/BUG highlighting ---
+" Uses matchadd() so it works regardless of filetype/syntax engine.
+
+function! s:KMTodoColors() abort
+  highlight KMTodoYellow guifg=#FFD700 ctermfg=Yellow gui=bold cterm=bold
+  highlight KMTodoOrange guifg=#FF8C00 ctermfg=208    gui=bold cterm=bold
+  highlight KMTodoRed    guifg=#FF3030 ctermfg=Red    gui=bold cterm=bold
+endfunction
+
+function! s:KMTodoMatchAdd() abort
+  if exists('w:km_todo_added')
+    return
+  endif
+  call matchadd('KMTodoYellow', '\v<TODO>:')
+  call matchadd('KMTodoOrange', '\v<FIXME>:')
+  call matchadd('KMTodoRed',    '\v<BUG>:')
+  let w:km_todo_added = 1
+endfunction
+
+augroup KMTodoHighlights
+  autocmd!
+  autocmd ColorScheme,VimEnter * call s:KMTodoColors()
+  autocmd BufWinEnter,WinNew   * call s:KMTodoMatchAdd()
+augroup END
+
+call s:KMTodoColors()
+
+" --- Public/Private PARA banner (statusline) ---
+" Green "PUBLIC PARA · <subdir>" when path is under a public PARA folder.
+" Red   "⚠ PRIVATE PARA · <subdir>" when path matches private-*/.
+" Stays untouched for buffers outside the vault.
+
+function! s:KMBannerColors() abort
+  highlight KMBannerPublic  ctermbg=Green ctermfg=Black guibg=#7CB342 guifg=#000000 cterm=bold gui=bold
+  highlight KMBannerPrivate ctermbg=Red   ctermfg=White guibg=#C62828 guifg=#FFFFFF cterm=bold gui=bold
+endfunction
+
+function! s:KMBannerSet() abort
+  let l:path = expand('%:p')
+  if l:path =~# '/private-[^/]\+/'
+    let l:sub = matchstr(l:path, '/\zsprivate-[^/]\+\ze/')
+    let &l:statusline = '%#KMBannerPrivate# ⚠ PRIVATE PARA · ' . l:sub . ' %* %f %m'
+  elseif l:path =~# '/\(daily\|inbox\|attachments\|archive\)/'
+    let l:sub = matchstr(l:path, '/\zs\(daily\|inbox\|attachments\|archive\)\ze/')
+    let &l:statusline = '%#KMBannerPublic# PUBLIC PARA · ' . l:sub . ' %* %f %m'
+  endif
+endfunction
+
+augroup KMBanner
+  autocmd!
+  autocmd ColorScheme,VimEnter * call s:KMBannerColors()
+  autocmd BufEnter,BufWinEnter * call s:KMBannerSet()
+augroup END
+
+call s:KMBannerColors()
