@@ -73,9 +73,9 @@ setup() {
     grep -qF "matchadd('KMTodoRed',    '\\v<BUG>:')"   "$f"
 }
 
-# --- env.sh: VIMINIT wiring ---
-
-@test "env.sh exports VIMINIT pointing at project vimrc" {
-    source "${PROJECT_ROOT}/env.sh"
-    [ "$VIMINIT" = "source ${PROJECT_ROOT}/config/vim/vimrc" ]
-}
+# --- env.sh: vim wiring ---
+#
+# The project switched from VIMINIT (which nvim also honored, breaking LazyVim)
+# to a bin/vim wrapper that explicitly invokes vim with `-u config/vim/vimrc`.
+# The wrapper test lives in tests/config.bats — see "bin/vim wrapper applies
+# project vimrc to vim only (not nvim)".

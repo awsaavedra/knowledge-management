@@ -1,7 +1,9 @@
 " config/vim/vimrc — KM project-scoped vim config.
 "
-" Loaded via VIMINIT (set by env.sh). When VIMINIT is set, vim skips
-" ~/.vimrc, so we explicitly source it first to preserve user settings.
+" Loaded via bin/vim wrapper (`vim -u config/vim/vimrc`). The wrapper is
+" first on $PATH inside the project, so plain `vim` picks this up without
+" touching ~/.vimrc. We explicitly source ~/.vimrc first to preserve user
+" settings.
 "
 " Project additions: TODO/FIXME/BUG highlighting (yellow/orange/red),
 " matching the Neovim todo-comments.nvim setup.
