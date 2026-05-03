@@ -10,7 +10,18 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management}"
+if [ -z "${OBSIDIAN_VAULT:-}" ]; then
+    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    _sibling="${_parent}/knowledge-management"
+    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
+        VAULT_DIR="${SCRIPT_DIR}"
+    else
+        VAULT_DIR="${_sibling}"
+    fi
+    unset _parent _sibling
+else
+    VAULT_DIR="${OBSIDIAN_VAULT}"
+fi
 BIN_DIR="${SCRIPT_DIR}/bin"
 LAZY_DIR="${HOME}/.local/share/km/lazy"
 
@@ -162,7 +173,7 @@ else
     _fail "Python venv not found at ${VENV_DIR} — run: bash setup-km.sh"
 fi
 
-for pkg in yt_dlp youtube_transcript_api whisperx PIL; do
+for pkg in yt_dlp youtube_transcript_api whisperx PIL spotdl; do
     if "${VENV_DIR}/bin/python" -c "import ${pkg}" 2>/dev/null; then
         _pass "venv: ${pkg} installed"
     else

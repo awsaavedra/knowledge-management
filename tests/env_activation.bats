@@ -31,9 +31,15 @@ setup() {
     [ "$OBSIDIAN_NOTES_DIR" = "inbox" ]
 }
 
-@test "EDITOR is set to nvim" {
+@test "EDITOR defaults to nvim when unset" {
+    unset EDITOR
     source "${PROJECT_ROOT}/env.sh"
     [ "$EDITOR" = "nvim" ]
+}
+
+@test "EDITOR is preserved if already set (e.g. EDITOR=vim)" {
+    EDITOR=vim source "${PROJECT_ROOT}/env.sh"
+    [ "$EDITOR" = "vim" ]
 }
 
 @test "NVIM_APPNAME is set to km" {

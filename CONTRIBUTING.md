@@ -18,7 +18,7 @@ bash verify-km.sh       # confirm install
 ## Running tests
 
 ```bash
-bash tests/run_all.sh                          # all 9 .bats files
+bash tests/run_all.sh                          # full BATS suite
 bash tests/run_all.sh tests/okm_cli.bats       # one file
 bash tests/run_all.sh --filter "okm today"     # filter by name
 bash tests/run_all.sh --tap                    # CI-style output
@@ -31,7 +31,7 @@ Tests stub `EDITOR=true` and use a temporary `OBSIDIAN_VAULT`, so they don't tou
 - Keep changes scoped — one logical change per PR.
 - If you add or rename an `okm` subcommand, update the table in `README.md`.
 - If you add a new env var, document it in the `env.sh` table in `README.md`.
-- Add or update a `.bats` test for any behavioural change. CI runs the full suite on every PR.
+- Add or update a `.bats` test for any behavioural change. CI (`.github/workflows/test.yml`) runs the full suite on every PR.
 - Don't commit notes — `.gitignore` excludes `inbox/*.md` (templates excepted), `daily/*.md`, and `archive/*.md` for a reason.
 
 ## Reporting issues

@@ -53,7 +53,7 @@ setup() {
     run "${OKM}" new "Test Note Title"
     local file="${FAKE_VAULT_DIR}/inbox/test-note-title.md"
     [ -f "$file" ]
-    grep -q "title: Test Note Title" "$file"
+    grep -q 'title: "Test Note Title"' "$file"
     grep -q "created:" "$file"
     grep -q "tags: \[\]" "$file"
     grep -q "# Test Note Title" "$file"

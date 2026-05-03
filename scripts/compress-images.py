@@ -21,12 +21,13 @@ from PIL import Image
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(_SCRIPT_DIR)
-_DEFAULT_VAULT = os.path.join(os.path.dirname(_PROJECT_DIR), "knowledge-management")
+_SIBLING = os.path.join(os.path.dirname(_PROJECT_DIR), "knowledge-management")
+_DEFAULT_VAULT = _PROJECT_DIR if os.path.realpath(_SIBLING) == os.path.realpath(_PROJECT_DIR) else _SIBLING
 VAULT_DIR = os.environ.get("OBSIDIAN_VAULT", _DEFAULT_VAULT)
 ATTACHMENTS_DIR = os.path.join(VAULT_DIR, "attachments")
 EXTENSIONS = ("*.png", "*.jpg", "*.jpeg", "*.gif")
 QUALITY = 80
-NOTE_DIRS = ("daily", "inbox")
+NOTE_DIRS = ("daily", "inbox", "archive", "private-daily", "private-inbox", "private-archive")
 
 
 def is_animated_gif(path):
@@ -37,8 +38,35 @@ def is_animated_gif(path):
         return False
 
 
+def _build_link_patterns(old_name):
+    """Return regex patterns matching only link contexts, not bare substrings.
+
+    Matches:
+      - Obsidian wikilinks:  ![[old_name]]  ![[old_name|alt]]  ![[old_name#anchor]]
+      - Standard markdown:   [alt](old_name)  [alt](old_name "title")
+                             [alt](path/to/old_name)
+
+    Avoids false positives like `super-old_name`, `not-old_name.png-suffix`,
+    or `old_name` appearing in body prose.
+    """
+    esc = re.escape(old_name)
+    wikilink = re.compile(
+        r"(!?\[\[)" + esc + r"((?:[|#][^\]]*)?)(\]\])"
+    )
+    md_link = re.compile(
+        r"(\]\([^)]*?(?:^|/))" + esc + r"(\)|\s)",
+    )
+    return wikilink, md_link
+
+
 def update_wikilinks(old_name, new_name, dry_run=False):
-    """Replace ![[old_name]] with ![[new_name]] across all vault notes."""
+    """Replace links to old_name with links to new_name across all vault notes.
+
+    Only rewrites within recognised link contexts (Obsidian wikilinks and
+    standard markdown image/link syntax) so adjacent filenames sharing a
+    substring (`foo.png` vs `super-foo.png`) are never corrupted.
+    """
+    wikilink, md_link = _build_link_patterns(old_name)
     count = 0
     for subdir in NOTE_DIRS:
         note_dir = os.path.join(VAULT_DIR, subdir)
@@ -47,14 +75,19 @@ def update_wikilinks(old_name, new_name, dry_run=False):
         for md_path in glob.glob(os.path.join(note_dir, "**", "*.md"), recursive=True):
             with open(md_path, "r") as f:
                 content = f.read()
-            # Match ![[old_name]] and [[old_name]] (with or without !)
-            pattern = re.escape(old_name)
-            if pattern not in content:
+
+            new_content, n_wiki = wikilink.subn(
+                lambda m: m.group(1) + new_name + m.group(2) + m.group(3), content
+            )
+            new_content, n_md = md_link.subn(
+                lambda m: m.group(1) + new_name + m.group(2), new_content
+            )
+            if n_wiki + n_md == 0:
                 continue
-            updated = content.replace(old_name, new_name)
+
             if not dry_run:
                 with open(md_path, "w") as f:
-                    f.write(updated)
+                    f.write(new_content)
             count += 1
             rel = os.path.relpath(md_path, VAULT_DIR)
             action = "WOULD UPDATE" if dry_run else "UPDATED"
@@ -78,11 +111,22 @@ def convert_image(path, dry_run=False, keep=False):
         update_wikilinks(old_basename, new_basename, dry_run=True)
         return "would-convert"
 
-    img = Image.open(path)
-    img.save(out, "webp", quality=QUALITY)
+    try:
+        img = Image.open(path)
+        img.save(out, "webp", quality=QUALITY)
+    except Exception as exc:
+        if os.path.exists(out):
+            os.remove(out)
+        return f"error: {exc}"
 
     old_size = os.path.getsize(path)
     new_size = os.path.getsize(out)
+
+    try:
+        Image.open(out).verify()
+    except Exception:
+        os.remove(out)
+        return "error: converted file is corrupt"
 
     update_wikilinks(old_basename, new_basename)
 
@@ -122,6 +166,10 @@ def main():
 
             if result is None:
                 skipped_existing += 1
+            elif isinstance(result, str) and result.startswith("error:"):
+                print(
+                    f"  ERROR: {os.path.relpath(path, ATTACHMENTS_DIR)}: {result}"
+                )
             elif result == "skip-animated":
                 print(
                     f"  SKIP (animated): {os.path.relpath(path, ATTACHMENTS_DIR)}"

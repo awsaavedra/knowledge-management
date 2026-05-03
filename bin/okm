@@ -2,7 +2,18 @@
 set -euo pipefail
 
 OKM_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VAULT="${OBSIDIAN_VAULT:-$(cd "${OKM_SCRIPT_DIR}/.." && pwd)/knowledge-management}"
+if [ -z "${OBSIDIAN_VAULT:-}" ]; then
+  _parent="$(cd "${OKM_SCRIPT_DIR}/.." && pwd)"
+  _sibling="${_parent}/knowledge-management"
+  if [ "${_sibling}" = "${OKM_SCRIPT_DIR}" ]; then
+    VAULT="${OKM_SCRIPT_DIR}"
+  else
+    VAULT="${_sibling}"
+  fi
+  unset _parent _sibling
+else
+  VAULT="${OBSIDIAN_VAULT}"
+fi
 EDITOR_CMD="${EDITOR:-vim}"
 DAILY_DIR="${OBSIDIAN_DAILY_DIR:-daily}"
 NOTES_DIR="${OBSIDIAN_NOTES_DIR:-inbox}"
@@ -13,14 +24,18 @@ okm - simple terminal knowledge manager
 
 Usage:
   okm open [path]
-  okm new <title>
-  okm capture [text]
+  okm new <title> [-t tag1,tag2]
+  okm capture [text] [-t tag1,tag2]
   okm today
-  okm spot <spotify-url>
+  okm spot <spotify-url> [-t tag1,tag2]
   okm grep <pattern>
   okm files [pattern]
   okm recent
   okm sync [message]
+  okm tags [note]
+  okm tag <note> <tag> [...]
+  okm untag <note> <tag> [...]
+  okm tagged <tag>
   okm obs
   okm path
 EOF
@@ -33,6 +48,177 @@ timestamp() { date +"%Y%m%d-%H%M%S"; }
 
 ensure_dirs() {
   mkdir -p "$VAULT/$DAILY_DIR" "$VAULT/$NOTES_DIR"
+}
+
+# Extract the tags: line from a note's YAML frontmatter
+get_tags_line() {
+  local file="$1"
+  sed -n '/^---$/,/^---$/{/^tags:/p;}' "$file"
+}
+
+# Parse a YAML tags line into a newline-separated list of tag names
+parse_tags() {
+  local line="$1"
+  echo "$line" | sed 's/^tags:[[:space:]]*//; s/^\[//; s/\]$//; s/,/ /g' \
+    | tr ' ' '\n' | sed '/^$/d'
+}
+
+# Build a YAML tags array string from newline-separated tag list
+build_tags_yaml() {
+  local tag_list="$1"
+  if [ -z "$tag_list" ]; then
+    echo "tags: []"
+    return
+  fi
+  local csv
+  csv="$(echo "$tag_list" | paste -sd, - | sed 's/,/, /g')"
+  echo "tags: [${csv}]"
+}
+
+# Resolve a note argument to an absolute file path inside the vault.
+resolve_note() {
+  local arg="$1"
+  if [ -f "$arg" ]; then
+    echo "$arg"
+  elif [ -f "$VAULT/$arg" ]; then
+    echo "$VAULT/$arg"
+  else
+    echo "Note not found: $arg" >&2
+    return 1
+  fi
+}
+
+# List all tags across the vault with counts, or show tags for a specific note
+list_tags() {
+  local note="${1:-}"
+  if [ -n "$note" ]; then
+    local file
+    file="$(resolve_note "$note")"
+    local line
+    line="$(get_tags_line "$file")"
+    if [ -z "$line" ]; then
+      echo "(no tags)"
+      return
+    fi
+    parse_tags "$line"
+    return
+  fi
+  need_cmd rg
+  rg -n --no-heading --glob '*.md' --glob '!.git/' '^tags:' "$VAULT" 2>/dev/null \
+    | sed 's/^.*tags:[[:space:]]*//; s/^\[//; s/\]$//; s/,/ /g' \
+    | tr ' ' '\n' \
+    | sed '/^$/d' \
+    | sort | uniq -c | sort -rn \
+    | awk '{printf "%-4d %s\n", $1, $2}'
+}
+
+# Add tags to a note
+add_tags() {
+  local note="${1:-}"
+  [ -n "$note" ] || { echo "Note required" >&2; exit 1; }
+  shift
+  [ $# -gt 0 ] || { echo "At least one tag required" >&2; exit 1; }
+
+  local file
+  file="$(resolve_note "$note")"
+
+  local line
+  line="$(get_tags_line "$file")"
+  local existing=""
+  if [ -n "$line" ]; then
+    existing="$(parse_tags "$line")"
+  fi
+
+  local merged="$existing"
+  for t in "$@"; do
+    if ! echo "$merged" | grep -qxF "$t"; then
+      merged="${merged:+${merged}
+}${t}"
+    fi
+  done
+
+  local new_yaml
+  new_yaml="$(build_tags_yaml "$merged")"
+
+  if [ -n "$line" ]; then
+    sed -i "/^---$/,/^---$/{s/^tags:.*$/${new_yaml}/;}" "$file"
+  else
+    sed -i "0,/^---$/!{0,/^---$/s/^---$/${new_yaml}\n---/}" "$file"
+  fi
+  echo "Tagged: $(basename "$file") -> ${new_yaml}"
+}
+
+# Remove tags from a note
+remove_tags() {
+  local note="${1:-}"
+  [ -n "$note" ] || { echo "Note required" >&2; exit 1; }
+  shift
+  [ $# -gt 0 ] || { echo "At least one tag required" >&2; exit 1; }
+
+  local file
+  file="$(resolve_note "$note")"
+
+  local line
+  line="$(get_tags_line "$file")"
+  if [ -z "$line" ]; then
+    echo "No tags to remove"
+    return
+  fi
+
+  local existing
+  existing="$(parse_tags "$line")"
+
+  local remaining=""
+  while IFS= read -r tag; do
+    local keep=true
+    for t in "$@"; do
+      if [ "$tag" = "$t" ]; then
+        keep=false
+        break
+      fi
+    done
+    if $keep; then
+      remaining="${remaining:+${remaining}
+}${tag}"
+    fi
+  done <<< "$existing"
+
+  local new_yaml
+  new_yaml="$(build_tags_yaml "$remaining")"
+  sed -i "/^---$/,/^---$/{s/^tags:.*$/${new_yaml}/;}" "$file"
+  echo "Updated: $(basename "$file") -> ${new_yaml}"
+}
+
+# List notes with a specific tag
+list_tagged() {
+  local tag="${1:-}"
+  [ -n "$tag" ] || { echo "Tag required" >&2; exit 1; }
+  need_cmd rg
+  rg -l --glob '*.md' --glob '!.git/' "^tags:.*\\b${tag}\\b" "$VAULT" 2>/dev/null \
+    | sed "s#^$VAULT/##" | sort
+}
+
+# Parse -t flag from arguments.
+# Sets _REMAINING_ARGS array and TAG_FLAG_VALUES string.
+TAG_FLAG_VALUES=""
+_REMAINING_ARGS=()
+parse_tag_flag() {
+  TAG_FLAG_VALUES=""
+  _REMAINING_ARGS=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -t)
+        shift
+        [ $# -gt 0 ] || { echo "-t requires comma-separated tags" >&2; exit 1; }
+        TAG_FLAG_VALUES="$1"
+        shift
+        ;;
+      *)
+        _REMAINING_ARGS+=("$1")
+        shift
+        ;;
+    esac
+  done
 }
 
 list_notes() {
@@ -62,19 +248,26 @@ open_note() {
 
 new_note() {
   ensure_dirs
-  local title="$*"
+  parse_tag_flag "$@"
+  local title="${_REMAINING_ARGS[*]:-}"
   [ -n "$title" ] || { echo "Title required" >&2; exit 1; }
+
+  local tags_yaml="[]"
+  if [ -n "$TAG_FLAG_VALUES" ]; then
+    tags_yaml="[$(echo "$TAG_FLAG_VALUES" | sed 's/,/, /g')]"
+  fi
+
   local slug file
   slug="$(slugify "$title")"
   file="$VAULT/$NOTES_DIR/$slug.md"
   [ -f "$file" ] || cat > "$file" <<EOF
 ---
-title: $title
+title: "${title}"
 created: $(iso_now)
-tags: []
+tags: ${tags_yaml}
 ---
 
-# $title
+# ${title}
 
 EOF
   exec "$EDITOR_CMD" "$file"
@@ -82,19 +275,27 @@ EOF
 
 capture_note() {
   ensure_dirs
+  parse_tag_flag "$@"
+  local body="${_REMAINING_ARGS[*]:-}"
+
+  local tags_yaml="[capture, inbox]"
+  if [ -n "$TAG_FLAG_VALUES" ]; then
+    tags_yaml="[capture, inbox, $(echo "$TAG_FLAG_VALUES" | sed 's/,/, /g')]"
+  fi
+
   local file ts
   ts="$(timestamp)"
   file="$VAULT/$NOTES_DIR/$ts.md"
   cat > "$file" <<EOF
 ---
-title: Quick Capture $ts
+title: "Quick Capture ${ts}"
 created: $(iso_now)
-tags: [capture, inbox]
+tags: ${tags_yaml}
 ---
 
-# Quick Capture $ts
+# Quick Capture ${ts}
 
-${*:-}
+${body:-}
 EOF
   exec "$EDITOR_CMD" "$file"
 }
@@ -127,7 +328,7 @@ grep_vault() {
   need_cmd rg
   local pattern="${1:-}"
   [ -n "$pattern" ] || { echo "Pattern required" >&2; exit 1; }
-  rg -n --hidden --glob '*.md' "$pattern" "$VAULT"
+  rg -n --hidden --glob '*.md' --glob '!.git/' "$pattern" "$VAULT"
 }
 
 files_vault() {
@@ -143,7 +344,8 @@ recent_notes() {
   need_cmd fzf
   local picked
   picked="$(
-    find "$VAULT" -type f -name '*.md' -printf '%T@ %p\n' \
+    find "$VAULT" -type f -name '*.md' -exec stat --format='%Y %n' {} + 2>/dev/null \
+      || find "$VAULT" -type f -name '*.md' -print0 | xargs -0 stat -f '%m %N' 2>/dev/null \
       | sort -nr \
       | head -200 \
       | cut -d' ' -f2- \
@@ -178,7 +380,8 @@ sync_git() {
 
 spot_note() {
   ensure_dirs
-  local url="${1:-}"
+  parse_tag_flag "$@"
+  local url="${_REMAINING_ARGS[0]:-}"
   [ -n "$url" ] || { echo "Spotify URL required" >&2; exit 1; }
 
   # Validate it's a Spotify URL
@@ -206,7 +409,7 @@ spot_note() {
   local title="" artist=""
   if command -v spotdl >/dev/null 2>&1 && [ "$spot_type" != "episode" ] && [ "$spot_type" != "show" ]; then
     local meta
-    meta="$(spotdl url "$url" --output "{artist} - {title}" --print-errors 2>/dev/null | head -1 || true)"
+    meta="$(spotdl save "$url" --output "{artist} - {title}" 2>/dev/null | head -1 || true)"
     if [ -n "$meta" ]; then
       artist="$(echo "$meta" | sed 's/ - .*//')"
       title="$(echo "$meta" | sed 's/^[^-]*- //')"
@@ -230,6 +433,11 @@ spot_note() {
     playlist)     source_tag="source/playlist" ;;
   esac
 
+  local tags_csv="${source_tag}"
+  if [ -n "$TAG_FLAG_VALUES" ]; then
+    tags_csv="${source_tag}, $(echo "$TAG_FLAG_VALUES" | sed 's/,/, /g')"
+  fi
+
   if [ ! -f "$file" ]; then
     case "$spot_type" in
       episode|show)
@@ -240,7 +448,7 @@ source_type: spotify-${spot_type}
 source_url: "${url}"
 author: "${artist}"
 created: $(iso_now)
-tags: [${source_tag}]
+tags: [${tags_csv}]
 ---
 
 # ${title}
@@ -275,7 +483,7 @@ source_type: spotify-${spot_type}
 source_url: "${url}"
 author: "${artist}"
 created: $(iso_now)
-tags: [${source_tag}]
+tags: [${tags_csv}]
 ---
 
 # ${title}
@@ -306,14 +514,18 @@ open_obsidian() {
 
 case "${1:-help}" in
   open) shift; open_note "${1:-}" ;;
-  new) shift; new_note "$*" ;;
-  capture) shift; capture_note "$*" ;;
+  new) shift; new_note "$@" ;;
+  capture) shift; capture_note "$@" ;;
   today) shift; today_note ;;
-  spot) shift; spot_note "${1:-}" ;;
+  spot) shift; spot_note "$@" ;;
   grep) shift; grep_vault "${1:-}" ;;
   files) shift; files_vault "${1:-}" ;;
   recent) shift; recent_notes ;;
   sync) shift; sync_git "$*" ;;
+  tags) shift; list_tags "${1:-}" ;;
+  tag) shift; add_tags "$@" ;;
+  untag) shift; remove_tags "$@" ;;
+  tagged) shift; list_tagged "${1:-}" ;;
   obs) shift; open_obsidian ;;
   path) printf '%s\n' "$VAULT" ;;
   help|-h|--help) usage ;;
