@@ -20,3 +20,18 @@ tags: [weekly-tasks, para, automated]
 
 ---
 
+### {{DATE}} {{DAY_NAME}}
+
+#### Projects
+
+- [ ] **Example TODO** (`path/to/file.sh:42`) — TODO: refactor parser
+
+#### Areas
+
+- [ ] **Daily note** (`daily/2026-01-05.md:7`) — Review weekly goals
+
+#### Resources
+
+- [ ] **Example REVIEW** (`path/to/doc.md:15`) — REVIEW: evaluate new library
+
+---

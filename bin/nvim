@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+NVIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export VIMRUNTIME="${NVIM_DIR}/nvim-runtime/share/nvim/runtime"
+exec "${NVIM_DIR}/nvim.bin" "$@"

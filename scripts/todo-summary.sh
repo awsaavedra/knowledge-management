@@ -29,7 +29,18 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="${KM_PROJECT_DIR:-${SCRIPT_DIR}}"
-VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management}"
+if [ -z "${OBSIDIAN_VAULT:-}" ]; then
+    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    _sibling="${_parent}/knowledge-management"
+    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
+        VAULT_DIR="${SCRIPT_DIR}"
+    else
+        VAULT_DIR="${_sibling}"
+    fi
+    unset _parent _sibling
+else
+    VAULT_DIR="${OBSIDIAN_VAULT}"
+fi
 YEAR="$(date +%Y)"
 TODAY="$(date +%F)"
 OUTPUT_FILE="${PROJECT_DIR}/inbox/todo-summary-${YEAR}.md"
@@ -39,128 +50,16 @@ if [[ "${1:-}" == "--output" ]]; then
     WRITE_FILE=true
 fi
 
+# --- Shared scanning library ---
+# shellcheck source=scripts/lib/scan.sh
+source "${SCRIPT_DIR}/scripts/lib/scan.sh"
+
 # --- Collectors for PARA buckets ---
 projects_items=""
 areas_items=""
 resources_items=""
 
-# Cache note titles to avoid re-reading the same file
 declare -A _title_cache
-
-# Extract a human-readable title from a file.
-#   .md files: try YAML frontmatter "title:", then first "# heading", then filename stem.
-#   other files: filename only.
-get_title() {
-    local filepath="$1"
-
-    if [[ -n "${_title_cache["$filepath"]+x}" ]]; then
-        echo "${_title_cache["$filepath"]}"
-        return
-    fi
-
-    local title=""
-
-    if [[ "$filepath" == *.md ]]; then
-        if [[ -f "$filepath" ]]; then
-            title="$(sed -n '/^---$/,/^---$/{/^title:/{ s/^title:[[:space:]]*//; s/^["'\''"]//; s/["'\''"]$//; p; q; }}' "$filepath")"
-        fi
-        if [[ -z "$title" && -f "$filepath" ]]; then
-            title="$(sed -n 's/^# *//p' "$filepath" | head -1)"
-        fi
-        if [[ -z "$title" ]]; then
-            title="$(basename "$filepath" .md)"
-        fi
-    else
-        title="$(basename "$filepath")"
-    fi
-
-    _title_cache["$filepath"]="$title"
-    echo "$title"
-}
-
-format_item() {
-    local dir="$1"
-    local line="$2"
-    local relative="${line#"$dir"/}"
-    local file_part="${relative%%:*}"
-    local rest="${relative#*:}"
-    local lineno="${rest%%:*}"
-    local text="${rest#*:}"
-    text="$(echo "$text" | sed 's/^[[:space:]]*//')"
-    # Strip leading "- [ ] " from unchecked task text so it doesn't double up
-    text="$(echo "$text" | sed 's/^- \[ \] *//')"
-
-    local title
-    title="$(get_title "${dir}/${file_part}")"
-
-    echo "- [ ] **${title}** (\`${file_part}:${lineno}\`) — ${text}"
-}
-
-scan_directory() {
-    local dir="$1"
-
-    if [[ ! -d "$dir" ]]; then
-        return
-    fi
-
-    # Common exclusions: self, previous summaries, test fixtures
-    local -a exclude_globs=(
-        --glob '!**/todo-summary.sh'
-        --glob '!**/todo-summary-*.md'
-        --glob '!tests/**'
-    )
-
-    # --- Projects: code markers (TODO, FIXME, HACK, XXX) from scripts, config, code ---
-    local marker_hits
-    marker_hits="$(rg -n --no-heading \
-        --glob '*.sh' --glob '*.lua' --glob '*.yml' --glob '*.json' --glob '*.md' \
-        "${exclude_globs[@]}" \
-        -e '\bTODO:' -e '\bFIXME:' -e '\bHACK:' -e '\bXXX:' \
-        "$dir" 2>/dev/null || true)"
-
-    if [[ -n "$marker_hits" ]]; then
-        while IFS= read -r line; do
-            # Skip markdown table rows (documentation about markers, not actual markers)
-            local text_part="${line#*:*:}"
-            if [[ "$text_part" == *"|"*"TODO:"*"|"* || "$text_part" == *"|"*"FIXME:"*"|"* || \
-                  "$text_part" == *"|"*"HACK:"*"|"* || "$text_part" == *"|"*"XXX:"*"|"* ]]; then
-                continue
-            fi
-            projects_items+="$(format_item "$dir" "$line")\n"
-        done <<< "$marker_hits"
-    fi
-
-    # --- Resources: REVIEW markers (things to read, evaluate, learn) ---
-    local review_hits
-    review_hits="$(rg -n --no-heading \
-        --glob '*.sh' --glob '*.lua' --glob '*.yml' --glob '*.json' --glob '*.md' \
-        "${exclude_globs[@]}" \
-        -e '\bREVIEW:' \
-        "$dir" 2>/dev/null || true)"
-
-    if [[ -n "$review_hits" ]]; then
-        while IFS= read -r line; do
-            local text_part="${line#*:*:}"
-            if [[ "$text_part" == *"|"*"REVIEW:"*"|"* ]]; then
-                continue
-            fi
-            resources_items+="$(format_item "$dir" "$line")\n"
-        done <<< "$review_hits"
-    fi
-
-    # --- Areas: unchecked markdown tasks (ongoing responsibilities) ---
-    local unchecked_tasks
-    unchecked_tasks="$(rg -n --no-heading --glob '*.md' \
-        "${exclude_globs[@]}" \
-        -e '^\s*- \[ \]' \
-        "$dir" 2>/dev/null || true)"
-
-    if [[ -n "$unchecked_tasks" ]]; then
-        while IFS= read -r line; do
-            areas_items+="$(format_item "$dir" "$line")\n"
-        done <<< "$unchecked_tasks"
-    fi
-}
 
 # Scan both directories
 scan_directory "$PROJECT_DIR"
@@ -174,9 +73,12 @@ day_section="### ${TODAY}
 "
 
 if [[ -n "$projects_items" ]]; then
-    day_section+="${projects_items}\n"
+    day_section+="${projects_items}
+"
 else
-    day_section+="_No active project items._\n\n"
+    day_section+="_No active project items._
+
+"
 fi
 
 day_section+="#### Areas
@@ -184,9 +86,12 @@ day_section+="#### Areas
 "
 
 if [[ -n "$areas_items" ]]; then
-    day_section+="${areas_items}\n"
+    day_section+="${areas_items}
+"
 else
-    day_section+="_No area tasks._\n\n"
+    day_section+="_No area tasks._
+
+"
 fi
 
 day_section+="#### Resources
@@ -194,80 +99,17 @@ day_section+="#### Resources
 "
 
 if [[ -n "$resources_items" ]]; then
-    day_section+="${resources_items}\n"
+    day_section+="${resources_items}
+"
 else
-    day_section+="_No review items._\n\n"
+    day_section+="_No review items._
+
+"
 fi
 
 day_section+="---
 
 "
-
-# --- Carry forward: merge unchecked items from previous day into today's section ---
-# Reads the new day section line by line. When it hits a bucket boundary (#### Areas,
-# #### Resources, ---), it first emits any carried items for the bucket that just ended.
-carry_forward_into() {
-    local new_section="$1"
-    local prev_section="$2"
-
-    if [[ -z "$prev_section" ]]; then
-        echo "$new_section"
-        return
-    fi
-
-    # Extract unchecked items from previous day, grouped by PARA bucket
-    local prev_projects prev_areas prev_resources
-    prev_projects="$(echo "$prev_section" | sed -n '/^#### Projects/,/^#### Areas/p' | grep '^\- \[ \]' || true)"
-    prev_areas="$(echo "$prev_section" | sed -n '/^#### Areas/,/^#### Resources/p' | grep '^\- \[ \]' || true)"
-    prev_resources="$(echo "$prev_section" | sed -n '/^#### Resources/,/^---$/p' | grep '^\- \[ \]' || true)"
-
-    # Build result line by line, injecting carried items at bucket boundaries
-    local current_bucket=""
-    local result=""
-    while IFS= read -r line; do
-        case "$line" in
-            "#### Projects") current_bucket="projects" ;;
-            "#### Areas")
-                # Emit carried project items before switching to Areas
-                if [[ -n "$prev_projects" ]]; then
-                    while IFS= read -r item; do
-                        if ! echo "$new_section" | grep -qF "$item"; then
-                            result+="${item}"$'\n'
-                        fi
-                    done <<< "$prev_projects"
-                fi
-                current_bucket="areas"
-                ;;
-            "#### Resources")
-                # Emit carried area items before switching to Resources
-                if [[ -n "$prev_areas" ]]; then
-                    while IFS= read -r item; do
-                        if ! echo "$new_section" | grep -qF "$item"; then
-                            result+="${item}"$'\n'
-                        fi
-                    done <<< "$prev_areas"
-                fi
-                current_bucket="resources"
-                ;;
-            "---")
-                # Emit carried resource items before the closing ---
-                if [[ "$current_bucket" == "resources" ]]; then
-                    if [[ -n "$prev_resources" ]]; then
-                        while IFS= read -r item; do
-                            if ! echo "$new_section" | grep -qF "$item"; then
-                                result+="${item}"$'\n'
-                            fi
-                        done <<< "$prev_resources"
-                    fi
-                    current_bucket=""
-                fi
-                ;;
-        esac
-        result+="${line}"$'\n'
-    done <<< "$new_section"
-
-    echo "$result"
-}
 
 # --- Frontmatter for new files ---
 frontmatter="---
@@ -295,8 +137,7 @@ Move completed items here during your review.
 if [[ "$WRITE_FILE" == true ]]; then
     mkdir -p "$(dirname "$OUTPUT_FILE")"
 
-    # Render day_section (resolve \n escapes)
-    rendered_day="$(printf '%b' "$day_section")"
+    rendered_day="$day_section"
 
     if [[ -f "$OUTPUT_FILE" ]]; then
         # Check if today's section already exists (same-day re-run)
@@ -367,6 +208,5 @@ if [[ "$WRITE_FILE" == true ]]; then
     fi
     echo "Summary written to: ${OUTPUT_FILE}"
 else
-    # Stdout mode: just print today's section
-    printf '%b' "$day_section"
+    printf '%s' "$day_section"
 fi

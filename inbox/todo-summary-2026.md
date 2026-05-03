@@ -1,0 +1,658 @@
+---
+title: TODO Summary 2026
+created: 2026-05-02
+year: 2026
+tags: [todo-summary, para, automated]
+---
+
+# TODO Summary — 2026
+
+> Living document. Each scan adds a day section (newest at top).
+> Unchecked items carry forward to the next day automatically.
+> Check off items as you complete them — they stay as a record.
+
+---
+### 2026-05-02
+
+#### Projects
+
+- [ ] **Objective of this project** (`README.md:486`) — - [x] **TODO/FIXME/BUG highlighting** — `TODO:` yellow, `FIXME:` orange, `BUG:` red. Neovim via `todo-comments.nvim` (`config/nvim/lua/plugins/todo-comments.lua`); Vim via `matchadd` in `config/vim/vimrc`.
+- [ ] **man.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/man.lua:810`) — -- XXX: nroff justifies text by filling it with whitespace.  That interacts
+- [ ] **tutor.tutor.json** (`bin/nvim-runtime/share/nvim/runtime/tutor/tutor.tutor.json:5`) — "64": "TODO: Document '&variable'",
+- [ ] **tutor.tutor.json** (`bin/nvim-runtime/share/nvim/runtime/tutor/tutor.tutor.json:6`) — "65": "TODO: Document '&variable'",
+- [ ] **menu.vim** (`bin/nvim-runtime/share/nvim/runtime/menu.vim:815`) — " HACK: Replace all non alphabetics with 'Z'
+- [ ] **net.lua** (`bin/nvim-runtime/share/nvim/runtime/plugin/net.lua:51`) — -- XXX: zipPlugin.vim, tarPlugin.vim don't work with non-file buffers.
+- [ ] **net.lua** (`bin/nvim-runtime/share/nvim/runtime/plugin/net.lua:116`) — -- FIXME: Doesn't work for :0read as '[ is set to 1. See #7177 for possible solutions.
+- [ ] **indent.vim** (`bin/nvim-runtime/share/nvim/runtime/indent.vim:28`) — " XXX: "[.]" in the pattern makes it a wildcard on Windows
+- [ ] **pythoncomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/pythoncomplete.vim:8`) — " TODO:
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:28`) — " TODO:  I should think about multi-line patterns for b:match_words.
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:31`) — " TODO:  Maybe I should add a menu so that people will actually use some of
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:33`) — " TODO:  Eliminate the MultiMatch function.  Add yet another argument to
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:35`) — " TODO:  Allow :let b:match_words = '\(\(foo\)\(bar\)\):\3\2:end\1'
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:36`) — " TODO:  Make backrefs safer by using '\V' (very no-magic).
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:37`) — " TODO:  Add a level of indirection, so that custom % scripts can use my
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:679`) — " - TODO:  A lot of this is copied from matchit#Match_wrapper().
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:754`) — "   " - TODO:  figure out whether 'if' or '<tag>' matched, and construct
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:758`) — "   " - TODO:  Change the s:all argument if there is a new set of match pats.
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:778`) — "   " - TODO:  Construct the closing from group.
+- [ ] **htmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/htmlcomplete.vim:639`) — " MM: TODO: GLOT works always the same but with some weird situation it
+- [ ] **termdebug.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/termdebug/plugin/termdebug.vim:603`) — " TODO: should we prepend CTRL-U to clear the command?
+- [ ] **termdebug.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/termdebug/plugin/termdebug.vim:1424`) — " TODO: allow filetype specific lookup #9057
+- [ ] **termdebug.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/termdebug/plugin/termdebug.vim:1722`) — " TODO: find existing window
+- [ ] **spotbugs.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/spotbugs.vim:18`) — " FIXME: When "search()" is used with the "e" flag, it makes no _further_
+- [ ] **spotbugs.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/spotbugs.vim:20`) — " XXX: Omit anonymous class declarations
+- [ ] **zig.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/zig.vim:20`) — " TODO: improve errorformat as needed.
+- [ ] **zig_build.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/zig_build.vim:21`) — " TODO: anything to add to errorformat for zig build specifically?
+- [ ] **languagetree.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:336`) — -- TODO: Combine intersection ranges in region1
+- [ ] **languagetree.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:366`) — -- TODO: Efficiently search for possibly intersecting regions using a binary search
+- [ ] **languagetree.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1083`) — --- TODO: Allow for an offset predicate to tailor the injection range
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/splint.vim:28`) — " TODO: reliable way to distinguish file names and constraints.
+- [ ] **raku.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/raku.vim:16`) — " TODO:
+- [ ] **ccomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/ccomplete.vim:129`) — " TODO: join previous line if it makes sense
+- [ ] **ccomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/ccomplete.vim:241`) — " TODO: join previous line if it makes sense
+- [ ] **ccomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/ccomplete.vim:452`) — " TODO: add more reserved words
+- [ ] **health.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/provider/health.lua:790`) — -- XXX: Remove irrelevant executables found in bin/.
+- [ ] **clojure.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/clojure.vim:320`) — " TODO: Handle #=() and other rare reader invocations?
+- [ ] **python3complete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/python3complete.vim:10`) — " TODO:
+- [ ] **cm3.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/cm3.vim:14`) — " TODO: better handling of Quake errors
+- [ ] **pov.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/pov.vim:77`) — " FIXME: If we have to dedent, we should try to find the indentation of the
+- [ ] **spotbugs.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/spotbugs.vim:309`) — " XXX: Keep "s:compiler" around for "spotbugs#DefaultPreCompilerAction()",
+- [ ] **linked_editing_range.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/linked_editing_range.lua:59`) — --TODO: delete namespace if/when that becomes possible
+- [ ] **linked_editing_range.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/linked_editing_range.lua:171`) — -- TODO: Apply the client's own word pattern, if it exists
+- [ ] **phpcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/phpcomplete.vim:44`) — "	TODO:
+- [ ] **typescript.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/typescript.vim:60`) — " TODO: this needs to deal with if ...: and so on
+- [ ] **typescript.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/typescript.vim:242`) — " TODO: the || s:IsInString() thing worries me a bit.
+- [ ] **javascriptcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/javascriptcomplete.vim:463`) — " TODO: a bit more than real boolean
+- [ ] **bitbake.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/bitbake.vim:24`) — " TODO: support different styles of indentation for assignments. For now,
+- [ ] **bitbake.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/bitbake.vim:81`) — " TODO: GetShIndent doesn't detect tasks prepended with 'fakeroot'
+- [ ] **bitbake.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/bitbake.vim:89`) — " TODO:
+- [ ] **protocol.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/protocol.lua:1178`) — ---TODO: also has workspace/* items because spec lacks a top-level "workspaceProvider"
+- [ ] **zip.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/zip.vim:408`) — " TODO: what to check on MS-Windows to avoid writing absolute paths?
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/util.lua:1379`) — -- HACK: reset current_syntax, since some syntax files like markdown won't load if it is already set
+- [ ] **erlang.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/erlang.vim:267`) — " TODO: doc, handle "not found" case
+- [ ] **erlang.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/erlang.vim:821`) — if len(stack) > 256 " TODO: magic number
+- [ ] **rustfmt.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/rustfmt.vim:103`) — " FIXME: When --file-lines gets to be stable, add version range checking
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:26`) — " TODO: Needs to be adjusted to stop at [, <, and ].
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:77`) — " TODO: Line and end could be script global (think OO members).
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:150`) — " TODO: Can the “-” be separated by whitespace from the “(”?
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:159`) — " TODO: Should use s:lex here on getline(v:lnum) and check for >.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:191`) — " TODO: Should use s:lex here on getline(v:lnum) and check for >.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:202`) — " TODO: Do validation of keywords
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:210`) — " TODO: If validating according to above, value must be equal to '('.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:312`) — " TODO: Should use s:lex here on getline(v:lnum) and check for >.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:323`) — " TODO: Processing directives could be indented I suppose.  But perhaps it’s
+- [ ] **xmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/xmlcomplete.vim:33`) — " TODO: make it properly (using autoload, that is) later
+- [ ] **xmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/xmlcomplete.vim:38`) — " TODO: give warning about non-existing canonicals - should it be?
+- [ ] **xmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/xmlcomplete.vim:311`) — " TODO: #REQUIRED, #IMPLIED, #FIXED, #PCDATA - but these should be detected like
+- [ ] **buf.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/buf.lua:530`) — -- TODO: Use `vim.fn.getregionpos()` instead.
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:58`) — " TODO: this needs to deal with if ...: and so on
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:301`) — " TODO: this is messy
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:374`) — call cursor(clnum, 0)  " FIXME: column was vcol
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:399`) — " TODO: make this better (we need to count them) (or, if a searchpair
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:413`) — " TODO: the || s:IsInString() thing worries me a bit.
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:425`) — " TODO: this does not take into account contrived things such as
+- [ ] **_lsp.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/pack/_lsp.lua:230`) — -- TODO: Simplify after `vim.lsp.server` is a thing
+- [ ] **elm.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/elm.vim:63`) — " HACK: Indent lines in case with nearest case clause:
+- [ ] **elm.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/elm.vim:67`) — " HACK: Don't change the indentation if the last line is a comment.
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/util.lua:6`) — -- TODO: move to _core/defaults.lua once it is possible to assign a Lua function to options #25672
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/util.lua:15`) — -- TODO: move to _core/defaults.lua once it is possible to assign a Lua function to options #25672
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/util.lua:20`) — -- TODO: move to _core/defaults.lua once it is possible to assign a Lua function to options #25672
+- [ ] **odin.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/odin.vim:30`) — " XXX: take into account nested multiline /* /* */ */ comments
+- [ ] **octave.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/octave.vim:14`) — " TODO: update Matlab ftplugin and source it as the base file?
+- [ ] **detect.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/filetype/detect.lua:1858`) — -- Translation from formats to file types.  TODO:  add AMSTeX, RevTex, others?
+- [ ] **messages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2/messages.lua:271`) — -- Filter out empty newline messages. TODO: don't emit them.
+- [ ] **messages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2/messages.lua:406`) — -- Blocked by messaging() without ext_messages. TODO: look at other messaging() guards.
+- [ ] **messages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2/messages.lua:566`) — -- TODO: no hint anymore, so should at least be documented at some point.
+- [ ] **ui2.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2.lua:211`) — -- TODO: Reconsider what is needed when this module is enabled by default early in startup.
+- [ ] **log.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/log.lua:80`) — -- TODO: Ideally the directory should be created in open_logfile(), right
+- [ ] **shared.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/shared.lua:1620`) — -- TODO: Maybe allow it?
+- [ ] **changelog.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/changelog.vim:27`) — " TODO:
+- [ ] **client.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/client.lua:536`) — -- HACK: Capability modules must be loaded
+- [ ] **mermaid.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/mermaid.vim:22`) — " TODO: comments, formatlist stuff, based on what?
+- [ ] **csh.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/csh.vim:66`) — " TODO: confirm with syntax checks when the highlighting is more accurate
+- [ ] **semantic_tokens.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/semantic_tokens.lua:285`) — --TODO: delete namespace if/when that becomes possible
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:177`) — if not strict then -- TODO: add more "scrubbing".
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:214`) — ---TODO: generalize this, move to func.lua
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:325`) — -- HACK: construct the smallest reasonable version bigger than `to`
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:334`) — -- HACK: construct the smallest reasonable version bigger than `from`
+- [ ] **sh.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/sh.vim:143`) — " TODO: should we do the same for other "end" lines?
+- [ ] **awk.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/awk.vim:30`) — " TODO: set this in scripts.vim?
+- [ ] **basic.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/basic.vim:20`) — " TODO: support exit ... as middle matches?
+- [ ] **health.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/health/health.lua:364`) — "Add the following to your tmux configuration file, replacing XXX by the value of $TERM outside of tmux:\nset-option -a terminal-features 'XXX:RGB'",
+- [ ] **health.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/health/health.lua:365`) — "For older tmux versions use this instead:\nset-option -a terminal-overrides 'XXX:Tc'",
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:110`) — " TODO: the do here should be restricted somewhat (only at end of line)?
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:387`) — " TODO: this is messy
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:648`) — " TODO: make this better (we need to count them) (or, if a searchpair
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:689`) — " TODO: this does not take into account contrived things such as
+- [ ] **cpp.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/cpp.vim:13`) — " XXX: "[.]" in the first pattern makes it a wildcard on Windows
+- [ ] **go.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/go.vim:7`) — " TODO:
+- [ ] **go.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/go.vim:51`) — " TODO: handle if the previous line is a label.
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:188`) — -- TODO: implement Replace mode streamed pasting
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:189`) — -- TODO: support Virtual Replace mode
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:469`) — -- TODO: handle double-width characters
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:826`) — -- TODO: We can handle spaces in [] ONLY.
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:828`) — -- TODO: We can suggest the variable names to go in []
+- [ ] **eruby.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/eruby.vim:127`) — " TODO: comments=
+- [ ] **hare.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/hare.vim:71`) — " TODO: The following edge-case is still indented incorrectly:
+- [ ] **vb.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/vb.vim:45`) — " TODO: line start anchors are almost certainly overly restrictive - allow
+- [ ] **config.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/config.vim:7`) — " TODO: how about nested [()]'s in one line what's wrong with '\\\@!'?
+- [ ] **config.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/config.vim:57`) — " indent to its position. TODO: not failsafe if multiple ('s
+- [ ] **config.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/config.vim:63`) — " indent to its position. TODO: same as above
+- [ ] **server.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/server.lua:7`) — --- - TODO: track TCP servers, somehow.
+- [ ] **server.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/server.lua:8`) — --- - TODO: support Windows named pipes.
+- [ ] **server.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/server.lua:25`) — -- TODO: do we need a timeout or error handling here?
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/html.vim:424`) — " TODO: this should be split up in detecting the block type and computing the
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/html.vim:819`) — " TODO: what if <!-- is not at the start of the line?
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/html.vim:1003`) — " Do not keep the state. TODO: could keep the block type.
+- [ ] **defaults.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/defaults.lua:440`) — -- TODO: update once it is possible to assign a Lua function to options #25672
+- [ ] **defaults.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/defaults.lua:446`) — -- TODO: update once it is possible to assign a Lua function to options #25672
+- [ ] **ftplugin.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin.vim:34`) — " XXX: "[.]" in the first pattern makes it a wildcard on Windows
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/ruby.vim:53`) — " TODO:
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/html.vim:86`) — " XXX: Keep ":autocmd" last in "b:undo_ftplugin" (see ":help :bar").
+- [ ] **xml.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/xml.vim:25`) — " TODO:     implement pre-like tags, see xml_indent_open / xml_indent_close
+- [ ] **php.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/php.vim:98`) — " TODO: these probably aren't worth adding and really need syntax support
+- [ ] **solidity.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/solidity.vim:61`) — " TODO: this needs to deal with if ...: and so on
+- [ ] **solidity.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/solidity.vim:243`) — " TODO: the || s:IsInString() thing worries me a bit.
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:31`) — " TODO: This needs to be a lot more restrictive in what it matches.
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:41`) — " TODO: Should this perhaps be v:lnum -1?
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:52`) — " TODO: Deal with comments.  In comments, continuations aren't interesting.
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:63`) — " TODO: ?
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:67`) — " TODO: OK, this might be a continued shell command, so perhaps indent
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:101`) — "      " TODO: ?
+- [ ] **filetype.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/filetype.lua:3024`) — -- TODO: full resorting might be expensive with a lot of separate `vim.filetype.add()` calls.
+- [ ] **loader.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/loader.lua:287`) — -- HACK: type is not always returned due to a bug in luv
+- [ ] **loader.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/loader.lua:321`) — -- HACK: fix incorrect require statements. Really not a fan of keeping this,
+- [ ] **_init_packages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_init_packages.lua:90`) — --- TODO: should be in vim.shared when vim.shared always uses nvim-lua
+- [ ] **diagnostic.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/diagnostic.lua:348`) — -- TODO: inherit from `vim.diagnostic.Opts`, implement its fields.
+- [ ] **diagnostic.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/diagnostic.lua:2658`) — -- TODO: Handle this generally (like vim.ui.open()), rather than overriding gf.
+- [ ] **prolog.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/prolog.vim:9`) — " TODO:
+- [ ] **nroff.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/nroff.vim:11`) — " TODO:
+- [ ] **nroff.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/nroff.vim:156`) — " XXX: write proper syntax highlight for eqn / tbl / pic ?
+- [ ] **man.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/man.vim:47`) — " XXX: groupthere doesn't seem to work
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:174`) — " XXX: Postpone loading the script until all state, if any, has been
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:194`) — " XXX: Postpone loading the script until all state, if any, has been
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:267`) — " XXX: Handle multiple FileType events when vimrc contains more
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:271`) — " XXX: DO NOT ADD b:spotbugs_syntax_once TO b:undo_ftplugin !
+- [ ] **kix.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kix.vim:15`) — " TODO:
+- [ ] **denyhosts.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/denyhosts.vim:242`) — " TODO: Perhaps come up with a better regex here?  There should really be a
+- [ ] **pascal.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/pascal.vim:140`) — " only the line before the current one. TODO: Get it working for
+- [ ] **goaccess.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/goaccess.vim:15`) — " TODO: a value is required, so use extreme highlighting (e.g. bright red
+- [ ] **uri.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/uri.lua:1`) — -- TODO: This is implemented only for files currently.
+- [ ] **freebasic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/freebasic.vim:20`) — "	TODO: split this into separate dialect-based files, possibly with a common base
+- [ ] **freebasic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/freebasic.vim:430`) — " TODO: make these context sensitive to remove the overlap of common operators
+- [ ] **freebasic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/freebasic.vim:536`) — syn region	freebasicString		start='"'     end='"' " TODO: Toggle contains on Option Escape in fblite and qb? -- DJK 20/11/19
+- [ ] **ant.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ant.vim:40`) — " TODO: add more script languages here ?
+- [ ] **pack.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/pack.lua:500`) — -- TODO: redraw! not needed with ui2.
+- [ ] **typescriptcommon.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/shared/typescriptcommon.vim:1917`) — " TODO: change func keyword to funcImpl
+- [ ] **yaml.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/yaml.vim:15`) — " TODO: Validate schema
+- [ ] **synload.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/synload.vim:52`) — " XXX: "[.]" in the first pattern makes it a wildcard on Windows
+- [ ] **c.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/c.vim:363`) — " TODO: __STDC_HOSTED__ is C99 and C++11
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:11`) — " TODO: Section names and C/C++ comments should be treated as TeX material.
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:12`) — " TODO: The current version switches syntax highlighting off for section
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:13`) — " TODO: names, and leaves C/C++ comments as such. (On the other hand,
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:14`) — " TODO: switching to TeX mode in C/C++ comments might be colour overkill.)
+- [ ] **cpp.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cpp.vim:78`) — " TODO: push this up to c.vim if/when supported in C23
+- [ ] **litestep.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/litestep.vim:85`) — " TODO: unsure about this one.
+- [ ] **text.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/text.lua:175`) — -- XXX: blank line will miss the last whitespace char in `line_ws`, so we need to check `extra`.
+- [ ] **aap.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/aap.vim:129`) — " TODO: There is something wrong with line continuation.
+- [ ] **awk.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/awk.vim:20`) — " TODO:
+- [ ] **mason.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/mason.vim:11`) — " TODO:
+- [ ] **pod.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/pod.vim:31`) — " TODO: add supported encodings when we can utilize better performing Vim 8 features
+- [ ] **voscm.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/voscm.vim:30`) — " FIXME: functions should only be allowed after a bracket ... ie  (ask ...):
+- [ ] **sudoers.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sudoers.vim:14`) — " TODO: instead of 'skipnl', we would like to match a specific group that would
+- [ ] **sudoers.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sudoers.vim:17`) — " TODO: treat 'ALL' like a special (yay, a bundle of new rules!!!)
+- [ ] **sudoers.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sudoers.vim:181`) — " TODO: could also deal with special characters here
+- [ ] **autohotkey.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/autohotkey.vim:282`) — " TODO: Shouldn't we look for g:, b:,  variables before defaulting to
+- [ ] **clojure.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/clojure.vim:130`) — syntax keyword clojureCommentTodo contained FIXME XXX TODO BUG NOTE HACK FIXME: XXX: TODO: BUG: NOTE: HACK:
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/splint.vim:27`) — " FIXME: uses and changes several clusters defined in c.vim
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/splint.vim:30`) — " TODO: make a little more grammar explicit
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/splint.vim:71`) — " TODO: make these region or match
+- [ ] **mermaid.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/mermaid.vim:106`) — " FIXME: This unexpectedly matches flow chart node `id1(text)` or others.
+- [ ] **viminfo.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/viminfo.vim:34`) — " New style lines.  TODO: highlight numbers and strings.
+- [ ] **indent.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/indent.vim:8`) — " TODO:     is the deny-all (a la lilo.vim nice or no?)...
+- [ ] **qb64.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/qb64.vim:320`) — " TODO: add linux only missing features
+- [ ] **qb64.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/qb64.vim:335`) — " TODO: handle leading word boundary and __+ prefix
+- [ ] **tmux.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/tmux.vim:47`) — " TODO: Figure out how escaping works inside of #(...) and #{...} blocks.
+- [ ] **raku.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/raku.vim:19`) — " TODO:
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:46`) — " TODO: This is a hack.  The who .*Expr stuff should really be generated so
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:65`) — " FIXME: There is – probably – no reason to cluster these instead of just
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:194`) — " XXX: Undocumented
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:221`) — " XXX: This is actually only a valid option for “choice”, but treating it
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:314`) — " TODO: hm, this kind of recursion doesn't work right.  We need another set of
+- [ ] **d.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/d.vim:329`) — " TODO: Highlight following Integer and optional Filespec.
+- [ ] **ldapconf.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ldapconf.vim:179`) — " TODO: I have been unable to find a definition for a SASL realm,
+- [ ] **ldapconf.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ldapconf.vim:222`) — " TODO: Should we include the stuff under CIPHER SUITE NAMES?
+- [ ] **julia.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/julia.vim:302`) — " TODO: some of these might be specialized; the rest could be just left to the
+- [ ] **sass.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sass.vim:57`) — " TODO: Attribute namespaces
+- [ ] **sass.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sass.vim:58`) — " TODO: Arithmetic (including strings and concatenation)
+- [ ] **flexwiki.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/flexwiki.vim:28`) — " TODO: check URL syntax against RFC
+- [ ] **flexwiki.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/flexwiki.vim:73`) — " TODO: multi-line WikiProperties
+- [ ] **css.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/css.vim:116`) — " FIXME: These are actually case-insensitive too, but (a) specs recommend using
+- [ ] **css.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/css.vim:261`) — " TODO: font-variant-* attributes
+- [ ] **tcsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/tcsh.vim:136`) — " TODO: leading whitespace match is needed to prevent keyword matching
+- [ ] **basic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/basic.vim:345`) — hi def link basicFilenumber	    basicTypeSuffix " TODO: better group
+- [ ] **remind.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/remind.vim:39`) — " XXX: use different separators for dates and times?
+- [ ] **remind.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/remind.vim:42`) — " XXX: why not match only valid dates?  Ok, checking for 'Feb the 30' would
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtd.vim:14`) — " TODO:
+- [ ] **groovy.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/groovy.vim:260`) — " TODO: better matching. I am waiting to understand how it really works in groovy
+- [ ] **cs.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cs.vim:53`) — " TODO: in new out
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:35`) — " XXX: This allows a probe description to end with ',', even if it's not
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:37`) — " XXX: This doesn't work if followed by a comment.
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:47`) — " XXX: This doesn't work if followed by a comment.
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:58`) — " XXX: "cpu" is always highlighted as builtin var, not as option
+- [ ] **zsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/zsh.vim:117`) — " XXX: how safe is this?
+- [ ] **zsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/zsh.vim:277`) — " XXX: this may be too much
+- [ ] **zsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/zsh.vim:280`) — " TODO: $[...] is the same as $((...)), so add that as well.
+- [ ] **perl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/perl.vim:107`) — syn keyword perlTodo			TODO TODO: TBD TBD: FIXME FIXME: XXX XXX: NOTE NOTE: contained
+- [ ] **perl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/perl.vim:452`) — " TODO: generalise this to allow other filetypes
+- [ ] **rtf.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rtf.vim:14`) — " TODO: render underline, italic, bold
+- [ ] **udevrules.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/udevrules.vim:13`) — " TODO: Line continuations.
+- [ ] **udevrules.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/udevrules.vim:104`) — " TODO: This can actually stand alone (without {…}), so add a nextgroup here.
+- [ ] **udevrules.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/udevrules.vim:151`) — " XXX: setting this to Operator makes for extremely intense highlighting.
+- [ ] **opencl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/opencl.vim:10`) — " TODO: support openCL specific keywords
+- [ ] **rst.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rst.vim:148`) — " TODO: Additional whitespace Unicode characters: Pd, Po, Pi, Pf, Ps
+- [ ] **rst.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rst.vim:185`) — " TODO: Can’t remember why these two can’t be defined like the ones above.
+- [ ] **rst.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rst.vim:305`) — " TODO: Less arbitrary color selection
+- [ ] **cdrtoc.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cdrtoc.vim:104`) — " TODO: Actually, language maps aren’t required by TocParser.g, but let’s keep
+- [ ] **swift.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/swift.vim:153`) — " FIXME: we should be able to use skip="," and drop swiftParamDelim
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ruby.vim:94`) — syn match rubyAssignmentOperator "=>\@!" contained containedin=rubyBlockParameterList " TODO: this is inelegant
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ruby.vim:344`) — " TODO: reorganise
+- [ ] **mma.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/mma.vim:34`) — " TODO:
+- [ ] **r10.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/modula2/opt/r10.vim:128`) — " TODO: support for OpenVMS reswords and identifiers which may include $ and %
+- [ ] **initng.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/initng.vim:70`) — " TODO: syntax check for ifd-endd pairs
+- [ ] **rexx.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rexx.vim:74`) — " TODO: re-activate ?
+- [ ] **rexx.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rexx.vim:212`) — " TODO: test on 7.3
+- [ ] **jq.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/jq.vim:61`) — " TODO: $__loc__ is going to be a pain
+- [ ] **jq.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/jq.vim:108`) — " TODO: these errors should show up when doing def _flatten: as well
+- [ ] **sil.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sil.vim:49`) — " TODO: handle [tail_elems sil-type * sil-operand]
+- [ ] **rapid.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rapid.vim:21`) — " TODO:   - highlight rapid constants and maybe constants from common
+- [ ] **rapid.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rapid.vim:163`) — " TODO: still missing are userdefined types which are part of a parameter:
+- [ ] **hitest.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/hitest.vim:63`) — " TODO: this fails if the group linked to isn't defined
+- [ ] **tcl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/tcl.vim:143`) — " TODO: This could be wrong.
+- [ ] **modula3.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/modula3.vim:54`) — " TODO: exclude = from declarations
+- [ ] **modula3.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/modula3.vim:100`) — " TODO: limit to <= 377 (255)
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:342`) — " TODO: special-cased until generalised range/count support is implemented
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:381`) — " TODO: handle Vim9 "history" variable assignment (like :wincmd, but a common variable name)
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:455`) — " TODO: Vim9 comment
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:740`) — " FIXME: don't match as dictionary keys, remove when operators are not
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:802`) — " TODO: limit to decl only - no init values
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:854`) — " TODO: remove when :" comment is matched in parts as "ex-colon comment" --djk
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1033`) — " TODO: Vim9 illegal separators for abbreviated :s form are [-.:], :su\%[...] required
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1043`) — " TODO: flags, unlike count, must follow immediately
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1128`) — " TODO: restrict this to valid values?
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1166`) — " TODO: type error after register or environment variables (strings)
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1319`) — " TODO: explicitly match the {cmd} arg rather than bailing out to TOP
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1325`) — " TODO: cleaner handling of | in pattern position
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1340`) — " TODO: Vim9 requires '++' prefix
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1432`) — "\ TODO: include vimSpecFile
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1444`) — "\ TODO: include vimSpecFile
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1452`) — " TODO: match wildcards, ignoring exceptions?
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1651`) — " TODO: match file pattern
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1772`) — " TODO: consider extracting this list from the help file
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1981`) — " TODO: simplify and allow line continuations --djk
+- [ ] **markdown.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/markdown.vim:88`) — " TODO: real nesting
+- [ ] **apache.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/apache.vim:9`) — " TODO: see particular FIXME's scattered through the file
+- [ ] **php.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/php.vim:558`) — " TODO: Support [1_2], [-0b1_10_1], etc (also literal strings).
+- [ ] **sshdconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sshdconfig.vim:148`) — " FIXME: this matches quite a few things which are NOT valid IPv6 addresses
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:21`) — " TODO: other languages: ada asm auto c d fortran go local minimal opencl pascal rust unknown
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:38`) — " TODO: move this and generalise to idlist or similar?  Where else are id
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:44`) — " TODO: better name
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:100`) — " TODO: share subcommand group
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:166`) — " TODO: better pattern?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:186`) — " TODO: worth including an architecture value?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:190`) — " TODO: auto as constant?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:199`) — " TODO: deprecated
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:465`) — " TODO: move this?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:507`) — " TODO: remote protocol specific variables?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:773`) — " TODO: proper option support
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:902`) — " TODO: disallow set values
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:933`) — " TODO: move
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:948`) — " TODO: pi completes as pipe ignoring pi (python-interactive)
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:1018`) — " TODO: give higher priority than \\ in unquoted strings as \\$ matches \ escape of first char on following line
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:1549`) — " TODO: dedicated option highlight group?
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:199`) — " XXX: \C\<[^a-z0-9]\k*\> rejects "type", but matches "τύπος".
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:200`) — " XXX: \C\<[^A-Z0-9]\k*\> rejects "Method", but matches "Μέθοδος".
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:818`) — " FIXME: What API does "p" belong to?
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:821`) — " FIXME: What API do "trace*" belong to?
+- [ ] **rust.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rust.vim:51`) — " FIXME: Scoped impl's name is also fallen in this category
+- [ ] **rust.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rust.vim:220`) — " FIXME: this is a really ugly and not fully correct implementation. Most
+- [ ] **rust.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rust.vim:257`) — " FIXME: use the AST to make really good folding
+- [ ] **Objective of this project** (`README.md:486`) — - [x] **TODO/FIXME/BUG highlighting** — `TODO:` yellow, `FIXME:` orange, `BUG:` red. Neovim via `todo-comments.nvim` (`config/nvim/lua/plugins/todo-comments.lua`); Vim via `matchadd` in `config/vim/vimrc`.
+- [ ] **man.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/man.lua:810`) — -- XXX: nroff justifies text by filling it with whitespace.  That interacts
+- [ ] **menu.vim** (`bin/nvim-runtime/share/nvim/runtime/menu.vim:815`) — " HACK: Replace all non alphabetics with 'Z'
+- [ ] **net.lua** (`bin/nvim-runtime/share/nvim/runtime/plugin/net.lua:51`) — -- XXX: zipPlugin.vim, tarPlugin.vim don't work with non-file buffers.
+- [ ] **net.lua** (`bin/nvim-runtime/share/nvim/runtime/plugin/net.lua:116`) — -- FIXME: Doesn't work for :0read as '[ is set to 1. See #7177 for possible solutions.
+- [ ] **pythoncomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/pythoncomplete.vim:8`) — " TODO:
+- [ ] **tutor.tutor.json** (`bin/nvim-runtime/share/nvim/runtime/tutor/tutor.tutor.json:5`) — "64": "TODO: Document '&variable'",
+- [ ] **tutor.tutor.json** (`bin/nvim-runtime/share/nvim/runtime/tutor/tutor.tutor.json:6`) — "65": "TODO: Document '&variable'",
+- [ ] **phpcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/phpcomplete.vim:44`) — "	TODO:
+- [ ] **python3complete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/python3complete.vim:10`) — " TODO:
+- [ ] **javascriptcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/javascriptcomplete.vim:463`) — " TODO: a bit more than real boolean
+- [ ] **autohotkey.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/autohotkey.vim:282`) — " TODO: Shouldn't we look for g:, b:,  variables before defaulting to
+- [ ] **ccomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/ccomplete.vim:129`) — " TODO: join previous line if it makes sense
+- [ ] **ccomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/ccomplete.vim:241`) — " TODO: join previous line if it makes sense
+- [ ] **ccomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/ccomplete.vim:452`) — " TODO: add more reserved words
+- [ ] **nroff.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/nroff.vim:11`) — " TODO:
+- [ ] **nroff.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/nroff.vim:156`) — " XXX: write proper syntax highlight for eqn / tbl / pic ?
+- [ ] **htmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/htmlcomplete.vim:639`) — " MM: TODO: GLOT works always the same but with some weird situation it
+- [ ] **man.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/man.vim:47`) — " XXX: groupthere doesn't seem to work
+- [ ] **typescript.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/typescript.vim:60`) — " TODO: this needs to deal with if ...: and so on
+- [ ] **typescript.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/typescript.vim:242`) — " TODO: the || s:IsInString() thing worries me a bit.
+- [ ] **kix.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kix.vim:15`) — " TODO:
+- [ ] **zip.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/zip.vim:408`) — " TODO: what to check on MS-Windows to avoid writing absolute paths?
+- [ ] **denyhosts.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/denyhosts.vim:242`) — " TODO: Perhaps come up with a better regex here?  There should really be a
+- [ ] **yaml.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/yaml.vim:15`) — " TODO: Validate schema
+- [ ] **indent.vim** (`bin/nvim-runtime/share/nvim/runtime/indent.vim:28`) — " XXX: "[.]" in the pattern makes it a wildcard on Windows
+- [ ] **languagetree.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:336`) — -- TODO: Combine intersection ranges in region1
+- [ ] **languagetree.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:366`) — -- TODO: Efficiently search for possibly intersecting regions using a binary search
+- [ ] **languagetree.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1083`) — --- TODO: Allow for an offset predicate to tailor the injection range
+- [ ] **goaccess.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/goaccess.vim:15`) — " TODO: a value is required, so use extreme highlighting (e.g. bright red
+- [ ] **health.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/provider/health.lua:790`) — -- XXX: Remove irrelevant executables found in bin/.
+- [ ] **pov.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/pov.vim:77`) — " FIXME: If we have to dedent, we should try to find the indentation of the
+- [ ] **freebasic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/freebasic.vim:20`) — "	TODO: split this into separate dialect-based files, possibly with a common base
+- [ ] **freebasic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/freebasic.vim:430`) — " TODO: make these context sensitive to remove the overlap of common operators
+- [ ] **freebasic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/freebasic.vim:536`) — syn region	freebasicString		start='"'     end='"' " TODO: Toggle contains on Option Escape in fblite and qb? -- DJK 20/11/19
+- [ ] **erlang.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/erlang.vim:267`) — " TODO: doc, handle "not found" case
+- [ ] **erlang.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/erlang.vim:821`) — if len(stack) > 256 " TODO: magic number
+- [ ] **typescriptcommon.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/shared/typescriptcommon.vim:1917`) — " TODO: change func keyword to funcImpl
+- [ ] **mason.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/mason.vim:11`) — " TODO:
+- [ ] **rustfmt.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/rustfmt.vim:103`) — " FIXME: When --file-lines gets to be stable, add version range checking
+- [ ] **bitbake.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/bitbake.vim:24`) — " TODO: support different styles of indentation for assignments. For now,
+- [ ] **bitbake.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/bitbake.vim:81`) — " TODO: GetShIndent doesn't detect tasks prepended with 'fakeroot'
+- [ ] **bitbake.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/bitbake.vim:89`) — " TODO:
+- [ ] **xmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/xmlcomplete.vim:33`) — " TODO: make it properly (using autoload, that is) later
+- [ ] **xmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/xmlcomplete.vim:38`) — " TODO: give warning about non-existing canonicals - should it be?
+- [ ] **xmlcomplete.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/xmlcomplete.vim:311`) — " TODO: #REQUIRED, #IMPLIED, #FIXED, #PCDATA - but these should be detected like
+- [ ] **linked_editing_range.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/linked_editing_range.lua:59`) — --TODO: delete namespace if/when that becomes possible
+- [ ] **linked_editing_range.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/linked_editing_range.lua:171`) — -- TODO: Apply the client's own word pattern, if it exists
+- [ ] **ant.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ant.vim:40`) — " TODO: add more script languages here ?
+- [ ] **protocol.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/protocol.lua:1178`) — ---TODO: also has workspace/* items because spec lacks a top-level "workspaceProvider"
+- [ ] **spotbugs.vim** (`bin/nvim-runtime/share/nvim/runtime/autoload/spotbugs.vim:309`) — " XXX: Keep "s:compiler" around for "spotbugs#DefaultPreCompilerAction()",
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:11`) — " TODO: Section names and C/C++ comments should be treated as TeX material.
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:12`) — " TODO: The current version switches syntax highlighting off for section
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:13`) — " TODO: names, and leaves C/C++ comments as such. (On the other hand,
+- [ ] **cweb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cweb.vim:14`) — " TODO: switching to TeX mode in C/C++ comments might be colour overkill.)
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/util.lua:1379`) — -- HACK: reset current_syntax, since some syntax files like markdown won't load if it is already set
+- [ ] **c.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/c.vim:363`) — " TODO: __STDC_HOSTED__ is C99 and C++11
+- [ ] **synload.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/synload.vim:52`) — " XXX: "[.]" in the first pattern makes it a wildcard on Windows
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/splint.vim:27`) — " FIXME: uses and changes several clusters defined in c.vim
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/splint.vim:30`) — " TODO: make a little more grammar explicit
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/splint.vim:71`) — " TODO: make these region or match
+- [ ] **awk.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/awk.vim:20`) — " TODO:
+- [ ] **litestep.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/litestep.vim:85`) — " TODO: unsure about this one.
+- [ ] **elm.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/elm.vim:63`) — " HACK: Indent lines in case with nearest case clause:
+- [ ] **elm.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/elm.vim:67`) — " HACK: Don't change the indentation if the last line is a comment.
+- [ ] **sudoers.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sudoers.vim:14`) — " TODO: instead of 'skipnl', we would like to match a specific group that would
+- [ ] **sudoers.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sudoers.vim:17`) — " TODO: treat 'ALL' like a special (yay, a bundle of new rules!!!)
+- [ ] **sudoers.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sudoers.vim:181`) — " TODO: could also deal with special characters here
+- [ ] **aap.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/aap.vim:129`) — " TODO: There is something wrong with line continuation.
+- [ ] **buf.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/buf.lua:530`) — -- TODO: Use `vim.fn.getregionpos()` instead.
+- [ ] **qb64.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/qb64.vim:320`) — " TODO: add linux only missing features
+- [ ] **qb64.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/qb64.vim:335`) — " TODO: handle leading word boundary and __+ prefix
+- [ ] **config.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/config.vim:7`) — " TODO: how about nested [()]'s in one line what's wrong with '\\\@!'?
+- [ ] **config.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/config.vim:57`) — " indent to its position. TODO: not failsafe if multiple ('s
+- [ ] **config.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/config.vim:63`) — " indent to its position. TODO: same as above
+- [ ] **cm3.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/cm3.vim:14`) — " TODO: better handling of Quake errors
+- [ ] **voscm.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/voscm.vim:30`) — " FIXME: functions should only be allowed after a bracket ... ie  (ask ...):
+- [ ] **pod.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/pod.vim:31`) — " TODO: add supported encodings when we can utilize better performing Vim 8 features
+- [ ] **prolog.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/prolog.vim:9`) — " TODO:
+- [ ] **viminfo.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/viminfo.vim:34`) — " New style lines.  TODO: highlight numbers and strings.
+- [ ] **mermaid.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/mermaid.vim:106`) — " FIXME: This unexpectedly matches flow chart node `id1(text)` or others.
+- [ ] **log.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/log.lua:80`) — -- TODO: Ideally the directory should be created in open_logfile(), right
+- [ ] **zig.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/zig.vim:20`) — " TODO: improve errorformat as needed.
+- [ ] **clojure.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/clojure.vim:130`) — syntax keyword clojureCommentTodo contained FIXME XXX TODO BUG NOTE HACK FIXME: XXX: TODO: BUG: NOTE: HACK:
+- [ ] **ftplugin.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin.vim:34`) — " XXX: "[.]" in the first pattern makes it a wildcard on Windows
+- [ ] **go.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/go.vim:7`) — " TODO:
+- [ ] **go.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/go.vim:51`) — " TODO: handle if the previous line is a label.
+- [ ] **d.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/d.vim:329`) — " TODO: Highlight following Integer and optional Filespec.
+- [ ] **client.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/client.lua:536`) — -- HACK: Capability modules must be loaded
+- [ ] **hare.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/hare.vim:71`) — " TODO: The following edge-case is still indented incorrectly:
+- [ ] **zig_build.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/zig_build.vim:21`) — " TODO: anything to add to errorformat for zig build specifically?
+- [ ] **indent.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/indent.vim:8`) — " TODO:     is the deny-all (a la lilo.vim nice or no?)...
+- [ ] **semantic_tokens.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/lsp/semantic_tokens.lua:285`) — --TODO: delete namespace if/when that becomes possible
+- [ ] **changelog.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/changelog.vim:27`) — " TODO:
+- [ ] **ldapconf.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ldapconf.vim:179`) — " TODO: I have been unable to find a definition for a SASL realm,
+- [ ] **ldapconf.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ldapconf.vim:222`) — " TODO: Should we include the stuff under CIPHER SUITE NAMES?
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:46`) — " TODO: This is a hack.  The who .*Expr stuff should really be generated so
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:65`) — " FIXME: There is – probably – no reason to cluster these instead of just
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:194`) — " XXX: Undocumented
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:221`) — " XXX: This is actually only a valid option for “choice”, but treating it
+- [ ] **kconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/kconfig.vim:314`) — " TODO: hm, this kind of recursion doesn't work right.  We need another set of
+- [ ] **cpp.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cpp.vim:78`) — " TODO: push this up to c.vim if/when supported in C23
+- [ ] **raku.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/raku.vim:19`) — " TODO:
+- [ ] **css.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/css.vim:116`) — " FIXME: These are actually case-insensitive too, but (a) specs recommend using
+- [ ] **css.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/css.vim:261`) — " TODO: font-variant-* attributes
+- [ ] **basic.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/basic.vim:345`) — hi def link basicFilenumber	    basicTypeSuffix " TODO: better group
+- [ ] **flexwiki.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/flexwiki.vim:28`) — " TODO: check URL syntax against RFC
+- [ ] **flexwiki.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/flexwiki.vim:73`) — " TODO: multi-line WikiProperties
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/html.vim:424`) — " TODO: this should be split up in detecting the block type and computing the
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/html.vim:819`) — " TODO: what if <!-- is not at the start of the line?
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/html.vim:1003`) — " Do not keep the state. TODO: could keep the block type.
+- [ ] **splint.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/splint.vim:28`) — " TODO: reliable way to distinguish file names and constraints.
+- [ ] **remind.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/remind.vim:39`) — " XXX: use different separators for dates and times?
+- [ ] **remind.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/remind.vim:42`) — " XXX: why not match only valid dates?  Ok, checking for 'Feb the 30' would
+- [ ] **zsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/zsh.vim:117`) — " XXX: how safe is this?
+- [ ] **zsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/zsh.vim:277`) — " XXX: this may be too much
+- [ ] **zsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/zsh.vim:280`) — " TODO: $[...] is the same as $((...)), so add that as well.
+- [ ] **cpp.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/cpp.vim:13`) — " XXX: "[.]" in the first pattern makes it a wildcard on Windows
+- [ ] **tcsh.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/tcsh.vim:136`) — " TODO: leading whitespace match is needed to prevent keyword matching
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:28`) — " TODO:  I should think about multi-line patterns for b:match_words.
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:31`) — " TODO:  Maybe I should add a menu so that people will actually use some of
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:33`) — " TODO:  Eliminate the MultiMatch function.  Add yet another argument to
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:35`) — " TODO:  Allow :let b:match_words = '\(\(foo\)\(bar\)\):\3\2:end\1'
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:36`) — " TODO:  Make backrefs safer by using '\V' (very no-magic).
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/plugin/matchit.vim:37`) — " TODO:  Add a level of indirection, so that custom % scripts can use my
+- [ ] **eruby.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/eruby.vim:127`) — " TODO: comments=
+- [ ] **cs.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cs.vim:53`) — " TODO: in new out
+- [ ] **tmux.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/tmux.vim:47`) — " TODO: Figure out how escaping works inside of #(...) and #{...} blocks.
+- [ ] **detect.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/filetype/detect.lua:1858`) — -- Translation from formats to file types.  TODO:  add AMSTeX, RevTex, others?
+- [ ] **xml.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/xml.vim:25`) — " TODO:     implement pre-like tags, see xml_indent_open / xml_indent_close
+- [ ] **cdrtoc.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/cdrtoc.vim:104`) — " TODO: Actually, language maps aren’t required by TocParser.g, but let’s keep
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:174`) — " XXX: Postpone loading the script until all state, if any, has been
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:194`) — " XXX: Postpone loading the script until all state, if any, has been
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:267`) — " XXX: Handle multiple FileType events when vimrc contains more
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/java.vim:271`) — " XXX: DO NOT ADD b:spotbugs_syntax_once TO b:undo_ftplugin !
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ruby.vim:94`) — syn match rubyAssignmentOperator "=>\@!" contained containedin=rubyBlockParameterList " TODO: this is inelegant
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/ruby.vim:344`) — " TODO: reorganise
+- [ ] **mma.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/mma.vim:34`) — " TODO:
+- [ ] **termdebug.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/termdebug/plugin/termdebug.vim:603`) — " TODO: should we prepend CTRL-U to clear the command?
+- [ ] **termdebug.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/termdebug/plugin/termdebug.vim:1424`) — " TODO: allow filetype specific lookup #9057
+- [ ] **termdebug.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/termdebug/plugin/termdebug.vim:1722`) — " TODO: find existing window
+- [ ] **rtf.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rtf.vim:14`) — " TODO: render underline, italic, bold
+- [ ] **solidity.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/solidity.vim:61`) — " TODO: this needs to deal with if ...: and so on
+- [ ] **solidity.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/solidity.vim:243`) — " TODO: the || s:IsInString() thing worries me a bit.
+- [ ] **pascal.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/pascal.vim:140`) — " only the line before the current one. TODO: Get it working for
+- [ ] **php.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/php.vim:98`) — " TODO: these probably aren't worth adding and really need syntax support
+- [ ] **spotbugs.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/spotbugs.vim:18`) — " FIXME: When "search()" is used with the "e" flag, it makes no _further_
+- [ ] **spotbugs.vim** (`bin/nvim-runtime/share/nvim/runtime/compiler/spotbugs.vim:20`) — " XXX: Omit anonymous class declarations
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:31`) — " TODO: This needs to be a lot more restrictive in what it matches.
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:41`) — " TODO: Should this perhaps be v:lnum -1?
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:52`) — " TODO: Deal with comments.  In comments, continuations aren't interesting.
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:63`) — " TODO: ?
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:67`) — " TODO: OK, this might be a continued shell command, so perhaps indent
+- [ ] **make.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/make.vim:101`) — "      " TODO: ?
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtd.vim:14`) — " TODO:
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:679`) — " - TODO:  A lot of this is copied from matchit#Match_wrapper().
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:754`) — "   " - TODO:  figure out whether 'if' or '<tag>' matched, and construct
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:758`) — "   " - TODO:  Change the s:all argument if there is a new set of match pats.
+- [ ] **matchit.vim** (`bin/nvim-runtime/share/nvim/runtime/pack/dist/opt/matchit/autoload/matchit.vim:778`) — "   " - TODO:  Construct the closing from group.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:26`) — " TODO: Needs to be adjusted to stop at [, <, and ].
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:77`) — " TODO: Line and end could be script global (think OO members).
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:150`) — " TODO: Can the “-” be separated by whitespace from the “(”?
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:159`) — " TODO: Should use s:lex here on getline(v:lnum) and check for >.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:191`) — " TODO: Should use s:lex here on getline(v:lnum) and check for >.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:202`) — " TODO: Do validation of keywords
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:210`) — " TODO: If validating according to above, value must be equal to '('.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:312`) — " TODO: Should use s:lex here on getline(v:lnum) and check for >.
+- [ ] **dtd.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/dtd.vim:323`) — " TODO: Processing directives could be indented I suppose.  But perhaps it’s
+- [ ] **perl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/perl.vim:107`) — syn keyword perlTodo			TODO TODO: TBD TBD: FIXME FIXME: XXX XXX: NOTE NOTE: contained
+- [ ] **perl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/perl.vim:452`) — " TODO: generalise this to allow other filetypes
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:58`) — " TODO: this needs to deal with if ...: and so on
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:301`) — " TODO: this is messy
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:374`) — call cursor(clnum, 0)  " FIXME: column was vcol
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:399`) — " TODO: make this better (we need to count them) (or, if a searchpair
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:413`) — " TODO: the || s:IsInString() thing worries me a bit.
+- [ ] **falcon.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/falcon.vim:425`) — " TODO: this does not take into account contrived things such as
+- [ ] **html.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/html.vim:86`) — " XXX: Keep ":autocmd" last in "b:undo_ftplugin" (see ":help :bar").
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:35`) — " XXX: This allows a probe description to end with ',', even if it's not
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:37`) — " XXX: This doesn't work if followed by a comment.
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:47`) — " XXX: This doesn't work if followed by a comment.
+- [ ] **dtrace.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/dtrace.vim:58`) — " XXX: "cpu" is always highlighted as builtin var, not as option
+- [ ] **octave.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/octave.vim:14`) — " TODO: update Matlab ftplugin and source it as the base file?
+- [ ] **julia.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/julia.vim:302`) — " TODO: some of these might be specialized; the rest could be just left to the
+- [ ] **raku.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/raku.vim:16`) — " TODO:
+- [ ] **sass.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sass.vim:57`) — " TODO: Attribute namespaces
+- [ ] **sass.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sass.vim:58`) — " TODO: Arithmetic (including strings and concatenation)
+- [ ] **swift.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/swift.vim:153`) — " FIXME: we should be able to use skip="," and drop swiftParamDelim
+- [ ] **rapid.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rapid.vim:21`) — " TODO:   - highlight rapid constants and maybe constants from common
+- [ ] **rapid.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rapid.vim:163`) — " TODO: still missing are userdefined types which are part of a parameter:
+- [ ] **clojure.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/clojure.vim:320`) — " TODO: Handle #=() and other rare reader invocations?
+- [ ] **groovy.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/groovy.vim:260`) — " TODO: better matching. I am waiting to understand how it really works in groovy
+- [ ] **hitest.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/hitest.vim:63`) — " TODO: this fails if the group linked to isn't defined
+- [ ] **awk.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/awk.vim:30`) — " TODO: set this in scripts.vim?
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:110`) — " TODO: the do here should be restricted somewhat (only at end of line)?
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:387`) — " TODO: this is messy
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:648`) — " TODO: make this better (we need to count them) (or, if a searchpair
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/ruby.vim:689`) — " TODO: this does not take into account contrived things such as
+- [ ] **rst.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rst.vim:148`) — " TODO: Additional whitespace Unicode characters: Pd, Po, Pi, Pf, Ps
+- [ ] **rst.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rst.vim:185`) — " TODO: Can’t remember why these two can’t be defined like the ones above.
+- [ ] **rst.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rst.vim:305`) — " TODO: Less arbitrary color selection
+- [ ] **odin.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/odin.vim:30`) — " XXX: take into account nested multiline /* /* */ */ comments
+- [ ] **initng.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/initng.vim:70`) — " TODO: syntax check for ifd-endd pairs
+- [ ] **udevrules.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/udevrules.vim:13`) — " TODO: Line continuations.
+- [ ] **udevrules.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/udevrules.vim:104`) — " TODO: This can actually stand alone (without {…}), so add a nextgroup here.
+- [ ] **udevrules.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/udevrules.vim:151`) — " XXX: setting this to Operator makes for extremely intense highlighting.
+- [ ] **csh.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/csh.vim:66`) — " TODO: confirm with syntax checks when the highlighting is more accurate
+- [ ] **opencl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/opencl.vim:10`) — " TODO: support openCL specific keywords
+- [ ] **sh.vim** (`bin/nvim-runtime/share/nvim/runtime/indent/sh.vim:143`) — " TODO: should we do the same for other "end" lines?
+- [ ] **r10.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/modula2/opt/r10.vim:128`) — " TODO: support for OpenVMS reswords and identifiers which may include $ and %
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/util.lua:6`) — -- TODO: move to _core/defaults.lua once it is possible to assign a Lua function to options #25672
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/util.lua:15`) — -- TODO: move to _core/defaults.lua once it is possible to assign a Lua function to options #25672
+- [ ] **util.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/util.lua:20`) — -- TODO: move to _core/defaults.lua once it is possible to assign a Lua function to options #25672
+- [ ] **mermaid.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/mermaid.vim:22`) — " TODO: comments, formatlist stuff, based on what?
+- [ ] **vb.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/vb.vim:45`) — " TODO: line start anchors are almost certainly overly restrictive - allow
+- [ ] **ruby.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/ruby.vim:53`) — " TODO:
+- [ ] **messages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2/messages.lua:271`) — -- Filter out empty newline messages. TODO: don't emit them.
+- [ ] **messages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2/messages.lua:406`) — -- Blocked by messaging() without ext_messages. TODO: look at other messaging() guards.
+- [ ] **messages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2/messages.lua:566`) — -- TODO: no hint anymore, so should at least be documented at some point.
+- [ ] **ui2.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/ui2.lua:211`) — -- TODO: Reconsider what is needed when this module is enabled by default early in startup.
+- [ ] **jq.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/jq.vim:61`) — " TODO: $__loc__ is going to be a pain
+- [ ] **jq.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/jq.vim:108`) — " TODO: these errors should show up when doing def _flatten: as well
+- [ ] **rust.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rust.vim:51`) — " FIXME: Scoped impl's name is also fallen in this category
+- [ ] **rust.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rust.vim:220`) — " FIXME: this is a really ugly and not fully correct implementation. Most
+- [ ] **rust.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rust.vim:257`) — " FIXME: use the AST to make really good folding
+- [ ] **sil.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sil.vim:49`) — " TODO: handle [tail_elems sil-type * sil-operand]
+- [ ] **shared.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/shared.lua:1620`) — -- TODO: Maybe allow it?
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:199`) — " XXX: \C\<[^a-z0-9]\k*\> rejects "type", but matches "τύπος".
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:200`) — " XXX: \C\<[^A-Z0-9]\k*\> rejects "Method", but matches "Μέθοδος".
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:818`) — " FIXME: What API does "p" belong to?
+- [ ] **java.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/java.vim:821`) — " FIXME: What API do "trace*" belong to?
+- [ ] **sshdconfig.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/sshdconfig.vim:148`) — " FIXME: this matches quite a few things which are NOT valid IPv6 addresses
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:188`) — -- TODO: implement Replace mode streamed pasting
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:189`) — -- TODO: support Virtual Replace mode
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:469`) — -- TODO: handle double-width characters
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:826`) — -- TODO: We can handle spaces in [] ONLY.
+- [ ] **editor.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/editor.lua:828`) — -- TODO: We can suggest the variable names to go in []
+- [ ] **rexx.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rexx.vim:74`) — " TODO: re-activate ?
+- [ ] **rexx.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/rexx.vim:212`) — " TODO: test on 7.3
+- [ ] **_lsp.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/pack/_lsp.lua:230`) — -- TODO: Simplify after `vim.lsp.server` is a thing
+- [ ] **server.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/server.lua:7`) — --- - TODO: track TCP servers, somehow.
+- [ ] **server.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/server.lua:8`) — --- - TODO: support Windows named pipes.
+- [ ] **server.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/server.lua:25`) — -- TODO: do we need a timeout or error handling here?
+- [ ] **apache.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/apache.vim:9`) — " TODO: see particular FIXME's scattered through the file
+- [ ] **filetype.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/filetype.lua:3024`) — -- TODO: full resorting might be expensive with a lot of separate `vim.filetype.add()` calls.
+- [ ] **modula3.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/modula3.vim:54`) — " TODO: exclude = from declarations
+- [ ] **modula3.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/modula3.vim:100`) — " TODO: limit to <= 377 (255)
+- [ ] **defaults.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/defaults.lua:440`) — -- TODO: update once it is possible to assign a Lua function to options #25672
+- [ ] **defaults.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_core/defaults.lua:446`) — -- TODO: update once it is possible to assign a Lua function to options #25672
+- [ ] **text.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/text.lua:175`) — -- XXX: blank line will miss the last whitespace char in `line_ws`, so we need to check `extra`.
+- [ ] **markdown.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/markdown.vim:88`) — " TODO: real nesting
+- [ ] **health.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/health/health.lua:364`) — "Add the following to your tmux configuration file, replacing XXX by the value of $TERM outside of tmux:\nset-option -a terminal-features 'XXX:RGB'",
+- [ ] **health.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/health/health.lua:365`) — "For older tmux versions use this instead:\nset-option -a terminal-overrides 'XXX:Tc'",
+- [ ] **tcl.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/tcl.vim:143`) — " TODO: This could be wrong.
+- [ ] **basic.vim** (`bin/nvim-runtime/share/nvim/runtime/ftplugin/basic.vim:20`) — " TODO: support exit ... as middle matches?
+- [ ] **diagnostic.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/diagnostic.lua:348`) — -- TODO: inherit from `vim.diagnostic.Opts`, implement its fields.
+- [ ] **diagnostic.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/diagnostic.lua:2658`) — -- TODO: Handle this generally (like vim.ui.open()), rather than overriding gf.
+- [ ] **pack.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/pack.lua:500`) — -- TODO: redraw! not needed with ui2.
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:21`) — " TODO: other languages: ada asm auto c d fortran go local minimal opencl pascal rust unknown
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:38`) — " TODO: move this and generalise to idlist or similar?  Where else are id
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:44`) — " TODO: better name
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:100`) — " TODO: share subcommand group
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:166`) — " TODO: better pattern?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:186`) — " TODO: worth including an architecture value?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:190`) — " TODO: auto as constant?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:199`) — " TODO: deprecated
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:465`) — " TODO: move this?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:507`) — " TODO: remote protocol specific variables?
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:773`) — " TODO: proper option support
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:902`) — " TODO: disallow set values
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:933`) — " TODO: move
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:948`) — " TODO: pi completes as pipe ignoring pi (python-interactive)
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:1018`) — " TODO: give higher priority than \\ in unquoted strings as \\$ matches \ escape of first char on following line
+- [ ] **gdb.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/gdb.vim:1549`) — " TODO: dedicated option highlight group?
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:177`) — if not strict then -- TODO: add more "scrubbing".
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:214`) — ---TODO: generalize this, move to func.lua
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:325`) — -- HACK: construct the smallest reasonable version bigger than `to`
+- [ ] **version.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/version.lua:334`) — -- HACK: construct the smallest reasonable version bigger than `from`
+- [ ] **loader.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/loader.lua:287`) — -- HACK: type is not always returned due to a bug in luv
+- [ ] **loader.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/loader.lua:321`) — -- HACK: fix incorrect require statements. Really not a fan of keeping this,
+- [ ] **_init_packages.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/_init_packages.lua:90`) — --- TODO: should be in vim.shared when vim.shared always uses nvim-lua
+- [ ] **uri.lua** (`bin/nvim-runtime/share/nvim/runtime/lua/vim/uri.lua:1`) — -- TODO: This is implemented only for files currently.
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:342`) — " TODO: special-cased until generalised range/count support is implemented
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:381`) — " TODO: handle Vim9 "history" variable assignment (like :wincmd, but a common variable name)
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:455`) — " TODO: Vim9 comment
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:740`) — " FIXME: don't match as dictionary keys, remove when operators are not
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:802`) — " TODO: limit to decl only - no init values
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:854`) — " TODO: remove when :" comment is matched in parts as "ex-colon comment" --djk
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1033`) — " TODO: Vim9 illegal separators for abbreviated :s form are [-.:], :su\%[...] required
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1043`) — " TODO: flags, unlike count, must follow immediately
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1128`) — " TODO: restrict this to valid values?
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1166`) — " TODO: type error after register or environment variables (strings)
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1319`) — " TODO: explicitly match the {cmd} arg rather than bailing out to TOP
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1325`) — " TODO: cleaner handling of | in pattern position
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1340`) — " TODO: Vim9 requires '++' prefix
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1432`) — "\ TODO: include vimSpecFile
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1444`) — "\ TODO: include vimSpecFile
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1452`) — " TODO: match wildcards, ignoring exceptions?
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1651`) — " TODO: match file pattern
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1772`) — " TODO: consider extracting this list from the help file
+- [ ] **vim.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/vim.vim:1981`) — " TODO: simplify and allow line continuations --djk
+- [ ] **php.vim** (`bin/nvim-runtime/share/nvim/runtime/syntax/php.vim:558`) — " TODO: Support [1_2], [-0b1_10_1], etc (also literal strings).
+
+#### Areas
+
+- [ ] **2026-04-30** (`daily/2026-04-30.md:13`) — example of a task1
+- [ ] **2026-04-30** (`daily/2026-04-30.md:14`) — example of a task1 
+- [ ] **Episode or Track Title** (`inbox/templates/spotify-episode-template.md:53`) — Follow-up 1
+- [ ] **Episode or Track Title** (`inbox/templates/spotify-episode-template.md:54`) — Follow-up 2
+- [ ] **Podcast Episode Title** (`inbox/templates/podcast-template.md:52`) — Follow-up 1
+- [ ] **Podcast Episode Title** (`inbox/templates/podcast-template.md:53`) — Follow-up 2
+- [ ] **{{DATE}}** (`inbox/templates/daily-template.md:25`) — First task
+- [ ] **{{DATE}}** (`inbox/templates/daily-template.md:26`) — Second task
+- [ ] **Video Title Here** (`inbox/templates/yt-template.md:56`) — Follow-up 1
+- [ ] **Video Title Here** (`inbox/templates/yt-template.md:57`) — Follow-up 2
+- [ ] **PULL_REQUEST_TEMPLATE** (`tests/lib/bats-core/docs/PULL_REQUEST_TEMPLATE.md:1`) — I have reviewed the [Contributor Guidelines][contributor].
+- [ ] **PULL_REQUEST_TEMPLATE** (`tests/lib/bats-core/docs/PULL_REQUEST_TEMPLATE.md:2`) — I have reviewed the [Code of Conduct][coc] and agree to abide by it
+- [ ] **2026-04-30** (`daily/2026-04-30.md:13`) — example of a task1
+- [ ] **2026-04-30** (`daily/2026-04-30.md:14`) — example of a task1 
+- [ ] **Episode or Track Title** (`inbox/templates/spotify-episode-template.md:53`) — Follow-up 1
+- [ ] **Episode or Track Title** (`inbox/templates/spotify-episode-template.md:54`) — Follow-up 2
+- [ ] **Podcast Episode Title** (`inbox/templates/podcast-template.md:52`) — Follow-up 1
+- [ ] **Podcast Episode Title** (`inbox/templates/podcast-template.md:53`) — Follow-up 2
+- [ ] **Video Title Here** (`inbox/templates/yt-template.md:56`) — Follow-up 1
+- [ ] **Video Title Here** (`inbox/templates/yt-template.md:57`) — Follow-up 2
+- [ ] **{{DATE}}** (`inbox/templates/daily-template.md:25`) — First task
+- [ ] **{{DATE}}** (`inbox/templates/daily-template.md:26`) — Second task
+- [ ] **PULL_REQUEST_TEMPLATE** (`tests/lib/bats-core/docs/PULL_REQUEST_TEMPLATE.md:1`) — I have reviewed the [Contributor Guidelines][contributor].
+- [ ] **PULL_REQUEST_TEMPLATE** (`tests/lib/bats-core/docs/PULL_REQUEST_TEMPLATE.md:2`) — I have reviewed the [Code of Conduct][coc] and agree to abide by it
+
+#### Resources
+
+_No review items._
+
+---
+
+
+## Archive
+
+Move completed items here during your review.

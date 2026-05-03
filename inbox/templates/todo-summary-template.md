@@ -19,19 +19,19 @@ tags: [todo-summary, para, automated]
 
 ---
 
-## {{TODAY}}
+### {{TODAY}}
 
-### Projects
+#### Projects
 
-- **Example TODO** — `path/to/file.md:42`
+- [ ] **Example TODO** (`path/to/file.md:42`) — TODO: refactor parser
 
-### Areas
+#### Areas
 
 - [ ] Example unchecked task — `path/to/note.md:7`
 
-### Resources
+#### Resources
 
-- **Example REVIEW** — `path/to/doc.md:15`
+- [ ] **Example REVIEW** (`path/to/doc.md:15`) — REVIEW: evaluate new library
 
 ---
 

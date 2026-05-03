@@ -32,7 +32,18 @@ trap '_on_error ${LINENO}' ERR
 
 # --- Variables ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT_DIR="${OBSIDIAN_VAULT:-$(cd "${SCRIPT_DIR}/.." && pwd)/knowledge-management}"
+if [ -z "${OBSIDIAN_VAULT:-}" ]; then
+    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    _sibling="${_parent}/knowledge-management"
+    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
+        VAULT_DIR="${SCRIPT_DIR}"
+    else
+        VAULT_DIR="${_sibling}"
+    fi
+    unset _parent _sibling
+else
+    VAULT_DIR="${OBSIDIAN_VAULT}"
+fi
 BIN_DIR="${SCRIPT_DIR}/bin"
 GIT_REMOTE="${1:-}"
 
@@ -65,20 +76,20 @@ install_apt_packages() {
 }
 
 ensure_flathub_remote() {
-    if flatpak remotes --columns=name 2>/dev/null | grep -qx 'flathub'; then
-        log_info "SKIP: Flathub remote already configured"
+    if flatpak remotes --user --columns=name 2>/dev/null | grep -qx 'flathub'; then
+        log_info "SKIP: Flathub remote already configured (user installation)"
     else
-        log_info "ACTION: Adding Flathub remote"
-        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        log_info "ACTION: Adding Flathub remote (user installation — no polkit needed on WSL2)"
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
 }
 
 install_obsidian() {
-    if flatpak list --app --columns=application 2>/dev/null | grep -qx 'md.obsidian.Obsidian'; then
-        log_info "SKIP: Obsidian flatpak already installed"
+    if flatpak list --user --app --columns=application 2>/dev/null | grep -qx 'md.obsidian.Obsidian'; then
+        log_info "SKIP: Obsidian flatpak already installed (user installation)"
     else
-        log_info "ACTION: Installing Obsidian flatpak"
-        flatpak install -y flathub md.obsidian.Obsidian
+        log_info "ACTION: Installing Obsidian flatpak (user installation)"
+        flatpak install --user -y flathub md.obsidian.Obsidian
     fi
 }
 
@@ -443,15 +454,17 @@ install_nerd_font() {
         # Update Windows Terminal settings to use the Nerd Font
         wt_settings="/mnt/c/Users/${win_user}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
         if [ -f "${wt_settings}" ]; then
-            python3 -c "
-import json
-with open('${wt_settings}', 'r') as f:
+            WT_SETTINGS_PATH="${wt_settings}" WT_FONT_FAMILY="${font_family}" python3 -c "
+import json, os
+settings_path = os.environ['WT_SETTINGS_PATH']
+font_family = os.environ['WT_FONT_FAMILY']
+with open(settings_path, 'r') as f:
     data = json.load(f)
 data.setdefault('profiles', {}).setdefault('defaults', {})['font'] = {
-    'face': '${font_family}',
+    'face': font_family,
     'size': 12
 }
-with open('${wt_settings}', 'w') as f:
+with open(settings_path, 'w') as f:
     json.dump(data, f, indent=4)
 " 2>/dev/null
             log_info "OK: Windows Terminal settings updated (font: ${font_family})"
@@ -479,6 +492,36 @@ with open('${wt_settings}', 'w') as f:
 # Detect if running under WSL2
 is_wsl2() {
     grep -qi 'microsoft' /proc/version 2>/dev/null
+}
+
+# Install direnv and hook it into ~/.bashrc so the project environment activates
+# automatically whenever the user cd's into the project directory.
+# Only ~/.bashrc is touched (one generic line); all project vars stay in .envrc.
+install_direnv() {
+    if command -v direnv >/dev/null 2>&1; then
+        log_info "SKIP: direnv already installed at $(command -v direnv)"
+    else
+        log_info "ACTION: Installing direnv"
+        sudo apt install -y direnv
+        log_info "OK: direnv installed"
+    fi
+
+    local bashrc="${HOME}/.bashrc"
+    local hook_line='eval "$(direnv hook bash)"'
+    if grep -qF 'direnv hook bash' "${bashrc}" 2>/dev/null; then
+        log_info "SKIP: direnv hook already present in ${bashrc}"
+    else
+        log_info "ACTION: Adding direnv hook to ${bashrc}"
+        printf '\n# direnv — auto-activate project environments on cd\n%s\n' \
+            "${hook_line}" >> "${bashrc}"
+        log_info "OK: direnv hook added to ${bashrc}"
+    fi
+
+    if [ -f "${SCRIPT_DIR}/.envrc" ]; then
+        log_info "ACTION: Allowing direnv for ${SCRIPT_DIR}"
+        direnv allow "${SCRIPT_DIR}"
+        log_info "OK: direnv allowed — open a new terminal tab and cd into the project"
+    fi
 }
 
 # Revoke Obsidian's network permission via the flatpak sandbox.
@@ -585,6 +628,9 @@ ensure_transcription_venv
 
 log_info "==> Configuring mpv screenshots"
 ensure_mpv_config
+
+log_info "==> Installing direnv (auto-activate project env on cd)"
+install_direnv
 
 log_info "==> Enforcing offline mode"
 ensure_obsidian_offline

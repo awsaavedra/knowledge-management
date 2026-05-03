@@ -244,3 +244,36 @@ WRAPPER
     [ -x "${PROJECT_ROOT}/bin/okm" ]
     grep -q "okm - simple terminal knowledge manager" "${PROJECT_ROOT}/bin/okm"
 }
+
+# === Flatpak user-mode (WSL2 has no polkit for system flatpak ops) ===
+
+@test "flatpak remote-add uses --user (WSL2 has no polkit)" {
+    run grep -c 'flatpak remote-add --user' "${PROJECT_ROOT}/setup-km.sh"
+    assert_success
+    [ "$output" -ge 1 ]
+}
+
+@test "flatpak install uses --user" {
+    run grep -c 'flatpak install --user' "${PROJECT_ROOT}/setup-km.sh"
+    assert_success
+    [ "$output" -ge 1 ]
+}
+
+@test "flatpak remotes query uses --user for consistency" {
+    # Without --user on the read side, skip-detection looks at the wrong
+    # installation and we'd retry remote-add on every run.
+    run grep -c 'flatpak remotes --user' "${PROJECT_ROOT}/setup-km.sh"
+    assert_success
+    [ "$output" -ge 1 ]
+}
+
+@test "flatpak list query uses --user for consistency" {
+    run grep -c 'flatpak list --user' "${PROJECT_ROOT}/setup-km.sh"
+    assert_success
+    [ "$output" -ge 1 ]
+}
+
+# === install_direnv — see tests/direnv.bats ===
+# direnv tests live in a separate file because the eval-based setup() here
+# propagates set+e into all test bodies, which masks command-not-found failures
+# and would produce false positives. direnv.bats avoids the eval pattern entirely.

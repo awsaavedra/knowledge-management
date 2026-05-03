@@ -8,10 +8,13 @@ load 'helpers/test_helper'
 setup() {
     common_setup
 
+    mkdir -p "${TEST_TEMP_DIR}/scripts/lib"
+    cp "${PROJECT_ROOT}/scripts/lib/scan.sh" "${TEST_TEMP_DIR}/scripts/lib/scan.sh"
     cp "${PROJECT_ROOT}/scripts/todo-summary.sh" "${TEST_TEMP_DIR}/todo-summary.sh"
+    sed -i "s|^SCRIPT_DIR=.*|SCRIPT_DIR=\"${TEST_TEMP_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^PROJECT_DIR=.*|PROJECT_DIR=\"${FAKE_PROJECT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
-    sed -i "s|^VAULT_DIR=.*|VAULT_DIR=\"${FAKE_VAULT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^OUTPUT_FILE=.*|OUTPUT_FILE=\"${FAKE_PROJECT_DIR}/inbox/todo-summary-\${YEAR}.md\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
+    export OBSIDIAN_VAULT="${FAKE_VAULT_DIR}"
     chmod +x "${TEST_TEMP_DIR}/todo-summary.sh"
 }
 

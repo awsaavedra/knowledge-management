@@ -42,3 +42,22 @@ setup() {
     grep -q '<leader>op' "$obs"
     grep -q '<leader>og' "$obs"
 }
+
+# WSL2 nvim bug: transparency.lua was in plugin/after/ (wrong) instead of after/plugin/
+# Neovim only guarantees after-colorscheme ordering for after/plugin/ scripts.
+@test "transparency.lua is in after/plugin/ not plugin/after/" {
+    local correct="${PROJECT_ROOT}/config/nvim/after/plugin/transparency.lua"
+    local wrong="${PROJECT_ROOT}/config/nvim/plugin/after/transparency.lua"
+    [[ -f "$correct" ]] || fail "transparency.lua missing from after/plugin/ (correct location)"
+    [[ ! -f "$wrong" ]] || fail "transparency.lua found in plugin/after/ (wrong location)"
+}
+
+@test "transparency.lua overrides Normal highlight to no background" {
+    grep -q 'nvim_set_hl.*Normal.*bg.*none' \
+        "${PROJECT_ROOT}/config/nvim/after/plugin/transparency.lua"
+}
+
+# WSL2 nvim bug: en_US.UTF-8 locale may not be generated; env.sh must set a UTF-8 fallback
+@test "env.sh sets LC_ALL fallback for WSL2 when locale is missing" {
+    grep -q 'LC_ALL' "${PROJECT_ROOT}/env.sh"
+}
