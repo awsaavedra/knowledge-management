@@ -1,3 +1,20 @@
+# --- Project-specific rules (top so they win against later patterns) ---
+
+# Binaries downloaded by setup-km.sh (self-contained tool runtime).
+# Tracked copies exist for offline bootstrap; future setup runs regenerate these.
+bin/nvim
+bin/nvim.bin
+bin/nvim-runtime/
+bin/lazygit
+
+# Personal notes (vault content should not live in the tooling repo at the
+# project level). Templates under inbox/templates/ stay tracked.
+inbox/*.md
+!inbox/*-template.md
+!inbox/templates/
+daily/*.md
+archive/*.md
+
 # Obsidian workspace state (changes constantly, not worth tracking)
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json

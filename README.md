@@ -17,6 +17,26 @@ layer that users can trust first for speed, portability, and safe file operation
 with Claude/Copilot/Agent (Cursor) added later as an optional multiplier rather 
 than the core dependency.
 
+# Project properties
+
+Extremely fast: Startup and core actions must feel instant, because latency breaks flow for both humans and agents.
+
+Fresh local indexing: Search must reflect recent edits immediately, or users and agents act on stale context.
+
+Composable CLI: Every command should work cleanly in pipes, scripts, JSON output, editors, and CI.
+
+Non-destructive by default: Mutations should prefer dry-runs, diffs, and reversible behavior to preserve trust.
+
+Plain markdown, no lock-in: Files should remain standard, portable, and useful without the tool installed.
+
+Predictable command surface: A small, memorable set of commands beats a sprawling interface.
+
+Editor/toolchain interoperability: The tool should plug naturally into Neovim, LSPs, shell tools, and existing workflows.
+
+Local-first, AI-optional: Core value should work offline and without API keys, with AI layered on top rather than required.
+
+Low operational overhead: Install, memory use, and runtime footprint should stay lightweight enough to disappear into daily use.
+
 # Knowledge Management
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -120,7 +140,7 @@ If the banner or highlights are missing, re-run `bash setup-km.sh` (idempotent) 
 
 #### 3. Vim
 
-`env.sh` exports `VIMINIT="source $KM_ROOT/config/vim/vimrc"`, so plain vim picks up the project config automatically without symlinking your `~/.vimrc`.
+`bin/vim` is a small wrapper that invokes `vim -u config/vim/vimrc`. Because `bin/` is first on `$PATH` (via `env.sh`), typing `vim` inside the project loads the project vimrc without touching `~/.vimrc`. We use a wrapper instead of `$VIMINIT` because nvim also honors `VIMINIT` and would silently disable LazyVim. The project vimrc sources `~/.vimrc` first so personal settings still apply.
 
 ```bash
 EDITOR=vim okm open inbox/demo-meeting-notes.md
@@ -221,7 +241,7 @@ Pick your editor:
 |---|---|---|
 | **Obsidian** | `okm obs` | First launch: open `$(okm path)` as vault |
 | **Neovim** | `okm today` | Project config via `NVIM_APPNAME=km` |
-| **Vim** | `EDITOR=vim okm today` | Project vimrc via `VIMINIT` (sources `~/.vimrc` first); TODO/FIXME/BUG colored |
+| **Vim** | `EDITOR=vim okm today` | Project vimrc via `bin/vim` wrapper (sources `~/.vimrc` first); TODO/FIXME/BUG colored |
 
 - **Capture**: `okm today` (daily note) or `okm capture <text>` (timestamped)
 - **Search**: `okm grep <pattern>` (content) or `okm files [pattern]` (paths)
