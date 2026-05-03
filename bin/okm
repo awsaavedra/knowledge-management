@@ -206,8 +206,11 @@ list_tagged() {
   local tag="${1:-}"
   [ -n "$tag" ] || { echo "Tag required" >&2; exit 1; }
   need_cmd rg
-  rg -l --glob '*.md' --glob '!.git/' "${PRIVATE_RG_GLOBS[@]}" "^tags:.*\\b${tag}\\b" "$VAULT" 2>/dev/null \
-    | sed "s#^$VAULT/##" | sort
+  # rg exits 1 when no matches; treat as graceful empty result (not an error)
+  local matches
+  matches="$(rg -l --glob '*.md' --glob '!.git/' "${PRIVATE_RG_GLOBS[@]}" "^tags:.*\\b${tag}\\b" "$VAULT" 2>/dev/null || true)"
+  [ -z "$matches" ] && return 0
+  printf '%s\n' "$matches" | sed "s#^$VAULT/##" | sort
 }
 
 # Parse -t flag from arguments.

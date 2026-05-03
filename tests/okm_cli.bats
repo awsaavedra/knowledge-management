@@ -280,3 +280,76 @@ setup() {
     assert_success
     assert_output --partial "No changes to commit"
 }
+
+# === N12: privacy — read-side commands skip private-*/ by default ===
+
+setup_privacy_fixture() {
+    mkdir -p "${FAKE_VAULT_DIR}/private-inbox"
+    create_vault_file "inbox/public-note.md" "---
+title: Public
+tags: [public-tag]
+---
+public secret payload"
+    create_vault_file "private-inbox/secret.md" "---
+title: Secret
+tags: [therapy, abusive-boss-name]
+---
+private secret payload"
+}
+
+@test "N12: okm grep skips private-*/ by default" {
+    setup_privacy_fixture
+    run "${OKM}" grep "secret payload"
+    assert_success
+    assert_output --partial "public-note.md"
+    refute_output --partial "private-inbox"
+    refute_output --partial "abusive"
+}
+
+@test "N12: okm tags (vault-wide) skips private-*/ by default" {
+    setup_privacy_fixture
+    run "${OKM}" tags
+    assert_success
+    assert_output --partial "public-tag"
+    refute_output --partial "therapy"
+    refute_output --partial "abusive-boss-name"
+}
+
+@test "N12: okm files skips private-*/ by default" {
+    setup_privacy_fixture
+    run "${OKM}" files
+    assert_success
+    assert_output --partial "inbox/public-note.md"
+    refute_output --partial "private-inbox"
+}
+
+@test "N12: okm tagged skips private-*/ by default" {
+    setup_privacy_fixture
+    run "${OKM}" tagged "therapy"
+    assert_success
+    refute_output --partial "private-inbox"
+    refute_output --partial "secret.md"
+}
+
+@test "N12: okm tags <explicit-private-path> still works (only walking is gated)" {
+    setup_privacy_fixture
+    run "${OKM}" tags "private-inbox/secret.md"
+    assert_success
+    assert_output --partial "therapy"
+    assert_output --partial "abusive-boss-name"
+}
+
+@test "N12: KM_INCLUDE_PRIVATE=1 opt-in restores private-*/ scanning" {
+    setup_privacy_fixture
+    KM_INCLUDE_PRIVATE=1 run "${OKM}" grep "secret payload"
+    assert_success
+    assert_output --partial "public-note.md"
+    assert_output --partial "private-inbox/secret.md"
+}
+
+@test "N12: KM_INCLUDE_PRIVATE=1 surfaces private tags in vault-wide tags listing" {
+    setup_privacy_fixture
+    KM_INCLUDE_PRIVATE=1 run "${OKM}" tags
+    assert_success
+    assert_output --partial "therapy"
+}
