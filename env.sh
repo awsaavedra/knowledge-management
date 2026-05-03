@@ -53,10 +53,10 @@ fi
 export EDITOR="${EDITOR:-nvim}"
 export NVIM_APPNAME=km
 
-# --- Vim: project-scoped vimrc via VIMINIT ---
-# VIMINIT replaces ~/.vimrc lookup; the project vimrc explicitly sources
-# ~/.vimrc first so personal settings still apply.
-export VIMINIT="source ${KM_ROOT}/config/vim/vimrc"
+# --- Vim: project-scoped vimrc via bin/vim wrapper (NOT VIMINIT) ---
+# nvim also honors $VIMINIT and uses it in place of init.lua, which silently
+# disables LazyVim. We use a bin/vim wrapper instead to scope the project
+# vimrc to vim only — PATH-priority makes `vim` resolve to bin/vim.
 
 # --- lazygit: use project config without symlinking ~/.config/lazygit ---
 export LG_CONFIG_FILE="${KM_ROOT}/config/lazygit/config.yml"
