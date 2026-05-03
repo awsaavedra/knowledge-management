@@ -70,6 +70,19 @@ setup() {
     refute_output --partial "VIMINIT"
 }
 
+@test "blink.cmp arrow keys are bound for completion navigation" {
+    # Without these bindings, the cmdline popup (e.g. on :qui<Tab>) only navigates
+    # via <C-n>/<C-p>/<Tab> — arrow keys are inert. The override adds <Up>/<Down>
+    # alongside defaults so muscle memory works either way.
+    local f="${PROJECT_ROOT}/config/nvim/lua/plugins/blink-keys.lua"
+    [ -f "$f" ] || fail "blink-keys.lua plugin override missing"
+    grep -q '"saghen/blink.cmp"' "$f" || fail "must extend saghen/blink.cmp"
+    grep -q '"<Down>"' "$f" || fail "missing <Down> keymap"
+    grep -q '"<Up>"' "$f" || fail "missing <Up> keymap"
+    grep -q 'select_next' "$f" || fail "missing select_next action"
+    grep -q 'select_prev' "$f" || fail "missing select_prev action"
+}
+
 @test "bin/vim wrapper applies project vimrc to vim only (not nvim)" {
     [ -f "${PROJECT_ROOT}/bin/vim" ] || fail "bin/vim wrapper missing"
     [ -x "${PROJECT_ROOT}/bin/vim" ] || fail "bin/vim wrapper not executable"
