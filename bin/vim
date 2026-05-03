@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# bin/vim — wrapper that applies the project vimrc to vim only.
+#
+# We can't use $VIMINIT to do this because nvim also honors VIMINIT and would
+# load the vim vimrc instead of init.lua, silently breaking LazyVim. Wrapping
+# vim explicitly keeps the scope to vim.
+#
+# config/vim/vimrc sources ~/.vimrc internally, so personal settings still apply.
+
+KM_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec /usr/bin/vim -u "${KM_ROOT}/config/vim/vimrc" "$@"
