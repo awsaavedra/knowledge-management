@@ -45,7 +45,7 @@ Offline-first personal knowledge system. Plain Markdown notes managed by the `ok
 | ffmpeg / mpv | Audio/video processing | apt |
 | ripgrep / fzf | Search and fuzzy picking | apt |
 
-**Platform support:** Linux (apt + Flatpak). Auto-detects x86_64 / arm64. macOS support is planned (see [roadmap.md](roadmap.md)).
+**Platform support:** Debian/Ubuntu (apt + Flatpak). Auto-detects x86_64 / arm64. Other Linux distros (Fedora/Arch/openSUSE) and macOS are not yet supported — `setup-km.sh` invokes `apt`/`dpkg` directly. Tracked in [roadmap.md](roadmap.md).
 
 ---
 
@@ -205,6 +205,7 @@ Vault follows [Tiago Forte's PARA method](https://fortelabs.com/blog/para/):
 ## Rules
 
 - AI assistants don't read `private-*/` paths — see `ai-instructions.md`
+- `okm grep`/`tags`/`files`/`tagged`/`recent` skip `private-*/` by default. Set `KM_INCLUDE_PRIVATE=1` to scan them. Explicit paths (`okm tags private-inbox/x.md`, `okm open private-inbox/x.md`) always work — the default only affects vault-walking commands.
 - Update the Architecture tree above after any major refactor (file moves, renames, new top-level dirs)
 - Notes are plain Markdown — no proprietary fields, no cross-tool dependencies
 - Project-scoped — never modify the user's global configs (`~/.config/nvim`, `~/.zshrc`, etc.)

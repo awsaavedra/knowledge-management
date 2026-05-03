@@ -18,6 +18,18 @@ EDITOR_CMD="${EDITOR:-vim}"
 DAILY_DIR="${OBSIDIAN_DAILY_DIR:-daily}"
 NOTES_DIR="${OBSIDIAN_NOTES_DIR:-inbox}"
 
+# Privacy: by default, read-side commands (grep, tags, files, tagged, recent)
+# skip private-*/ folders so screen-shared `okm grep` can't surface private
+# notes. Set KM_INCLUDE_PRIVATE=1 to opt in to scanning private folders.
+# Explicit `okm tags <private-path>` and `okm open <private-path>` still work
+# — this only affects vault-walking commands.
+PRIVATE_RG_GLOBS=()
+PRIVATE_FIND_PRUNE=()
+if [ "${KM_INCLUDE_PRIVATE:-0}" != "1" ]; then
+  PRIVATE_RG_GLOBS=(--glob '!private-*/')
+  PRIVATE_FIND_PRUNE=(-not -path "$VAULT/private-*/*")
+fi
+
 usage() {
   cat <<'EOF'
 okm - simple terminal knowledge manager
@@ -104,7 +116,7 @@ list_tags() {
     return
   fi
   need_cmd rg
-  rg -n --no-heading --glob '*.md' --glob '!.git/' '^tags:' "$VAULT" 2>/dev/null \
+  rg -n --no-heading --glob '*.md' --glob '!.git/' "${PRIVATE_RG_GLOBS[@]}" '^tags:' "$VAULT" 2>/dev/null \
     | sed 's/^.*tags:[[:space:]]*//; s/^\[//; s/\]$//; s/,/ /g' \
     | tr ' ' '\n' \
     | sed '/^$/d' \
@@ -194,7 +206,7 @@ list_tagged() {
   local tag="${1:-}"
   [ -n "$tag" ] || { echo "Tag required" >&2; exit 1; }
   need_cmd rg
-  rg -l --glob '*.md' --glob '!.git/' "^tags:.*\\b${tag}\\b" "$VAULT" 2>/dev/null \
+  rg -l --glob '*.md' --glob '!.git/' "${PRIVATE_RG_GLOBS[@]}" "^tags:.*\\b${tag}\\b" "$VAULT" 2>/dev/null \
     | sed "s#^$VAULT/##" | sort
 }
 
@@ -222,7 +234,7 @@ parse_tag_flag() {
 }
 
 list_notes() {
-  find "$VAULT" -type f -name '*.md' | sed "s#^$VAULT/##"
+  find "$VAULT" -type f -name '*.md' "${PRIVATE_FIND_PRUNE[@]}" | sed "s#^$VAULT/##"
 }
 
 pick_file() {
@@ -328,7 +340,7 @@ grep_vault() {
   need_cmd rg
   local pattern="${1:-}"
   [ -n "$pattern" ] || { echo "Pattern required" >&2; exit 1; }
-  rg -n --hidden --glob '*.md' --glob '!.git/' "$pattern" "$VAULT"
+  rg -n --hidden --glob '*.md' --glob '!.git/' "${PRIVATE_RG_GLOBS[@]}" "$pattern" "$VAULT"
 }
 
 files_vault() {
@@ -344,8 +356,8 @@ recent_notes() {
   need_cmd fzf
   local picked
   picked="$(
-    find "$VAULT" -type f -name '*.md' -exec stat --format='%Y %n' {} + 2>/dev/null \
-      || find "$VAULT" -type f -name '*.md' -print0 | xargs -0 stat -f '%m %N' 2>/dev/null \
+    find "$VAULT" -type f -name '*.md' "${PRIVATE_FIND_PRUNE[@]}" -exec stat --format='%Y %n' {} + 2>/dev/null \
+      || find "$VAULT" -type f -name '*.md' "${PRIVATE_FIND_PRUNE[@]}" -print0 | xargs -0 stat -f '%m %N' 2>/dev/null \
       | sort -nr \
       | head -200 \
       | cut -d' ' -f2- \
