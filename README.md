@@ -498,6 +498,32 @@ Port slow Bash/Python utilities (fuzz harness, `okm audit`, large TODO scans) to
 
 ---
 
+## Open-sourcing checklist
+
+Before making this repo public, resolve the following:
+
+**1. Strip personal notes from git history**
+Personal notes (`daily/*.md`, `inbox/todo-summary-*.md`, `inbox/weekly-*.md`) are committed and would be public. They are now gitignored so future notes won't be tracked, but existing ones are in history.
+```bash
+git rm --cached daily/*.md inbox/todo-summary-*.md inbox/weekly-*.md
+git commit -m "untrack personal notes"
+```
+Then rewrite history to fully purge them: `git filter-repo --path-glob 'daily/*.md' --path-glob 'inbox/todo-summary-*.md' --path-glob 'inbox/weekly-*.md' --invert-paths`
+
+**2. Write a `scripts/clean-for-release.sh` script**
+Script should: remove all personal notes from the working tree while leaving templates intact, untrack them from git, and verify no personal content remains. Leaves `inbox/templates/`, `.gitkeep` files, and all source files untouched.
+
+**3. Strip large binaries from history**
+`bin/nvim`, `bin/lazygit`, and `bin/nvim-runtime/` (~100 MB of compiled binaries) are in git history. Clones will be slow until this is fixed.
+```bash
+git filter-repo --path bin/nvim --path bin/lazygit --path bin/nvim-runtime --invert-paths
+```
+
+**4. Confirm identity**
+All commits carry the author name and GitHub handle. Intentional if open-sourcing under your own name; otherwise rewrite with `git filter-repo --email-callback` / `--name-callback`.
+
+---
+
 ## See Also
 
 - [`ai-instructions.md`](ai-instructions.md) — AI assistant rules
