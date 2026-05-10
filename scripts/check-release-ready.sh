@@ -106,7 +106,7 @@ pii_email=$(git grep -rn --cached \
   -E '[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}' \
   -- '*.md' '*.sh' '*.py' '*.yml' '*.yaml' '*.json' '*.txt' 2>/dev/null \
   | grep -v 'tests/lib/' \
-  | grep -v 'example@\|user@example\|your-email\|placeholder\|noreply@\|@anthropic' \
+  | grep -v 'example@\|user@example\|your-email\|placeholder\|noreply@\|@anthropic\|git@github' \
   || true)
 if [ -n "$pii_email" ]; then
   _warn "Possible email addresses in tracked files:"

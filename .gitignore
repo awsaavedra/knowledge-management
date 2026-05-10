@@ -24,6 +24,7 @@ private-attachments/*
 # Installed binaries (built/downloaded by setup-km.sh, not source)
 bin/nvim
 bin/nvim.bin
+bin/nvim-runtime/
 bin/lazygit
 
 # Vault notes (excluded when KM_TRACK_NOTES=false; templates always kept)
