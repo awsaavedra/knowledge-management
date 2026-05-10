@@ -52,7 +52,7 @@ fi
 # ── 2. Binary / large objects in git history ────────────────────────────────
 _head "2. Large objects in git history (top 10)"
 
-large_history=$(git rev-list --objects --all 2>/dev/null \
+large_history=$(git rev-list --objects --branches 2>/dev/null \
   | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' 2>/dev/null \
   | awk '$1=="blob" && $3>524288 {printf "%8.1f KB  %s\n", $3/1024, $4}' \
   | sort -rn \
@@ -84,10 +84,25 @@ else
   _ok "No personal inbox/*.md in index"
 fi
 
+# Templates must always be present
+missing_templates=()
+for tmpl in daily-template note-template capture-template yt-template \
+            spotify-episode-template spotify-track-template podcast-template \
+            todo-summary-template weekly-template archive-template; do
+  git ls-files --error-unmatch "inbox/templates/${tmpl}.md" &>/dev/null \
+    || missing_templates+=("inbox/templates/${tmpl}.md")
+done
+if [ "${#missing_templates[@]}" -gt 0 ]; then
+  _fail "Required templates missing from index:"
+  printf '       %s\n' "${missing_templates[@]}"
+else
+  _ok "All 10 templates present in index"
+fi
+
 # ── 4. Personal notes in git history (reachable from any ref) ───────────────
 _head "4. Personal notes in git history"
 
-history_notes=$(git log --all --name-only --pretty=format: \
+history_notes=$(git log --branches --name-only --pretty=format: \
   | grep -v '^$' | sort -u \
   | grep -E '^(daily/|inbox/).*\.md$' \
   | grep -v '^inbox/templates/' || true)
