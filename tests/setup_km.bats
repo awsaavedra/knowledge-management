@@ -301,3 +301,74 @@ WRAPPER
 # direnv tests live in a separate file because the eval-based setup() here
 # propagates set+e into all test bodies, which masks command-not-found failures
 # and would produce false positives. direnv.bats avoids the eval pattern entirely.
+
+# === derive_default_remote ===
+
+_setup_fake_gh_handle() {
+    local handle="${1:-alice}"
+    local FAKE_BIN="${TEST_TEMP_DIR}/fake-bin-gh"
+    mkdir -p "${FAKE_BIN}"
+    printf '#!/usr/bin/env bash\necho "%s"\n' "${handle}" > "${FAKE_BIN}/gh"
+    chmod +x "${FAKE_BIN}/gh"
+    export PATH="${FAKE_BIN}:${PATH}"
+}
+
+@test "derive_default_remote: sets GIT_REMOTE to {handle}-knowledge-management via gh" {
+    _setup_fake_gh_handle "alice"
+    GIT_REMOTE=""
+    derive_default_remote
+    [ "${GIT_REMOTE}" = "git@github.com:alice/alice-knowledge-management.git" ]
+}
+
+@test "derive_default_remote: does not override an already-set GIT_REMOTE" {
+    _setup_fake_gh_handle "alice"
+    GIT_REMOTE="git@github.com:alice/my-custom-vault.git"
+    derive_default_remote
+    [ "${GIT_REMOTE}" = "git@github.com:alice/my-custom-vault.git" ]
+}
+
+@test "derive_default_remote: warns and leaves GIT_REMOTE empty when gh absent" {
+    # Ensure gh is not on PATH
+    GIT_REMOTE=""
+    PATH="/usr/bin:/bin" derive_default_remote
+    [ -z "${GIT_REMOTE}" ]
+}
+
+# === ensure_upstream_remote ===
+
+@test "ensure_upstream_remote: adds upstream with push disabled from SSH origin" {
+    git -C "${FAKE_VAULT_DIR}" init -b main -q
+    git -C "${FAKE_VAULT_DIR}" config user.email "t@t.com"
+    git -C "${FAKE_VAULT_DIR}" config user.name "T"
+    git -C "${FAKE_VAULT_DIR}" remote add origin "git@github.com:alice/alice-knowledge-management.git"
+    ensure_upstream_remote "${FAKE_VAULT_DIR}"
+    local upstream_url
+    upstream_url="$(git -C "${FAKE_VAULT_DIR}" remote get-url upstream)"
+    [ "${upstream_url}" = "git@github.com:alice/knowledge-management.git" ]
+    local push_url
+    push_url="$(git -C "${FAKE_VAULT_DIR}" remote get-url --push upstream)"
+    [ "${push_url}" = "DISABLED" ]
+}
+
+@test "ensure_upstream_remote: adds upstream from HTTPS origin" {
+    git -C "${FAKE_VAULT_DIR}" init -b main -q
+    git -C "${FAKE_VAULT_DIR}" remote add origin "https://github.com/bob/bob-knowledge-management.git"
+    ensure_upstream_remote "${FAKE_VAULT_DIR}"
+    local upstream_url
+    upstream_url="$(git -C "${FAKE_VAULT_DIR}" remote get-url upstream)"
+    [ "${upstream_url}" = "git@github.com:bob/knowledge-management.git" ]
+}
+
+@test "ensure_upstream_remote: skips if upstream already configured" {
+    git -C "${FAKE_VAULT_DIR}" init -b main -q
+    git -C "${FAKE_VAULT_DIR}" remote add origin "git@github.com:alice/alice-knowledge-management.git"
+    git -C "${FAKE_VAULT_DIR}" remote add upstream "git@github.com:alice/knowledge-management.git"
+    run ensure_upstream_remote "${FAKE_VAULT_DIR}"
+    assert_output --partial "SKIP"
+}
+
+@test "ensure_upstream_remote: skips gracefully when no origin set" {
+    git -C "${FAKE_VAULT_DIR}" init -b main -q
+    run ensure_upstream_remote "${FAKE_VAULT_DIR}"
+    assert_output --partial "No origin"
+}

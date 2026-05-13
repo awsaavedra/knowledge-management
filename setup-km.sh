@@ -192,6 +192,28 @@ ensure_git_repo() {
     git -C "${dir}" config core.symlinks false
 }
 
+# Derive the default private-fork remote from the authenticated GitHub handle.
+# Convention: git@github.com:{handle}/{handle}-knowledge-management.git
+# Sets GIT_REMOTE if it is currently empty and gh is available + authenticated.
+derive_default_remote() {
+    [ -n "${GIT_REMOTE}" ] && return 0   # already set — nothing to do
+
+    if ! command -v gh >/dev/null 2>&1; then
+        log_warn "gh CLI not found — cannot auto-derive GIT_REMOTE. Pass it as: bash setup-km.sh <remote-url>"
+        return 0
+    fi
+
+    local handle
+    handle="$(gh api user --jq '.login' 2>/dev/null || true)"
+    if [ -z "${handle}" ]; then
+        log_warn "gh not authenticated — cannot auto-derive GIT_REMOTE. Run: gh auth login"
+        return 0
+    fi
+
+    GIT_REMOTE="git@github.com:${handle}/${handle}-knowledge-management.git"
+    log_info "Derived default origin: ${GIT_REMOTE} (rename your fork if needed)"
+}
+
 ensure_git_remote() {
     local dir="$1"
     local remote_url="$2"
@@ -214,6 +236,37 @@ ensure_git_remote() {
 
     log_info "Pushing to origin/main"
     git -C "${dir}" push -u origin main || log_warn "git push failed — continuing (remote may not be accessible yet)"
+}
+
+# Set the 'upstream' remote on the vault to the canonical OSS source repo.
+# Derives owner from origin URL (e.g. git@github.com:alice/alice-km → alice owns it,
+# upstream = git@github.com:alice/knowledge-management). Falls back to a no-op warn.
+ensure_upstream_remote() {
+    local dir="$1"
+
+    local origin_url
+    origin_url="$(git -C "${dir}" remote get-url origin 2>/dev/null || true)"
+    [ -n "${origin_url}" ] || { log_info "No origin set — skipping upstream remote"; return 0; }
+
+    # Extract owner (works for both SSH and HTTPS GitHub URLs)
+    local owner
+    case "${origin_url}" in
+        git@github.com:*)  owner="$(echo "${origin_url#git@github.com:}" | cut -d'/' -f1)" ;;
+        https://github.com/*) owner="$(echo "${origin_url#https://github.com/}" | cut -d'/' -f1)" ;;
+        *) log_warn "Cannot derive upstream — unrecognised remote format: ${origin_url}"; return 0 ;;
+    esac
+
+    local upstream_url="git@github.com:${owner}/knowledge-management.git"
+
+    if git -C "${dir}" remote get-url upstream >/dev/null 2>&1; then
+        log_info "SKIP: 'upstream' remote already configured"
+    else
+        log_info "ACTION: Adding upstream remote -> ${upstream_url}"
+        git -C "${dir}" remote add upstream "${upstream_url}"
+        # Fetch-only: disable push to upstream so okm sync never accidentally pushes there
+        git -C "${dir}" remote set-url --push upstream DISABLED
+        log_info "OK: upstream push URL disabled (fetch-only)"
+    fi
 }
 
 detect_platform() {
@@ -693,6 +746,9 @@ else
     log_error "env.sh not found at ${SCRIPT_DIR}/env.sh — project environment cannot be activated"
 fi
 
+log_info "==> Deriving default origin remote"
+derive_default_remote
+
 # Ask about note tracking if the user hasn't already set KM_TRACK_NOTES
 if [ -z "${KM_TRACK_NOTES:-}" ]; then
     echo ""
@@ -737,6 +793,9 @@ ensure_git_repo "${VAULT_DIR}"
 
 log_info "==> Configuring Git remote"
 ensure_git_remote "${VAULT_DIR}" "${GIT_REMOTE}"
+
+log_info "==> Configuring upstream remote"
+ensure_upstream_remote "${VAULT_DIR}"
 
 log_info "==> Installing vault privacy hook"
 install_vault_privacy_hook "${VAULT_DIR}"
