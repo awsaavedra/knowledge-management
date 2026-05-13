@@ -62,6 +62,7 @@ setup() {
 }
 
 @test "verify reports PASS for nvim installation when present" {
+    [ -x "${PROJECT_ROOT}/bin/nvim.bin" ] || skip "nvim not installed — run setup-km.sh first"
     run bash "${PROJECT_ROOT}/verify-km.sh"
     echo "$output" | grep -q '\[PASS\].*nvim.bin binary present'
     echo "$output" | grep -q '\[PASS\].*nvim runtime present'

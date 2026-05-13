@@ -30,12 +30,16 @@ common_setup() {
 
     # Create a fake project directory (mirrors real layout)
     FAKE_PROJECT_DIR="${TEST_TEMP_DIR}/fake-project"
-    mkdir -p "${FAKE_PROJECT_DIR}/scripts"
+    mkdir -p "${FAKE_PROJECT_DIR}/scripts/lib"
     mkdir -p "${FAKE_PROJECT_DIR}/inbox"
     mkdir -p "${FAKE_PROJECT_DIR}/bin"
     mkdir -p "${FAKE_PROJECT_DIR}/config/nvim/lua/plugins"
     mkdir -p "${FAKE_PROJECT_DIR}/config/nvim/lua/config"
     mkdir -p "${FAKE_PROJECT_DIR}/config/lazygit"
+
+    # Copy lib scripts so setup-km.sh sources work in isolated tests
+    cp "${PROJECT_ROOT}/scripts/lib/privacy.sh" "${FAKE_PROJECT_DIR}/scripts/lib/privacy.sh"
+    cp "${PROJECT_ROOT}/scripts/lib/scan.sh"    "${FAKE_PROJECT_DIR}/scripts/lib/scan.sh" 2>/dev/null || true
 
     # Create a fake vault directory
     FAKE_VAULT_DIR="${TEST_TEMP_DIR}/fake-vault"

@@ -56,6 +56,9 @@ EOF
 
 need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing: $1" >&2; exit 1; }; }
 
+# shellcheck source=scripts/lib/privacy.sh
+source "${OKM_SCRIPT_DIR}/scripts/lib/privacy.sh"
+
 # N20: collapse vertical whitespace before slugifying.
 # N14: fail-closed on empty/short slugs. N18: cap at 200 chars.
 slugify() {
@@ -649,6 +652,13 @@ sync_git() {
   local upstream
   upstream="$(git -C "$VAULT" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
   if [ -n "$upstream" ]; then
+    # Privacy gate: refuse to push if the remote is a public GitHub repo.
+    # This is a second line of defence after the pre-push hook — it fires
+    # even when the hook is missing (e.g. a freshly cloned vault).
+    if ! km_check_remote_is_private "$VAULT"; then
+      echo "okm sync: push aborted — see PRIVACY messages above." >&2
+      exit 1
+    fi
     git -C "$VAULT" pull --rebase --autostash
     git -C "$VAULT" push
   else

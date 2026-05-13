@@ -291,6 +291,7 @@ Full specs + reproduction steps: `tests/v1_spec.bats`.
 | Item | Code |
 |---|---|
 | **Fork-safety** (`okm port`) | See [Fork-safety](#fork-safety-architecture) |
+| **Contribution workflow** | See [Contributing Features](#contributing-features) |
 | Block-style YAML tolerant read | B3 |
 | `okm sync` extension check | — |
 | `okm private <subcmd>` | — |
@@ -374,6 +375,41 @@ git checkout -b feature/foo && git push myfork feature/foo
 **Open questions:** Which approach? · `gh` as new dep (recommend: add to `setup-km.sh`) · `okm port --adopt` for existing forks · `verify-km.sh` post-port topology check · README "Privacy & Personal Data" section.
 
 **Tests:** BATS with fake `gh` shim; integration against local bare repo; `okm sync` against misconfigured `origin` must refuse; B2 `$OBSIDIAN_VAULT` outside app repo with its own remote.
+
+---
+
+## Contributing Features
+
+**Problem:** this repo is designed to be forked for personal vault use, which creates a tension with contributing features back — your fork holds private notes, but PRs should only carry code changes.
+
+### Options
+
+| Approach | How it works | Trade-offs |
+|---|---|---|
+| **A — Contribution fork** | Create a second, code-only fork at `{handle}-km-contrib`. Clone it without vault data. Push feature branches there; PR to upstream. | Clean separation. Requires managing two forks. |
+| **B — Throwaway branch** | In your personal fork, create a feature branch from upstream's `main` (no vault commits in history). Push it to a `contrib/` remote pointing at upstream. | One repo, but branch discipline required. |
+| **C — `okm port` topology** (v1) | After `okm port`, `origin` = private vault fork, `upstream` = public OSS. Feature branches go to a third throwaway fork and PR to `upstream/main`. | Cleanest long-term; requires `okm port` to ship first. |
+| **D — Codespace / devcontainer** | Contribute entirely inside a GitHub Codespace or dev container that clones the public repo with no vault. `$OBSIDIAN_VAULT` points to an empty test vault. | No vault data ever leaves the machine. Requires Codespace setup. |
+
+### Recommended workflow (today)
+
+```bash
+# In your personal fork — create a clean feature branch from upstream
+git fetch upstream
+git checkout -b feature/foo upstream/main
+
+# Make changes, run tests
+bash tests/run_all.sh
+
+# Push to a separate contribution remote (not your private origin)
+git remote add contrib git@github.com:{handle}-km-contrib/knowledge-management.git
+git push contrib feature/foo
+# Then open PR: contrib/feature/foo → upstream/main
+```
+
+**Invariant:** vault data (`daily/`, `inbox/`, `archive/`) must never appear in any commit on a PR branch. `okm audit --code-only` checks this.
+
+**Open questions:** Should `setup-km.sh` create the contrib remote automatically? Should `okm port` set up a codespace config?
 
 ---
 

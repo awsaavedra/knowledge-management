@@ -47,6 +47,10 @@ fi
 BIN_DIR="${SCRIPT_DIR}/bin"
 GIT_REMOTE="${1:-}"
 
+# --- Privacy helpers ---
+# shellcheck source=scripts/lib/privacy.sh
+source "${SCRIPT_DIR}/scripts/lib/privacy.sh"
+
 # --- Helper functions ---
 
 install_apt_packages() {
@@ -551,6 +555,90 @@ install_direnv() {
     fi
 }
 
+# Install a pre-push hook into the vault's .git/hooks/ that blocks pushes of
+# personal notes to public GitHub repos. Self-contained — no dependency on the
+# project directory at hook runtime.
+install_vault_privacy_hook() {
+    local vault_dir="$1"
+    local hooks_dir="${vault_dir}/.git/hooks"
+
+    if [ ! -d "${hooks_dir}" ]; then
+        log_warn "Vault .git/hooks not found — skipping privacy hook install"
+        return 0
+    fi
+
+    local hook_file="${hooks_dir}/pre-push"
+
+    cat > "${hook_file}" <<'HOOK'
+#!/usr/bin/env bash
+# pre-push privacy hook — installed by setup-km.sh
+# Blocks pushes of personal notes (daily/, inbox/, archive/) to public GitHub repos.
+# To bypass (emergency): git push --no-verify  (use with extreme care)
+
+_parse_slug() {
+    local url="$1"
+    case "$url" in
+        git@github.com:*)     local s="${url#git@github.com:}";    printf '%s' "${s%.git}" ;;
+        https://github.com/*) local s="${url#https://github.com/}"; s="${s%.git}"; printf '%s' "${s%/}" ;;
+    esac
+}
+
+_is_note_path() {
+    case "$1" in
+        daily/*.md)   return 0 ;;
+        archive/*.md) return 0 ;;
+        inbox/*.md)
+            case "$1" in inbox/templates/*) return 1 ;; *) return 0 ;; esac ;;
+    esac
+    return 1
+}
+
+REMOTE_URL="$2"
+SLUG="$(_parse_slug "$REMOTE_URL")"
+[ -n "$SLUG" ] || exit 0   # Non-GitHub remote — skip check
+
+if ! command -v gh >/dev/null 2>&1; then
+    printf 'pre-push: gh CLI not found — cannot verify visibility of %s. Push blocked.\n' "$SLUG" >&2
+    printf 'pre-push: Install gh CLI and run: gh auth login\n' >&2
+    exit 1
+fi
+
+IS_PRIVATE="$(gh api "repos/$SLUG" --jq '.private' 2>/dev/null || true)"
+[ "$IS_PRIVATE" = "true" ] && exit 0   # Confirmed private — safe
+
+if [ "$IS_PRIVATE" = "false" ]; then
+    FOUND_NOTES=""
+    while read -r LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA; do
+        [ -n "$LOCAL_SHA" ] || continue
+        [ "$LOCAL_SHA" != "0000000000000000000000000000000000000000" ] || continue
+        if [ "$REMOTE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            RANGE="$LOCAL_SHA"
+        else
+            RANGE="${REMOTE_SHA}..${LOCAL_SHA}"
+        fi
+        while IFS= read -r f; do
+            _is_note_path "$f" && FOUND_NOTES="${FOUND_NOTES}  $f"$'\n'
+        done < <(git diff-tree --no-commit-id -r --name-only "$RANGE" 2>/dev/null || true)
+    done
+    if [ -n "$FOUND_NOTES" ]; then
+        printf 'pre-push: BLOCKED — personal notes would be exposed in public repo %s:\n' "$SLUG" >&2
+        printf '%s' "$FOUND_NOTES" | head -10 >&2
+        printf 'pre-push: Make %s private on GitHub, then retry.\n' "$SLUG" >&2
+        exit 1
+    fi
+    exit 0
+fi
+
+# Unverifiable (API error or not authenticated)
+printf 'pre-push: Could not verify visibility of %s. Push blocked.\n' "$SLUG" >&2
+printf 'pre-push: Run: gh auth login\n' >&2
+exit 1
+HOOK
+
+    chmod +x "${hook_file}"
+    log_info "OK: privacy pre-push hook installed at ${hook_file}"
+}
+
 # Revoke Obsidian's network permission via the flatpak sandbox.
 # After this, Obsidian cannot initiate outbound connections regardless of its
 # internal settings. Explicit git push/pull (via okm sync or lazygit) is unaffected.
@@ -621,6 +709,24 @@ if [ -z "${KM_TRACK_NOTES:-}" ]; then
     esac
     log_info "KM_TRACK_NOTES=${KM_TRACK_NOTES} (user selected)"
 fi
+
+# Privacy gate: if the user wants to track notes AND a remote is provided,
+# verify it is a private GitHub repo. A public remote is rejected — personal
+# notes must never be pushed to a public repository.
+if [ "${KM_TRACK_NOTES:-false}" = "true" ] && [ -n "${GIT_REMOTE}" ]; then
+    log_info "==> Verifying remote privacy before enabling note tracking"
+    if km_check_url_is_private "${GIT_REMOTE}"; then
+        log_info "OK: remote is private — note tracking enabled"
+    else
+        log_warn "Remote failed privacy check — forcing KM_TRACK_NOTES=false"
+        log_warn "Notes will be gitignored. Make the remote private and re-run setup to enable tracking."
+        KM_TRACK_NOTES=false
+    fi
+elif [ "${KM_TRACK_NOTES:-false}" = "true" ] && [ -z "${GIT_REMOTE}" ]; then
+    log_info "No remote specified at setup time — note tracking enabled for local repo."
+    log_info "A pre-push privacy hook will be installed to block pushes to public remotes."
+fi
+
 export KM_TRACK_NOTES
 
 log_info "==> Writing .gitignore"
@@ -631,6 +737,9 @@ ensure_git_repo "${VAULT_DIR}"
 
 log_info "==> Configuring Git remote"
 ensure_git_remote "${VAULT_DIR}" "${GIT_REMOTE}"
+
+log_info "==> Installing vault privacy hook"
+install_vault_privacy_hook "${VAULT_DIR}"
 
 log_info "==> Installing Neovim"
 install_nvim
