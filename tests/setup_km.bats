@@ -372,3 +372,48 @@ _setup_fake_gh_handle() {
     run ensure_upstream_remote "${FAKE_VAULT_DIR}"
     assert_output --partial "No origin"
 }
+
+# === vault.sh — km_vault_dir ===
+
+@test "km_vault_dir returns SCRIPT_DIR when OBSIDIAN_VAULT unset" {
+    source "${PROJECT_ROOT}/scripts/lib/vault.sh"
+    unset OBSIDIAN_VAULT
+    result="$(km_vault_dir "/some/project")"
+    [ "$result" = "/some/project" ]
+}
+
+@test "km_vault_dir returns OBSIDIAN_VAULT when set" {
+    source "${PROJECT_ROOT}/scripts/lib/vault.sh"
+    export OBSIDIAN_VAULT="/custom/vault"
+    result="$(km_vault_dir "/some/project")"
+    [ "$result" = "/custom/vault" ]
+}
+
+@test "km_vault_dir works with any repo name (no hardcoded knowledge-management)" {
+    source "${PROJECT_ROOT}/scripts/lib/vault.sh"
+    unset OBSIDIAN_VAULT
+    for name in "knowledge-management" "alice-knowledge-management" "bob-km" "my-notes"; do
+        result="$(km_vault_dir "/workspace/${name}")"
+        [ "$result" = "/workspace/${name}" ]
+    done
+}
+
+# === platform.sh — _date_add ===
+
+@test "_date_add adds positive days correctly" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    result="$(_date_add "2026-01-01" "+6")"
+    [ "$result" = "2026-01-07" ]
+}
+
+@test "_date_add subtracts days correctly" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    result="$(_date_add "2026-01-07" "-6")"
+    [ "$result" = "2026-01-01" ]
+}
+
+@test "_date_add handles month boundaries" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    result="$(_date_add "2026-01-31" "+1")"
+    [ "$result" = "2026-02-01" ]
+}

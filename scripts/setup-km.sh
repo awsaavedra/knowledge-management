@@ -32,24 +32,18 @@ trap '_on_error ${LINENO}' ERR
 
 # --- Variables ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [ -z "${OBSIDIAN_VAULT:-}" ]; then
-    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
-    _sibling="${_parent}/knowledge-management"
-    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
-        VAULT_DIR="${SCRIPT_DIR}"
-    else
-        VAULT_DIR="${_sibling}"
-    fi
-    unset _parent _sibling
-else
-    VAULT_DIR="${OBSIDIAN_VAULT}"
-fi
 BIN_DIR="${SCRIPT_DIR}/bin"
 GIT_REMOTE="${1:-}"
 
-# --- Privacy helpers ---
+# --- Shared libraries ---
+# shellcheck source=scripts/lib/platform.sh
+source "${SCRIPT_DIR}/scripts/lib/platform.sh"
+# shellcheck source=scripts/lib/vault.sh
+source "${SCRIPT_DIR}/scripts/lib/vault.sh"
 # shellcheck source=scripts/lib/privacy.sh
 source "${SCRIPT_DIR}/scripts/lib/privacy.sh"
+
+VAULT_DIR="$(km_vault_dir "${SCRIPT_DIR}")"
 
 # --- Helper functions ---
 
@@ -301,7 +295,7 @@ install_nvim() {
     esac
     curl -fsSL -o "${tmp_dir}/nvim.tar.gz" \
         "https://github.com/neovim/neovim/releases/latest/download/${nvim_tarball}"
-    tar --no-absolute-file-names -xf "${tmp_dir}/nvim.tar.gz" -C "${tmp_dir}"
+    tar -xzf "${tmp_dir}/nvim.tar.gz" -C "${tmp_dir}"
 
     # Install binary
     cp "${tmp_dir}/${nvim_dir}/bin/nvim" "${BIN_DIR}/nvim.bin"
@@ -461,14 +455,14 @@ bootstrap_nvim_plugins() {
     # Phase 1: first launch clones lazy.nvim itself (config/lazy.lua bootstrap block)
     if [ ! -d "${lazy_path}" ]; then
         log_info "Phase 1: cloning lazy.nvim plugin manager..."
-        timeout 60 env TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" \
+        _timeout 60 env TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" \
             --headless -c 'quitall' 2>/dev/null || true
     fi
 
     # Phase 2: install all plugins via Lazy sync
     if [ -d "${lazy_path}" ]; then
         log_info "Phase 2: syncing plugins via Lazy..."
-        if timeout 180 env TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" \
+        if _timeout 180 env TERM=xterm-256color NVIM_APPNAME=km "${BIN_DIR}/nvim" \
             --headless "+Lazy! sync" +qa 2>/dev/null; then
             log_info "OK: Neovim plugins bootstrapped under ~/.local/share/km/"
         else

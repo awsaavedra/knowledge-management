@@ -13,12 +13,17 @@ setup() {
     echo "$PATH" | grep -q "${PROJECT_ROOT}/bin"
 }
 
-@test "OBSIDIAN_VAULT is set correctly" {
+@test "OBSIDIAN_VAULT defaults to project root (self-contained)" {
     unset OBSIDIAN_VAULT
     source "${PROJECT_ROOT}/env.sh"
-    local expected
-    expected="$(cd "${PROJECT_ROOT}/.." && pwd)/knowledge-management"
-    [ "$OBSIDIAN_VAULT" = "$expected" ]
+    [ "$OBSIDIAN_VAULT" = "$KM_ROOT" ]
+    [ -d "$OBSIDIAN_VAULT" ]
+}
+
+@test "OBSIDIAN_VAULT respects explicit override" {
+    export OBSIDIAN_VAULT="/tmp"
+    source "${PROJECT_ROOT}/env.sh"
+    [ "$OBSIDIAN_VAULT" = "/tmp" ]
 }
 
 @test "OBSIDIAN_DAILY_DIR is set to public/daily" {
@@ -68,6 +73,26 @@ setup() {
     source "${PROJECT_ROOT}/env.sh"
     # ~/.config/nvim should not exist in our fake HOME (env.sh doesn't create it)
     [ ! -e "${HOME}/.config/nvim" ]
+}
+
+@test "~/.config/km symlink is created pointing to project config/nvim" {
+    source "${PROJECT_ROOT}/env.sh"
+    [ -L "${HOME}/.config/km" ]
+    [ "$(readlink "${HOME}/.config/km")" = "${KM_ROOT}/config/nvim" ]
+}
+
+@test "~/.config/km symlink is self-healed when stale" {
+    ln -s "/tmp/stale-path" "${HOME}/.config/km"
+    source "${PROJECT_ROOT}/env.sh"
+    [ "$(readlink "${HOME}/.config/km")" = "${KM_ROOT}/config/nvim" ]
+}
+
+@test "~/.config/km symlink uses no hardcoded paths" {
+    source "${PROJECT_ROOT}/env.sh"
+    local target
+    target="$(readlink "${HOME}/.config/km")"
+    # Must derive from KM_ROOT, not contain any username-specific literal
+    [[ "$target" == "${KM_ROOT}"* ]]
 }
 
 @test "env.sh does NOT create or modify ~/.config/lazygit" {

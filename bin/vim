@@ -8,4 +8,5 @@
 # config/vim/vimrc sources ~/.vimrc internally, so personal settings still apply.
 
 KM_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec /usr/bin/vim -u "${KM_ROOT}/config/vim/vimrc" "$@"
+_vim_bin="$(command -v vim 2>/dev/null)" || { printf 'vim not found in PATH\n' >&2; exit 127; }
+exec "${_vim_bin}" -u "${KM_ROOT}/config/vim/vimrc" "$@"

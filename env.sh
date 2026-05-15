@@ -20,17 +20,8 @@ fi
 # --- Project binaries first on PATH (dedup guard for repeated sourcing) ---
 [[ ":${PATH}:" != *":${KM_ROOT}/bin:"* ]] && export PATH="${KM_ROOT}/bin:${PATH}"
 
-# --- Vault location (sibling directory by default; override with OBSIDIAN_VAULT) ---
-if [ -z "${OBSIDIAN_VAULT:-}" ]; then
-    _km_parent="$(cd "${KM_ROOT}/.." && pwd)"
-    _km_sibling="${_km_parent}/knowledge-management"
-    if [ "${_km_sibling}" = "${KM_ROOT}" ]; then
-        export OBSIDIAN_VAULT="${KM_ROOT}"
-    else
-        export OBSIDIAN_VAULT="${_km_sibling}"
-    fi
-    unset _km_parent _km_sibling
-fi
+# --- Vault location (project root by default; override with OBSIDIAN_VAULT) ---
+export OBSIDIAN_VAULT="${OBSIDIAN_VAULT:-${KM_ROOT}}"
 export OBSIDIAN_DAILY_DIR=public/daily
 export OBSIDIAN_NOTES_DIR=public/inbox
 
@@ -48,10 +39,19 @@ if ! locale -a 2>/dev/null | grep -qi 'en_US\.utf'; then
 fi
 
 # --- Editor: use project-scoped nvim config via NVIM_APPNAME ---
-# This makes nvim read from ~/.config/km/ instead of ~/.config/nvim/
-# Your global nvim config is not affected.
+# ~/.config/km is kept in sync with the project's config/nvim so that
+# NVIM_APPNAME=km always resolves correctly, regardless of repo location or username.
 export EDITOR="${EDITOR:-nvim}"
 export NVIM_APPNAME=km
+if [ -d "${KM_ROOT}/config/nvim" ]; then
+    _km_link="${HOME}/.config/km"
+    _km_nvim="${KM_ROOT}/config/nvim"
+    if [ ! -e "${_km_link}" ] || [ "$(readlink "${_km_link}")" != "${_km_nvim}" ]; then
+        mkdir -p "${HOME}/.config"
+        ln -sf "${_km_nvim}" "${_km_link}"
+    fi
+    unset _km_link _km_nvim
+fi
 
 # --- Vim: project-scoped vimrc via bin/vim wrapper (NOT VIMINIT) ---
 # nvim also honors $VIMINIT and uses it in place of init.lua, which silently

@@ -24,18 +24,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="${KM_PROJECT_DIR:-${SCRIPT_DIR}}"
-if [ -z "${OBSIDIAN_VAULT:-}" ]; then
-    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
-    _sibling="${_parent}/knowledge-management"
-    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
-        VAULT_DIR="${SCRIPT_DIR}"
-    else
-        VAULT_DIR="${_sibling}"
-    fi
-    unset _parent _sibling
-else
-    VAULT_DIR="${OBSIDIAN_VAULT}"
-fi
+# shellcheck source=scripts/lib/platform.sh
+source "${SCRIPT_DIR}/scripts/lib/platform.sh"
+# shellcheck source=scripts/lib/vault.sh
+source "${SCRIPT_DIR}/scripts/lib/vault.sh"
+VAULT_DIR="$(km_vault_dir "${SCRIPT_DIR}")"
 TEMPLATE="${PROJECT_DIR}/public/inbox/weekly-template.md"
 
 TODAY="$(date +%F)"
@@ -43,8 +36,8 @@ DOW="$(date +%u)"  # 1=Monday, 7=Sunday
 DAY_NAME="$(date +%A)"
 
 # Compute this week's Monday and Sunday
-WEEK_START="$(date -d "${TODAY} -$((DOW - 1)) days" +%F)"
-WEEK_END="$(date -d "${TODAY} +$((7 - DOW)) days" +%F)"
+WEEK_START="$(_date_add "${TODAY}" "-$((DOW - 1))")"
+WEEK_END="$(_date_add  "${TODAY}" "+$((7 - DOW))")"
 
 OUTPUT_FILE="${PROJECT_DIR}/public/inbox/weekly-${WEEK_START}-to-${WEEK_END}.md"
 

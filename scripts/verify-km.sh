@@ -10,18 +10,11 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [ -z "${OBSIDIAN_VAULT:-}" ]; then
-    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
-    _sibling="${_parent}/knowledge-management"
-    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
-        VAULT_DIR="${SCRIPT_DIR}"
-    else
-        VAULT_DIR="${_sibling}"
-    fi
-    unset _parent _sibling
-else
-    VAULT_DIR="${OBSIDIAN_VAULT}"
-fi
+# shellcheck source=scripts/lib/platform.sh
+source "${SCRIPT_DIR}/scripts/lib/platform.sh"
+# shellcheck source=scripts/lib/vault.sh
+source "${SCRIPT_DIR}/scripts/lib/vault.sh"
+VAULT_DIR="$(km_vault_dir "${SCRIPT_DIR}")"
 BIN_DIR="${SCRIPT_DIR}/bin"
 LAZY_DIR="${HOME}/.local/share/km/lazy"
 
@@ -47,24 +40,32 @@ for cmd in vim git rg fzf curl; do
     if command -v "${cmd}" >/dev/null 2>&1; then
         _pass "${cmd}  ($(command -v "${cmd}"))"
     else
-        _fail "${cmd} not found — run: sudo apt install <package>"
+        _fail "${cmd} not found — run: $(_pkg_install_hint "${cmd}")"
     fi
 done
 
-# xclip or wl-clipboard — at least one required for Neovim clipboard registers
-xclip_ok=false
-wlcopy_ok=false
-command -v xclip   >/dev/null 2>&1 && xclip_ok=true
-command -v wl-copy >/dev/null 2>&1 && wlcopy_ok=true
-
-if "${xclip_ok}" && "${wlcopy_ok}"; then
-    _pass "clipboard: xclip + wl-clipboard (both installed)"
-elif "${xclip_ok}"; then
-    _pass "clipboard: xclip installed"
-elif "${wlcopy_ok}"; then
-    _pass "clipboard: wl-clipboard installed"
+# clipboard — requirements differ by platform
+if is_macos; then
+    if command -v pbcopy >/dev/null 2>&1 && command -v pbpaste >/dev/null 2>&1; then
+        _pass "clipboard: pbcopy/pbpaste (macOS native)"
+    else
+        _fail "clipboard: pbcopy/pbpaste not found (unexpected on macOS)"
+    fi
 else
-    _fail "clipboard: neither xclip nor wl-clipboard — run: sudo apt install xclip wl-clipboard"
+    xclip_ok=false
+    wlcopy_ok=false
+    command -v xclip   >/dev/null 2>&1 && xclip_ok=true
+    command -v wl-copy >/dev/null 2>&1 && wlcopy_ok=true
+
+    if "${xclip_ok}" && "${wlcopy_ok}"; then
+        _pass "clipboard: xclip + wl-clipboard (both installed)"
+    elif "${xclip_ok}"; then
+        _pass "clipboard: xclip installed"
+    elif "${wlcopy_ok}"; then
+        _pass "clipboard: wl-clipboard installed"
+    else
+        _fail "clipboard: neither xclip nor wl-clipboard — run: sudo apt install xclip wl-clipboard"
+    fi
 fi
 
 # ── Flatpak / Obsidian ───────────────────────────────────────────────────────

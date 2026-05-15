@@ -29,18 +29,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="${KM_PROJECT_DIR:-${SCRIPT_DIR}}"
-if [ -z "${OBSIDIAN_VAULT:-}" ]; then
-    _parent="$(cd "${SCRIPT_DIR}/.." && pwd)"
-    _sibling="${_parent}/knowledge-management"
-    if [ "${_sibling}" = "${SCRIPT_DIR}" ]; then
-        VAULT_DIR="${SCRIPT_DIR}"
-    else
-        VAULT_DIR="${_sibling}"
-    fi
-    unset _parent _sibling
-else
-    VAULT_DIR="${OBSIDIAN_VAULT}"
-fi
+# shellcheck source=scripts/lib/platform.sh
+source "${SCRIPT_DIR}/scripts/lib/platform.sh"
+# shellcheck source=scripts/lib/vault.sh
+source "${SCRIPT_DIR}/scripts/lib/vault.sh"
+VAULT_DIR="$(km_vault_dir "${SCRIPT_DIR}")"
 YEAR="$(date +%Y)"
 TODAY="$(date +%F)"
 OUTPUT_FILE="${PROJECT_DIR}/public/inbox/todo-summary-${YEAR}.md"
