@@ -287,28 +287,6 @@ tags: []
     [ "$(cat "${FAKE_VAULT_DIR}/public/inbox/plain.md")" = "Just plain text" ]
 }
 
-# B3: block-style YAML tags are refused, not silently corrupted.
-@test "B3: okm tag refuses block-style YAML tags with a clear error" {
-    create_vault_file "public/inbox/block.md" "---
-tags:
-  - foo
-  - bar
----"
-    run "${OKM}" tag "public/inbox/block.md" "newtag"
-    assert_failure
-    assert_output --partial "block-style"
-}
-
-@test "B3: okm untag refuses block-style YAML tags with a clear error" {
-    create_vault_file "public/inbox/block.md" "---
-tags:
-  - foo
----"
-    run "${OKM}" untag "public/inbox/block.md" "foo"
-    assert_failure
-    assert_output --partial "block-style"
-}
-
 # B4 + N23: invalid characters rejected at validation time.
 @test "B4: okm tag rejects tag containing space" {
     create_vault_file "public/inbox/note.md" "---

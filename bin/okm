@@ -112,10 +112,13 @@ validate_tag() {
   fi
 }
 
-# True if file starts with a YAML frontmatter block.
+# True if file starts with a valid YAML frontmatter block (opening AND closing ---).
+# N30: a lone leading --- (horizontal rule) is not frontmatter.
 has_frontmatter() {
   local file="$1"
-  [ -s "$file" ] && [ "$(head -n1 "$file")" = "---" ]
+  [ -s "$file" ] || return 1
+  [ "$(head -n1 "$file")" = "---" ] || return 1
+  awk 'NR > 1 && /^---$/ { found = 1; exit } END { exit !found }' "$file"
 }
 
 # Print the body of the first YAML frontmatter block (between the first two
@@ -147,6 +150,26 @@ get_tags_line() {
   first_frontmatter "$1" | sed -n '/^tags:/p' | head -n1
 }
 
+# Read tags from a file as a newline-separated list. Handles both inline
+# (tags: [a, b]) and block-style (tags:\n  - a) YAML. Returns empty if none.
+# Always exits 0 so callers don't trip set -e on files with no tags key.
+read_file_tags() {
+  local file="$1"
+  if has_block_style_tags "$file"; then
+    first_frontmatter "$file" | awk '
+      /^tags:[[:space:]]*$/ { in_tags = 1; next }
+      in_tags && /^[[:space:]]+-[[:space:]]+/ { tag = $0; sub(/^[[:space:]]+-[[:space:]]+/, "", tag); print tag; next }
+      in_tags && /^[^[:space:]]/ { exit }
+    '
+  else
+    local line
+    line="$(get_tags_line "$file")"
+    if [ -n "$line" ]; then
+      parse_tags "$line"
+    fi
+  fi
+}
+
 # Parse a YAML inline-array tags line into a newline-separated list.
 parse_tags() {
   local line="$1"
@@ -169,27 +192,31 @@ build_tags_yaml() {
 # Rewrite the tags line inside the first frontmatter block. If no tags line
 # exists in the first frontmatter, insert one immediately before the closing
 # `---`. Body content (including any later `---...---` blocks) is preserved
-# verbatim. Caller guarantees the file has frontmatter and inline-style tags.
+# verbatim. Handles both inline and block-style (B3); preserves file permissions (N31).
 write_tags_line() {
   local file="$1"
   local new_line="$2"
-  local tmp
+  local tmp orig_perms
   tmp="$(mktemp -- "${file}.XXXXXX")"
+  orig_perms="$(stat -c '%a' "$file" 2>/dev/null)" || orig_perms=""
   awk -v new_line="$new_line" '
-    BEGIN { c = 0; replaced = 0; in_after = 0 }
+    BEGIN { c = 0; replaced = 0; in_after = 0; skip_block = 0 }
     {
       if ($0 == "---") {
         c++
-        if (c == 2 && !replaced) {
-          print new_line
-          replaced = 1
-        }
+        if (c == 2 && !replaced) { print new_line; replaced = 1 }
+        skip_block = 0
         print
         if (c >= 2) in_after = 1
         next
       }
       if (in_after) { print; next }
+      if (skip_block) {
+        if (/^[[:space:]]+-[[:space:]]/) { next }
+        skip_block = 0
+      }
       if (c == 1 && /^tags:/ && !replaced) {
+        if (/^tags:[[:space:]]*$/) { skip_block = 1 }
         print new_line
         replaced = 1
         next
@@ -197,6 +224,7 @@ write_tags_line() {
       print
     }
   ' "$file" > "$tmp" && mv "$tmp" "$file"
+  [ -n "$orig_perms" ] && chmod "$orig_perms" "$file" 2>/dev/null || true
 }
 
 # Refuse if the file uses block-style YAML tags. Hard-fail per B3 in v0;
@@ -249,14 +277,13 @@ list_tags() {
   if [ -n "$note" ]; then
     local file
     file="$(resolve_note "$note")"
-    require_inline_tags "$file"
-    local line
-    line="$(get_tags_line "$file")"
-    if [ -z "$line" ]; then
+    local tags
+    tags="$(read_file_tags "$file")"
+    if [ -z "$tags" ]; then
       echo "(no tags)"
       return
     fi
-    parse_tags "$line"
+    echo "$tags"
     return
   fi
   local files
@@ -264,10 +291,8 @@ list_tags() {
   [ -n "$files" ] || return 0
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    get_tags_line "$f"
+    read_file_tags "$f"
   done <<< "$files" \
-    | sed 's/^tags:[[:space:]]*//; s/^\[//; s/\]$//; s/,/ /g' \
-    | tr ' ' '\n' \
     | sed '/^$/d' \
     | sort | uniq -c | sort -rn \
     | awk '{printf "%-4d %s\n", $1, $2}'
@@ -287,23 +312,26 @@ add_tags() {
 
   local file
   file="$(resolve_note "$note")"
-  require_inline_tags "$file"
+
+  # N30: lone --- (HR) is not frontmatter — error rather than silently prepending
+  if [ "$(head -n1 "$file")" = "---" ] && ! has_frontmatter "$file"; then
+    echo "Cannot tag: '$(basename "$file")' starts with '---' but has no valid frontmatter" >&2
+    exit 1
+  fi
 
   if ! has_frontmatter "$file"; then
-    local tmp
+    local tmp orig_perms
     tmp="$(mktemp -- "${file}.XXXXXX")"
+    orig_perms="$(stat -c '%a' "$file" 2>/dev/null)" || orig_perms=""
     {
       printf -- '---\ntags: []\n---\n'
       cat "$file"
     } > "$tmp" && mv "$tmp" "$file"
+    [ -n "$orig_perms" ] && chmod "$orig_perms" "$file" 2>/dev/null || true
   fi
 
-  local existing=""
-  local line
-  line="$(get_tags_line "$file")"
-  if [ -n "$line" ]; then
-    existing="$(parse_tags "$line")"
-  fi
+  local existing
+  existing="$(read_file_tags "$file")"
 
   local merged="$existing"
   for t in "$@"; do
@@ -333,22 +361,24 @@ remove_tags() {
 
   local file
   file="$(resolve_note "$note")"
-  require_inline_tags "$file"
+
+  # N30: lone --- (HR) is not frontmatter
+  if [ "$(head -n1 "$file")" = "---" ] && ! has_frontmatter "$file"; then
+    echo "Cannot untag: '$(basename "$file")' starts with '---' but has no valid frontmatter" >&2
+    exit 1
+  fi
 
   if ! has_frontmatter "$file"; then
     echo "No tags to remove (no frontmatter)"
     return
   fi
 
-  local line
-  line="$(get_tags_line "$file")"
-  if [ -z "$line" ]; then
+  local existing
+  existing="$(read_file_tags "$file")"
+  if [ -z "$existing" ]; then
     echo "No tags to remove"
     return
   fi
-
-  local existing
-  existing="$(parse_tags "$line")"
 
   local remaining=""
   while IFS= read -r tag; do
@@ -387,11 +417,10 @@ list_tagged() {
   local out=""
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    has_block_style_tags "$f" && continue  # quietly skip; v1 will support
-    local line
-    line="$(get_tags_line "$f")"
-    [ -n "$line" ] || continue
-    if parse_tags "$line" | grep -qxF -- "$tag"; then
+    local tags
+    tags="$(read_file_tags "$f")"
+    [ -n "$tags" ] || continue
+    if printf '%s\n' "$tags" | grep -qxF -- "$tag"; then
       out="${out:+${out}
 }${f#$VAULT/}"
     fi

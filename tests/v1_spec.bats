@@ -37,7 +37,6 @@ setup() {
 # inline (tags: \[...\]) and block (tags:\n  - item) formats.
 
 @test "B3: okm tags reads block-style tag list" {
-    skip "v1: block-style YAML read not yet implemented"
     create_vault_file "public/inbox/block.md" "---
 title: Block Tags
 tags:
@@ -52,7 +51,6 @@ body"
 }
 
 @test "B3: okm tagged finds note with block-style tags" {
-    skip "v1: block-style YAML read not yet implemented"
     create_vault_file "public/inbox/block.md" "---
 title: Block Tags
 tags:
@@ -65,7 +63,6 @@ body"
 }
 
 @test "B3: okm tag appends to block-style tags without corrupting frontmatter" {
-    skip "v1: block-style YAML read not yet implemented"
     create_vault_file "public/inbox/block.md" "---
 title: Block Tags
 tags:
@@ -93,7 +90,6 @@ body"
 # Alternatively: after write, verify the tag was actually written; error if not.
 
 @test "N30: okm tag errors on note with lone --- (not real frontmatter)" {
-    skip "v1: has_frontmatter HR false positive not yet fixed"
     create_vault_file "public/inbox/hr.md" "---
 This is just a horizontal rule, no closing delimiter
 body content here"
@@ -103,7 +99,6 @@ body content here"
 }
 
 @test "N30: okm tag succeeds on note with valid opening and closing ---" {
-    skip "v1: has_frontmatter HR false positive not yet fixed"
     create_vault_file "public/inbox/valid.md" "---
 title: Valid
 tags: []
@@ -129,7 +124,6 @@ body"
 #     then use cp --preserve=mode + rm instead of mv.
 
 @test "N31: okm tag preserves 644 permissions after write" {
-    skip "v1: write_tags_line permissions clobber not yet fixed"
     create_vault_file "public/inbox/perms.md" "---
 title: Perms
 tags: []
@@ -144,7 +138,6 @@ body"
 }
 
 @test "N31: okm untag preserves 664 permissions after write" {
-    skip "v1: write_tags_line permissions clobber not yet fixed"
     create_vault_file "public/inbox/perms2.md" "---
 title: Perms2
 tags: [keeptag]
