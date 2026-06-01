@@ -371,3 +371,95 @@ tags: [foo]
     refute_output --partial "grep:"
     grep -q -- "tags: \[foo, -leading-dash-tag\]" "${FAKE_VAULT_DIR}/public/inbox/note.md"
 }
+
+# B3: Block-style YAML tags — tolerant read.
+@test "B3: okm tags reads block-style tag list" {
+    create_vault_file "public/inbox/block.md" "---
+title: Block Tags
+tags:
+  - foo
+  - bar
+---
+body"
+    run "${OKM}" tags public/inbox/block.md
+    assert_success
+    assert_output --partial "foo"
+    assert_output --partial "bar"
+}
+
+@test "B3: okm tagged finds note with block-style tags" {
+    create_vault_file "public/inbox/block.md" "---
+title: Block Tags
+tags:
+  - findme
+---
+body"
+    run "${OKM}" tagged findme
+    assert_success
+    assert_output --partial "block.md"
+}
+
+@test "B3: okm tag appends to block-style tags without corrupting frontmatter" {
+    create_vault_file "public/inbox/block.md" "---
+title: Block Tags
+tags:
+  - existing
+---
+body"
+    run "${OKM}" tag public/inbox/block.md newtag
+    assert_success
+    run "${OKM}" tags public/inbox/block.md
+    assert_output --partial "existing"
+    assert_output --partial "newtag"
+}
+
+# N30: has_frontmatter horizontal-rule false positive.
+@test "N30: okm tag errors on note with lone --- (not real frontmatter)" {
+    create_vault_file "public/inbox/hr.md" "---
+This is just a horizontal rule, no closing delimiter
+body content here"
+    run "${OKM}" tag public/inbox/hr.md sometag
+    assert_failure
+    assert_output --partial "frontmatter"
+}
+
+@test "N30: okm tag succeeds on note with valid opening and closing ---" {
+    create_vault_file "public/inbox/valid.md" "---
+title: Valid
+tags: []
+---
+body"
+    run "${OKM}" tag public/inbox/valid.md sometag
+    assert_success
+    run "${OKM}" tags public/inbox/valid.md
+    assert_output --partial "sometag"
+}
+
+# N31: write_tags_line preserves original file permissions.
+@test "N31: okm tag preserves 644 permissions after write" {
+    create_vault_file "public/inbox/perms.md" "---
+title: Perms
+tags: []
+---
+body"
+    chmod 644 "${FAKE_VAULT_DIR}/public/inbox/perms.md"
+    run "${OKM}" tag public/inbox/perms.md footag
+    assert_success
+    local perms
+    perms=$(stat -c '%a' "${FAKE_VAULT_DIR}/public/inbox/perms.md")
+    [ "$perms" = "644" ]
+}
+
+@test "N31: okm untag preserves 664 permissions after write" {
+    create_vault_file "public/inbox/perms2.md" "---
+title: Perms2
+tags: [keeptag]
+---
+body"
+    chmod 664 "${FAKE_VAULT_DIR}/public/inbox/perms2.md"
+    run "${OKM}" untag public/inbox/perms2.md keeptag
+    assert_success
+    local perms
+    perms=$(stat -c '%a' "${FAKE_VAULT_DIR}/public/inbox/perms2.md")
+    [ "$perms" = "664" ]
+}

@@ -291,7 +291,7 @@ git add .gitattributes && git commit -m "configure git-crypt"
 
 | Cluster | Summary |
 |---|---|
-| **Tagging** | Boundary regex, injection-safe dedup, frontmatter-less handling, hierarchical tags via awk |
+| **Tagging** | Boundary regex, injection-safe dedup, frontmatter-less handling, hierarchical tags via awk; block-style YAML read (B3); HR false-positive guard (N30); permission-preserving write (N31) |
 | **Privacy** | Vault `.gitignore`; `private/` exclusion; `okm audit`; fork-safety docs |
 | **Path safety** | `okm open`/`sync` vault-boundary checks; `list_notes` excludes `.git/` |
 | **Input validation** | YAML escaping; slug fail-closed; Spotify ID validation; `validate_tag` on flags |
@@ -310,7 +310,6 @@ Full specs + reproduction steps: `tests/v1_spec.bats`.
 |---|---|
 | **Fork-safety** (`okm port`) | See [Fork-safety](#fork-safety-architecture) |
 | **Contribution workflow** | See [Contributing Features](#contributing-features) |
-| Block-style YAML tolerant read | B3 |
 | `okm sync` extension check | — |
 | `okm private <subcmd>` | — |
 | `okm audit --json` + pre-commit hook | — |
@@ -318,8 +317,6 @@ Full specs + reproduction steps: `tests/v1_spec.bats`.
 | `-t` on `okm today` | — |
 | `okm spot` metadata fetch + URL escape | N9 |
 | `KM_TRACK_NOTES` default unification | F6 |
-| `has_frontmatter` HR false positive | N30 |
-| `write_tags_line` permission clobber | N31 |
 | macOS support | — |
 | `okm crypt init` | — |
 | README dual-mode diagram | N6 |
