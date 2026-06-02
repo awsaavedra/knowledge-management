@@ -1,4 +1,4 @@
-# Loom config for awsaavedra-knowledge-management (PARA vault)
+# Loom config for {your-handle}-knowledge-management (PARA vault)
 # Do not store API keys here. Use ANTHROPIC_API_KEY in .env.local / environment.
 #
 # Run from vault root: loom run "prompt" --vault /path/to/this/repo
@@ -28,8 +28,8 @@ agents:
     max_tokens: 4000
 
 vault:
-  root: ".."                              # one level up from .loom/ = repo root
-  vault_name: "awsaavedra-knowledge-management"
+  root: "."                               # vault root = repo root (loom_yaml_dir is already vault_root)
+  vault_name: "{your-handle}-knowledge-management"   # replace with your GitHub handle
   inbox_dir: "public/inbox"              # researcher, tagger, linker write here
   notes_dir: "public/archive"            # read-only: completed/archived notes
   wiki_dir: "public/inbox/wiki"          # synthesizer output (sub-dir of inbox zone)

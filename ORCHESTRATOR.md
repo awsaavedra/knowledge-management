@@ -1,4 +1,4 @@
-# Vault Constitution — awsaavedra-knowledge-management
+# Vault Constitution — {your-handle}-knowledge-management
 
 This file governs how Loom agents interact with this vault. All agents must comply.
 

@@ -57,8 +57,10 @@ build/
 .DS_Store
 Thumbs.db
 
-# Claude Code machine-specific permissions (not shared)
+# Claude Code — machine-specific config and auto-installed system skills
 .claude/settings.local.json
+.claude/commands/
+.ai/
 
 # Editor swap/backup files
 *.swp

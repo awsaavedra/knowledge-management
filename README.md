@@ -573,16 +573,17 @@ Port slow Bash/Python utilities (fuzz harness, `okm audit`, large TODO scans) to
 - [x] **Large binaries stripped from history** — `bin/nvim`, `bin/nvim.bin`, `bin/lazygit`, and `bin/nvim-runtime/` removed. `setup-km.sh` downloads them at install time.
 - [x] **Hardcoded handle replaced** — `CONTRIBUTING.md` now uses `{your-handle}` placeholder.
 - [x] **Release-readiness auditor** — `scripts/check-release-ready.sh` exits non-zero if binaries, personal notes, PII patterns, or secrets are detected.
-- [x] **Nested vault removed** — accidentally-committed `awsaavedra-knowledge-management/` subfolder (a default Obsidian init) removed from HEAD and history.
-- [x] **`config/mpv/mpv.conf` hardcoded path removed** — was `/home/user/workspace/knowledge-management/attachments`; replaced with blank + comment instructing users to set their own path.
-- [x] **Stray personal URL removed from README** — trailing `kernel.sh` note removed from `See Also` section.
-- [x] **`settings.local.json` scrubbed from history** — commit `93cdf4f` added `.claude/settings.local.json` with `/home/user/workspace/...` paths before it was gitignored. Removed via `git filter-repo --invert-paths`; both remotes force-pushed.
+- [x] **Nested vault removed** — accidentally-committed `{your-handle}-knowledge-management/` subfolder (a default Obsidian init) removed from HEAD and history.
+- [x] **`config/mpv/mpv.conf` hardcoded path removed** — replaced absolute path with blank + comment instructing users to set their own path.
+- [x] **Stray personal URL removed from README** — trailing personal URL removed from `See Also` section.
+- [x] **`settings.local.json` scrubbed from history** — `.claude/settings.local.json` with absolute machine paths was committed before it was gitignored. Removed via `git filter-repo --invert-paths`; both remotes force-pushed.
 - [x] **README prerequisites section** — added table of `git`, `curl`, `flatpak`, `sudo`, GitHub account before Setup.
 - [x] **README fork-rename clarification** — now explains GitHub Settings → General → Repository name.
 - [x] **README direnv sequencing** — callout added: run `setup-km.sh` before `direnv allow .`.
 - [x] **`scripts/setup-km.sh` comment** — changed "my knowledge management" to generic description.
+- [x] **`.loom/loom.yaml` and `ORCHESTRATOR.md` handle** — replaced hardcoded `awsaavedra-knowledge-management` with `{your-handle}-knowledge-management` placeholder.
 - [ ] **Identity** — commits carry the author name. Intentional if open-sourcing under your own name; otherwise rewrite with `git filter-repo --name-callback` / `--email-callback`.
-- [ ] **Force-push** — after all history rewrites, force-push to both `origin` and `upstream` (`git@github.com:awsaavedra/knowledge-management.git`).
+- [x] **Force-push** — after all history rewrites, force-push to both `origin` and `upstream` (the source template repo).
 
 ---
 
