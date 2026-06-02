@@ -555,8 +555,16 @@ Port slow Bash/Python utilities (fuzz harness, `okm audit`, large TODO scans) to
 - [x] **Large binaries stripped from history** — `bin/nvim`, `bin/nvim.bin`, `bin/lazygit`, and `bin/nvim-runtime/` removed. `setup-km.sh` downloads them at install time.
 - [x] **Hardcoded handle replaced** — `CONTRIBUTING.md` now uses `{your-handle}` placeholder.
 - [x] **Release-readiness auditor** — `scripts/check-release-ready.sh` exits non-zero if binaries, personal notes, PII patterns, or secrets are detected.
+- [x] **Nested vault removed** — accidentally-committed `awsaavedra-knowledge-management/` subfolder (a default Obsidian init) removed from HEAD and history.
+- [x] **`config/mpv/mpv.conf` hardcoded path removed** — was `/home/user/workspace/knowledge-management/attachments`; replaced with blank + comment instructing users to set their own path.
+- [x] **Stray personal URL removed from README** — trailing `kernel.sh` note removed from `See Also` section.
+- [ ] **`settings.local.json` scrubbed from history** — commit `93cdf4f` added `.claude/settings.local.json` with `/home/user/workspace/...` paths before it was gitignored. Run: `git filter-repo --invert-paths --path .claude/settings.local.json` then force-push both remotes.
+- [ ] **README prerequisites section** — add explicit list of what must exist before running `setup-km.sh`: `git`, `curl`, `flatpak`, `sudo` access, GitHub account.
+- [ ] **README fork-rename clarification** — "Fork and rename" step should explain *how*: GitHub → Settings → Repository name.
+- [ ] **README direnv sequencing** — warn users not to run `direnv allow .` before `setup-km.sh` (direnv may not be installed yet).
+- [ ] **`scripts/setup-km.sh` comment** — first-line comment says "my knowledge management"; make it generic.
 - [ ] **Identity** — commits carry the author name. Intentional if open-sourcing under your own name; otherwise rewrite with `git filter-repo --name-callback` / `--email-callback`.
-- [ ] **Force-push** — run `git remote add origin <url> && git push --force origin main` after confirming the remote is your fork, not the upstream.
+- [ ] **Force-push** — after all history rewrites, force-push to both `origin` and `upstream` (`git@github.com:awsaavedra/knowledge-management.git`).
 
 ---
 
@@ -566,5 +574,3 @@ Port slow Bash/Python utilities (fuzz harness, `okm audit`, large TODO scans) to
 - [`docs/skills/README.md`](docs/skills/README.md) — AI skills library
 - [`scripts/README.md`](scripts/README.md) — cron job docs
 - [`scripts/setup-km.sh`](scripts/setup-km.sh) — canonical source for versions and defaults
-- 
-https://www.kernel.sh/ we build crazy fast, open source infra for them to access the internet
