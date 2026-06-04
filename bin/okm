@@ -631,7 +631,9 @@ files_vault() {
   if [ -z "$pattern" ]; then
     list_notes | sort
   else
-    list_notes | grep -i -- "$pattern" | sort
+    # A search that matches nothing has succeeded with no results, not failed;
+    # swallow grep's exit-1 so the command stays a clean exit 0.
+    list_notes | { grep -i -- "$pattern" || true; } | sort
   fi
 }
 
@@ -930,7 +932,7 @@ _audit_check_file() {
   base="$(basename "$f")"
   [ -e "$full" ] || return 0
 
-  # 1. PARA content (skipped under --code-only).
+  # 1a. Personal content report — default (vault) scan only.
   if ! $code_only; then
     local skip=false
     case "$f" in public/inbox/templates/*) skip=true ;; esac
@@ -945,6 +947,16 @@ _audit_check_file() {
           echo "${f}:1: para-content file in private/" ;;
       esac
     fi
+  fi
+
+  # 1b. Contribution guard — under --code-only the tool repo must hold no vault
+  #     content (the same invariant the pre-push hook enforces). Demo fixtures
+  #     are shareable and exempt.
+  if $code_only && km_path_is_vault_content "$f"; then
+    case "$base" in
+      demo-*) ;;
+      *) echo "${f}:1: vault-content must not be committed to the tool repo" ;;
+    esac
   fi
 
   # 2. Sensitive filenames.

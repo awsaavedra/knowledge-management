@@ -1,8 +1,29 @@
 #!/usr/bin/env bats
-# Tests for scripts/lib/privacy.sh, the setup-km.sh privacy gate,
-# the vault pre-push hook installer, and okm sync privacy enforcement.
+# Tests for scripts/lib/privacy.sh, scripts/check-no-vault-content.sh, the
+# tracked pre-push privacy guard (scripts/hooks/pre-push), its setup-km.sh
+# activation, and okm sync privacy enforcement.
 
 load 'helpers/test_helper'
+
+ZERO=0000000000000000000000000000000000000000
+
+# Build a one-commit git repo containing the given relative paths and print its
+# HEAD sha. Used to feed real trees to the pre-push hook.
+_make_commit() {
+    local repo="$1"; shift
+    mkdir -p "$repo"
+    git -C "$repo" init -b main -q
+    git -C "$repo" config user.email t@t.com
+    git -C "$repo" config user.name T
+    local p
+    for p in "$@"; do
+        mkdir -p "$repo/$(dirname "$p")"
+        echo content > "$repo/$p"
+    done
+    git -C "$repo" add -A
+    git -C "$repo" commit -qm init
+    git -C "$repo" rev-parse HEAD
+}
 
 # ---------------------------------------------------------------------------
 # Helpers shared across tests
@@ -91,37 +112,114 @@ setup() {
 }
 
 # ---------------------------------------------------------------------------
-# km_is_note_path
+# km_path_is_vault_content
 # ---------------------------------------------------------------------------
 
-@test "km_is_note_path: daily note is a personal note" {
-    run km_is_note_path "public/daily/2026-05-13.md"
+@test "km_path_is_vault_content: public daily note is vault content" {
+    run km_path_is_vault_content "public/daily/2026-05-13.md"
     assert_success
 }
 
-@test "km_is_note_path: archive note is a personal note" {
-    run km_is_note_path "public/archive/completed-project.md"
+@test "km_path_is_vault_content: public inbox note is vault content" {
+    run km_path_is_vault_content "public/inbox/my-note.md"
     assert_success
 }
 
-@test "km_is_note_path: inbox note is a personal note" {
-    run km_is_note_path "public/inbox/my-note.md"
+@test "km_path_is_vault_content: private daily note is vault content" {
+    run km_path_is_vault_content "private/daily/2026-05-13.md"
     assert_success
 }
 
-@test "km_is_note_path: inbox template is NOT a personal note" {
-    run km_is_note_path "public/inbox/templates/daily-template.md"
+@test "km_path_is_vault_content: private inbox note is vault content" {
+    run km_path_is_vault_content "private/inbox/secret.md"
+    assert_success
+}
+
+@test "km_path_is_vault_content: public attachment is vault content" {
+    run km_path_is_vault_content "public/attachments/screenshot.png"
+    assert_success
+}
+
+@test "km_path_is_vault_content: private attachment is vault content" {
+    run km_path_is_vault_content "private/attachments/scan.pdf"
+    assert_success
+}
+
+@test "km_path_is_vault_content: inbox template is shareable" {
+    run km_path_is_vault_content "public/inbox/templates/daily-template.md"
     assert_failure
 }
 
-@test "km_is_note_path: attachment is NOT a personal note" {
-    run km_is_note_path "public/attachments/screenshot.png"
+@test "km_path_is_vault_content: .gitkeep placeholder is shareable" {
+    run km_path_is_vault_content "private/daily/.gitkeep"
     assert_failure
 }
 
-@test "km_is_note_path: project-level file is NOT a personal note" {
-    run km_is_note_path "bin/okm"
+@test "km_path_is_vault_content: tool file is shareable" {
+    run km_path_is_vault_content "bin/okm"
     assert_failure
+}
+
+# ---------------------------------------------------------------------------
+# km_repo_is_public_tool
+# ---------------------------------------------------------------------------
+
+@test "km_repo_is_public_tool: SSH tool repo is the public tool" {
+    run km_repo_is_public_tool "git@github.com:alice/knowledge-management.git"
+    assert_success
+}
+
+@test "km_repo_is_public_tool: HTTPS tool repo is the public tool" {
+    run km_repo_is_public_tool "https://github.com/bob/knowledge-management"
+    assert_success
+}
+
+@test "km_repo_is_public_tool: contribution fork is still the public tool" {
+    run km_repo_is_public_tool "git@github.com:alice-km-contrib/knowledge-management.git"
+    assert_success
+}
+
+@test "km_repo_is_public_tool: personal vault is NOT the public tool" {
+    run km_repo_is_public_tool "git@github.com:alice/alice-knowledge-management.git"
+    assert_failure
+}
+
+@test "km_repo_is_public_tool: non-GitHub remote is NOT the public tool" {
+    run km_repo_is_public_tool "https://gitlab.com/alice/knowledge-management.git"
+    assert_failure
+}
+
+@test "km_repo_is_public_tool: empty URL is NOT the public tool" {
+    run km_repo_is_public_tool ""
+    assert_failure
+}
+
+# ---------------------------------------------------------------------------
+# check-no-vault-content.sh — pipeline checker
+# ---------------------------------------------------------------------------
+
+@test "check-no-vault-content: clean path list exits 0 with no output" {
+    run bash -c "printf 'bin/okm\ndocs/x.md\npublic/inbox/templates/t.md\n' | '${PROJECT_ROOT}/scripts/check-no-vault-content.sh'"
+    assert_success
+    assert_output ""
+}
+
+@test "check-no-vault-content: vault content exits 1 and lists offenders" {
+    run bash -c "printf 'bin/okm\nprivate/daily/secret.md\npublic/attachments/x.png\n' | '${PROJECT_ROOT}/scripts/check-no-vault-content.sh'"
+    assert_failure
+    assert_line "private/daily/secret.md"
+    assert_line "public/attachments/x.png"
+}
+
+@test "check-no-vault-content: --quiet suppresses the listing" {
+    run bash -c "printf 'private/daily/secret.md\n' | '${PROJECT_ROOT}/scripts/check-no-vault-content.sh' --quiet"
+    assert_failure
+    assert_output ""
+}
+
+@test "check-no-vault-content: unknown argument is a usage error" {
+    run bash -c "printf 'bin/okm\n' | '${PROJECT_ROOT}/scripts/check-no-vault-content.sh' --bogus"
+    [ "$status" -eq 2 ]
 }
 
 # ---------------------------------------------------------------------------
@@ -227,25 +325,21 @@ _load_setup_km_functions() {
     eval "$funcs_src"
 }
 
-@test "install_vault_privacy_hook: creates executable hook in vault .git/hooks" {
+@test "install_vault_privacy_hook: points core.hooksPath at scripts/hooks" {
     git -C "${FAKE_VAULT_DIR}" init -b main -q
     _load_setup_km_functions
     install_vault_privacy_hook "${FAKE_VAULT_DIR}"
-    local hook="${FAKE_VAULT_DIR}/.git/hooks/pre-push"
-    [ -f "$hook" ]
-    [ -x "$hook" ]
+    run git -C "${FAKE_VAULT_DIR}" config core.hooksPath
+    assert_success
+    assert_output "scripts/hooks"
 }
 
-@test "install_vault_privacy_hook: hook is a valid bash script (syntax check)" {
-    git -C "${FAKE_VAULT_DIR}" init -b main -q
-    _load_setup_km_functions
-    install_vault_privacy_hook "${FAKE_VAULT_DIR}"
-    run bash -n "${FAKE_VAULT_DIR}/.git/hooks/pre-push"
+@test "install_vault_privacy_hook: tracked pre-push hook is valid bash" {
+    run bash -n "${PROJECT_ROOT}/scripts/hooks/pre-push"
     assert_success
 }
 
-@test "install_vault_privacy_hook: skips gracefully when .git/hooks absent" {
-    # FAKE_VAULT_DIR has no git repo
+@test "install_vault_privacy_hook: skips gracefully when vault is not a git repo" {
     _load_setup_km_functions
     run install_vault_privacy_hook "${FAKE_VAULT_DIR}"
     assert_success
@@ -253,66 +347,73 @@ _load_setup_km_functions() {
 }
 
 # ---------------------------------------------------------------------------
-# Pre-push hook behaviour (invoke hook directly)
+# Pre-push guard behaviour (real trees via scripts/hooks/pre-push)
 # ---------------------------------------------------------------------------
 
-_install_hook_in_temp_vault() {
-    git -C "${FAKE_VAULT_DIR}" init -b main -q
-    _load_setup_km_functions
-    install_vault_privacy_hook "${FAKE_VAULT_DIR}"
-}
-
-@test "pre-push hook: allows push to private GitHub repo" {
-    _setup_fake_gh
-    _install_hook_in_temp_vault
-    FAKE_GH_PRIVATE=true \
-        run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" \
-            "origin" "git@github.com:alice/vault.git" \
-            <<< "refs/heads/main abc123 refs/heads/main 0000000000000000000000000000000000000000"
-    assert_success
-}
-
-@test "pre-push hook: blocks push to public GitHub repo with no note files" {
-    _setup_fake_gh
-    _install_hook_in_temp_vault
-    # Even with no note files in the push range, public repo is blocked
-    # (push range is empty — git diff-tree returns nothing)
-    FAKE_GH_PRIVATE=false \
-        run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" \
-            "origin" "git@github.com:alice/vault.git" \
-            <<< ""
-    # Exit 0 because no note files were found in the (empty) push range
-    assert_success
-}
-
-@test "pre-push hook: allows push to non-GitHub remote without checking" {
-    _setup_fake_gh
-    _install_hook_in_temp_vault
-    run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" \
-        "origin" "https://gitlab.com/alice/vault.git" \
-        <<< ""
-    assert_success
-}
-
-@test "pre-push hook: blocks when gh is missing" {
-    # Ensure gh is not on PATH
-    _install_hook_in_temp_vault
-    PATH="/usr/bin:/bin" run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" \
-        "origin" "git@github.com:alice/vault.git" \
-        <<< ""
+@test "pre-push guard: blocks vault content to the tool repo (deterministic, no gh)" {
+    local repo="${TEST_TEMP_DIR}/r" sha
+    sha="$(_make_commit "$repo" "bin/feature" "private/daily/secret.md")"
+    cd "$repo"
+    run bash "${PROJECT_ROOT}/scripts/hooks/pre-push" \
+        upstream "git@github.com:someone/knowledge-management.git" \
+        <<< "refs/heads/main ${sha} refs/heads/main ${ZERO}"
     assert_failure
-    assert_output --partial "gh CLI not found"
+    assert_output --partial "private/daily/secret.md"
 }
 
-@test "pre-push hook: blocks when gh API is unresponsive" {
+@test "pre-push guard: tool repo blocks even if gh would call it private" {
     _setup_fake_gh
-    _install_hook_in_temp_vault
-    FAKE_GH_API_FAIL=1 \
-        run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" \
-            "origin" "git@github.com:alice/vault.git" \
-            <<< ""
+    local repo="${TEST_TEMP_DIR}/r" sha
+    sha="$(_make_commit "$repo" "public/inbox/leak.md")"
+    cd "$repo"
+    FAKE_GH_PRIVATE=true run bash "${PROJECT_ROOT}/scripts/hooks/pre-push" \
+        upstream "git@github.com:someone/knowledge-management.git" \
+        <<< "refs/heads/main ${sha} refs/heads/main ${ZERO}"
     assert_failure
-    assert_output --partial "Could not verify"
+    assert_output --partial "public/inbox/leak.md"
+}
+
+@test "pre-push guard: allows a tooling-only push to the tool repo" {
+    local repo="${TEST_TEMP_DIR}/r" sha
+    sha="$(_make_commit "$repo" "bin/feature" "docs/guide.md" "public/inbox/templates/t.md")"
+    cd "$repo"
+    run bash "${PROJECT_ROOT}/scripts/hooks/pre-push" \
+        upstream "git@github.com:someone/knowledge-management.git" \
+        <<< "refs/heads/main ${sha} refs/heads/main ${ZERO}"
+    assert_success
+}
+
+@test "pre-push guard: allows vault content to your own private vault repo" {
+    _setup_fake_gh
+    local repo="${TEST_TEMP_DIR}/r" sha
+    sha="$(_make_commit "$repo" "private/daily/secret.md")"
+    cd "$repo"
+    FAKE_GH_PRIVATE=true run bash "${PROJECT_ROOT}/scripts/hooks/pre-push" \
+        origin "git@github.com:someone/someone-knowledge-management.git" \
+        <<< "refs/heads/main ${sha} refs/heads/main ${ZERO}"
+    assert_success
+}
+
+@test "pre-push guard: blocks vault content to an accidentally-public vault repo" {
+    _setup_fake_gh
+    local repo="${TEST_TEMP_DIR}/r" sha
+    sha="$(_make_commit "$repo" "public/daily/2026-05-13.md")"
+    cd "$repo"
+    FAKE_GH_PRIVATE=false run bash "${PROJECT_ROOT}/scripts/hooks/pre-push" \
+        origin "git@github.com:someone/someone-knowledge-management.git" \
+        <<< "refs/heads/main ${sha} refs/heads/main ${ZERO}"
+    assert_failure
+    assert_output --partial "public/daily/2026-05-13.md"
+}
+
+@test "pre-push guard: allows a content-free push to a non-GitHub remote" {
+    local repo="${TEST_TEMP_DIR}/r" sha
+    sha="$(_make_commit "$repo" "bin/feature")"
+    cd "$repo"
+    run bash "${PROJECT_ROOT}/scripts/hooks/pre-push" \
+        origin "https://gitlab.com/someone/vault.git" \
+        <<< "refs/heads/main ${sha} refs/heads/main ${ZERO}"
+    assert_success
 }
 
 # ---------------------------------------------------------------------------

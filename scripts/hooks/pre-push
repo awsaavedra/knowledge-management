@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# pre-push privacy guard (tracked; activated via core.hooksPath by setup-km.sh).
+#
+# Refuses to push personal vault content — anything under public/ or private/
+# except inbox templates and .gitkeep — to a destination where it must not go:
+#
+#   1. The public tool repo (repository name exactly "knowledge-management").
+#      Blocked deterministically and offline via km_repo_is_public_tool, so the
+#      contribution path is a hard guarantee, not a best-effort check. A personal
+#      vault ("{handle}-knowledge-management") never matches.
+#   2. Any other public GitHub repo, via the gh visibility check, so a vault
+#      accidentally hosted on a public repo can't leak either.
+#
+# A private GitHub remote (your own vault) is unrestricted.
+# Emergency bypass: git push --no-verify  (defeats this hook; use with care).
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHECK="${HOOK_DIR}/../check-no-vault-content.sh"
+# shellcheck source=scripts/lib/privacy.sh
+source "${HOOK_DIR}/../lib/privacy.sh"
+
+remote_url="${2:-}"
+zero=0000000000000000000000000000000000000000
+
+# The destination must be free of vault content when it is the public tool repo
+# (certain, offline) or any other non-private remote (visibility check).
+destination_must_be_clean() {
+    km_repo_is_public_tool "$remote_url" && return 0
+    ! km_check_url_is_private "$remote_url"
+}
+
+destination_must_be_clean || exit 0
+
+# A pushed branch publishes its whole tip tree, so the invariant is simply:
+# the tree being pushed contains no vault content at all.
+pushed_tree_paths() {
+    local local_sha
+    while read -r _ local_sha _ _; do
+        [ -n "${local_sha:-}" ] && [ "$local_sha" != "$zero" ] || continue
+        git ls-tree -r --name-only "$local_sha" 2>/dev/null || true
+    done
+}
+
+offenders="$(pushed_tree_paths | sort -u | bash "$CHECK")" && exit 0
+
+slug="$(km_parse_github_slug "$remote_url")"
+{
+    echo "pre-push: BLOCKED — refusing to push personal vault content to ${slug:-this remote}:"
+    printf '%s\n' "$offenders" | sed 's/^/  /' | head -20
+    echo "pre-push: public/ and private/ notes & attachments must stay in your vault."
+    echo "pre-push: emergency override (use with care): git push --no-verify"
+} >&2
+exit 1

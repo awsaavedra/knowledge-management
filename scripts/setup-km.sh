@@ -614,88 +614,21 @@ install_direnv() {
     fi
 }
 
-# Install a pre-push hook into the vault's .git/hooks/ that blocks pushes of
-# personal notes to public GitHub repos. Self-contained — no dependency on the
-# project directory at hook runtime.
+# Activate the tracked pre-push privacy guard by pointing the vault's git at
+# scripts/hooks/ (which sources scripts/lib/privacy.sh). Using core.hooksPath
+# instead of copying a script into .git/hooks/ keeps a single authoritative copy
+# of the guard — version-controlled and testable like any other script.
 install_vault_privacy_hook() {
     local vault_dir="$1"
-    local hooks_dir="${vault_dir}/.git/hooks"
 
-    if [ ! -d "${hooks_dir}" ]; then
-        log_warn "Vault .git/hooks not found — skipping privacy hook install"
+    if ! git -C "${vault_dir}" rev-parse --git-dir >/dev/null 2>&1; then
+        log_warn "Vault is not a git repo — skipping privacy hook activation"
         return 0
     fi
 
-    local hook_file="${hooks_dir}/pre-push"
-
-    cat > "${hook_file}" <<'HOOK'
-#!/usr/bin/env bash
-# pre-push privacy hook — installed by setup-km.sh
-# Blocks pushes of personal notes (daily/, inbox/, archive/) to public GitHub repos.
-# To bypass (emergency): git push --no-verify  (use with extreme care)
-
-_parse_slug() {
-    local url="$1"
-    case "$url" in
-        git@github.com:*)     local s="${url#git@github.com:}";    printf '%s' "${s%.git}" ;;
-        https://github.com/*) local s="${url#https://github.com/}"; s="${s%.git}"; printf '%s' "${s%/}" ;;
-    esac
-}
-
-_is_note_path() {
-    case "$1" in
-        public/daily/*.md)   return 0 ;;
-        public/archive/*.md) return 0 ;;
-        public/inbox/*.md)
-            case "$1" in public/inbox/templates/*) return 1 ;; *) return 0 ;; esac ;;
-    esac
-    return 1
-}
-
-REMOTE_URL="$2"
-SLUG="$(_parse_slug "$REMOTE_URL")"
-[ -n "$SLUG" ] || exit 0   # Non-GitHub remote — skip check
-
-if ! command -v gh >/dev/null 2>&1; then
-    printf 'pre-push: gh CLI not found — cannot verify visibility of %s. Push blocked.\n' "$SLUG" >&2
-    printf 'pre-push: Install gh CLI and run: gh auth login\n' >&2
-    exit 1
-fi
-
-IS_PRIVATE="$(gh api "repos/$SLUG" --jq '.private' 2>/dev/null || true)"
-[ "$IS_PRIVATE" = "true" ] && exit 0   # Confirmed private — safe
-
-if [ "$IS_PRIVATE" = "false" ]; then
-    FOUND_NOTES=""
-    while read -r LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA; do
-        [ -n "$LOCAL_SHA" ] || continue
-        [ "$LOCAL_SHA" != "0000000000000000000000000000000000000000" ] || continue
-        if [ "$REMOTE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            RANGE="$LOCAL_SHA"
-        else
-            RANGE="${REMOTE_SHA}..${LOCAL_SHA}"
-        fi
-        while IFS= read -r f; do
-            _is_note_path "$f" && FOUND_NOTES="${FOUND_NOTES}  $f"$'\n'
-        done < <(git diff-tree --no-commit-id -r --name-only "$RANGE" 2>/dev/null || true)
-    done
-    if [ -n "$FOUND_NOTES" ]; then
-        printf 'pre-push: BLOCKED — personal notes would be exposed in public repo %s:\n' "$SLUG" >&2
-        printf '%s' "$FOUND_NOTES" | head -10 >&2
-        printf 'pre-push: Make %s private on GitHub, then retry.\n' "$SLUG" >&2
-        exit 1
-    fi
-    exit 0
-fi
-
-# Unverifiable (API error or not authenticated)
-printf 'pre-push: Could not verify visibility of %s. Push blocked.\n' "$SLUG" >&2
-printf 'pre-push: Run: gh auth login\n' >&2
-exit 1
-HOOK
-
-    chmod +x "${hook_file}"
-    log_info "OK: privacy pre-push hook installed at ${hook_file}"
+    chmod +x "${vault_dir}/scripts/hooks/pre-push" 2>/dev/null || true
+    git -C "${vault_dir}" config core.hooksPath scripts/hooks
+    log_info "OK: pre-push privacy guard activated (core.hooksPath=scripts/hooks)"
 }
 
 # Revoke Obsidian's network permission via the flatpak sandbox.

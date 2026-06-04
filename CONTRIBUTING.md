@@ -32,7 +32,7 @@ Tests stub `EDITOR=true` and use a temporary `OBSIDIAN_VAULT`, so they don't tou
 - If you add or rename an `okm` subcommand, update the table in `README.md`.
 - If you add a new env var, document it in the `env.sh` table in `README.md`.
 - Add or update a `.bats` test for any behavioural change. CI (`.github/workflows/test.yml`) runs the full suite on every PR.
-- Don't commit notes — `.gitignore` excludes `public/inbox/*.md` (templates excepted), `public/daily/*.md`, and `public/archive/*.md` for a reason.
+- Don't commit notes — `.gitignore` excludes vault notes under `public/` and `private/` (templates excepted), and a pre-push guard blocks any vault content from reaching the `knowledge-management` repo (see below).
 
 ## Reporting issues
 
@@ -71,4 +71,8 @@ git push contrib feature/foo
 # PR: contrib/feature/foo → upstream/main
 ```
 
-**Invariant:** vault data (`public/daily/`, `public/inbox/`, `public/archive/`) must never appear in any commit on a PR branch. `okm audit --code-only` checks this.
+**Invariant:** no vault content — anything under `public/` or `private/` except inbox templates and `.gitkeep` placeholders — may appear in any commit pushed to the `knowledge-management` repo. This covers notes *and* attachments.
+
+**How it's enforced.** A tracked pre-push hook (`scripts/hooks/pre-push`, activated by `scripts/setup-km.sh` via `core.hooksPath`) blocks any push of vault content to the `knowledge-management` repo. The rule is deterministic and offline: it keys on the destination repository *name* — `knowledge-management` is the public tool, `{handle}-knowledge-management` is your private vault. Run `okm audit --code-only` for the same check on demand. Both share one predicate, `km_path_is_vault_content` in `scripts/lib/privacy.sh`.
+
+**Caveat — guardrail, not a hard wall.** The hook protects clones that have run `setup-km.sh`, and `git push --no-verify` bypasses it. There is no server-side CI enforcement, so still eyeball your PR's file list before opening it.

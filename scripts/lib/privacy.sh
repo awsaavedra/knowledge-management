@@ -4,9 +4,10 @@
 #
 # Public API:
 #   km_parse_github_slug URL          → prints "owner/repo" or nothing
+#   km_repo_is_public_tool URL        → 0 if URL is the public tool repo (repo name = knowledge-management)
 #   km_check_url_is_private URL       → 0 if private/no-remote, 1 if public/unverifiable
 #   km_check_remote_is_private DIR    → same but reads origin URL from git repo at DIR
-#   km_is_note_path PATH              → 0 if path is a tracked personal note (not a template)
+#   km_path_is_vault_content PATH     → 0 if path is personal vault content (note/attachment, not a template)
 
 # Parse a GitHub SSH or HTTPS remote URL into "owner/repo".
 # Prints nothing if the URL is not a GitHub URL.
@@ -23,6 +24,18 @@ km_parse_github_slug() {
             printf '%s\n' "${s%/}"
             ;;
     esac
+}
+
+# Returns 0 if URL is the public tool repo — the one whose repository name is
+# exactly "knowledge-management". A personal vault is named
+# "{handle}-knowledge-management", so it never matches. Deterministic and
+# offline (no gh/network), which is what makes the contribution guard a hard
+# guarantee rather than a best-effort visibility check.
+km_repo_is_public_tool() {
+    local slug
+    slug="$(km_parse_github_slug "$1")"
+    [ -n "$slug" ] || return 1
+    [ "${slug##*/}" = "knowledge-management" ]
 }
 
 # km_check_url_is_private REMOTE_URL
@@ -84,20 +97,16 @@ km_check_remote_is_private() {
     km_check_url_is_private "$remote_url"
 }
 
-# km_is_note_path PATH
-# Returns 0 if PATH is a personal note file that should not go to a public repo.
-# Templates (inbox/templates/) and demo files are excluded.
-km_is_note_path() {
-    local path="$1"
-    case "$path" in
-        public/daily/*.md)   return 0 ;;
-        public/archive/*.md) return 0 ;;
-        public/inbox/*.md)
-            case "$path" in
-                public/inbox/templates/*) return 1 ;;
-                *) return 0 ;;
-            esac
-            ;;
+# km_path_is_vault_content PATH
+# Returns 0 if PATH is personal vault content that must never reach the public
+# tool repo: any file under public/ or private/, covering notes AND attachments.
+# Excluded (legitimately shared): inbox templates and structural .gitkeep
+# placeholders.
+km_path_is_vault_content() {
+    case "$1" in
+        */.gitkeep)               return 1 ;;
+        public/inbox/templates/*) return 1 ;;
+        public/*|private/*)       return 0 ;;
     esac
     return 1
 }

@@ -73,6 +73,42 @@ stage_file() {
     assert_success
 }
 
+# Build a throwaway "tool repo" (bin/okm + libs). --code-only scans the
+# directory okm itself lives in, so pointing it at fixture content requires
+# running a copy of okm from inside that fixture.
+_make_tool_repo() {
+    local root="${TEST_TEMP_DIR}/tool"
+    mkdir -p "$root/bin" "$root/scripts/lib"
+    cp "${PROJECT_ROOT}/bin/okm" "$root/bin/okm"
+    cp "${PROJECT_ROOT}/scripts/lib/"*.sh "$root/scripts/lib/"
+    git -C "$root" init -q -b main
+    git -C "$root" config user.email t@t.com
+    git -C "$root" config user.name T
+    printf '%s' "$root"
+}
+
+@test "audit --code-only: vault content in the tool repo is flagged" {
+    local root; root="$(_make_tool_repo)"
+    mkdir -p "$root/private/daily"
+    echo tool   > "$root/bin/feature"
+    echo secret > "$root/private/daily/secret.md"
+    git -C "$root" add -A && git -C "$root" commit -q -m init
+    OBSIDIAN_VAULT="$root" run "$root/bin/okm" audit --code-only
+    assert_failure
+    assert_output --partial "private/daily/secret.md"
+    assert_output --partial "vault-content must not be committed"
+}
+
+@test "audit --code-only: templates and tooling are NOT flagged" {
+    local root; root="$(_make_tool_repo)"
+    mkdir -p "$root/public/inbox/templates"
+    echo tool     > "$root/bin/feature"
+    echo template > "$root/public/inbox/templates/yt-template.md"
+    git -C "$root" add -A && git -C "$root" commit -q -m init
+    OBSIDIAN_VAULT="$root" run "$root/bin/okm" audit --code-only
+    assert_success
+}
+
 @test "audit: .env files are flagged" {
     stage_file ".env" "SECRET=hunter2"
     run "${OKM}" audit
