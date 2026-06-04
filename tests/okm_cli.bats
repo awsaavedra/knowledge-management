@@ -472,3 +472,39 @@ private secret payload"
     run "${OKM}" recent
     assert_success
 }
+
+# === okm yt — YouTube capture ===
+
+@test "okm yt: creates a dated note and prints its relative path" {
+    local today; today="$(date +%F)"
+    run "${OKM}" yt "https://www.youtube.com/watch?v=3k20zFlbFfE" < /dev/null
+    assert_success
+    assert_output --partial "Created: public/inbox/${today}-"
+    [ -n "$(find "${FAKE_VAULT_DIR}/public/inbox" -name "${today}-*.md")" ]
+}
+
+@test "okm yt: writes youtube frontmatter with a canonical source_url" {
+    "${OKM}" yt "https://youtu.be/3k20zFlbFfE?t=42" < /dev/null >/dev/null
+    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name '*.md' | head -1)"
+    run grep -q 'source_type: youtube' "$f"; assert_success
+    run grep -q 'video_id: "3k20zFlbFfE"' "$f"; assert_success
+    run grep -q 'source_url: "https://www.youtube.com/watch?v=3k20zFlbFfE"' "$f"; assert_success
+}
+
+@test "okm yt: rejects a non-YouTube URL" {
+    run "${OKM}" yt "https://example.com/watch?v=abcdefghijk" < /dev/null
+    assert_failure
+    assert_output --partial "Not a YouTube URL"
+}
+
+@test "okm yt: rejects a YouTube URL with no video id" {
+    run "${OKM}" yt "https://www.youtube.com/feed/subscriptions" < /dev/null
+    assert_failure
+    assert_output --partial "video ID"
+}
+
+@test "okm yt: requires a URL argument" {
+    run "${OKM}" yt < /dev/null
+    assert_failure
+    assert_output --partial "URL required"
+}

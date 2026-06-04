@@ -72,6 +72,7 @@ Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-n
 | Vim | `EDITOR=vim okm today` | Project vimrc via `bin/vim`; sources `~/.vimrc` first |
 
 - **Capture:** `okm today` (daily note) or `okm capture <text>` (timestamped)
+- **Save from a link:** `okm yt <youtube-url>` or `okm spot <spotify-url>` — writes a dated, searchable note (`public/inbox/YYYY-MM-DD-title.md`), prints its path, and opens it. With `yt-dlp`/`spotdl` installed, `okm yt` offers to pull the title + transcript; otherwise it's an offline scaffold you (or a loom agent) fill in.
 - **Search:** `okm grep <pattern>` (content) or `okm files [pattern]` (paths)
 - **Sync:** `okm sync [message]` — default commit message: `vault sync YYYY-MM-DD HH:MM:SS`
 - **Test before merge:** `bash tests/run_all.sh`
@@ -131,6 +132,7 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 | `okm new <title>` | Create slugified note in `public/inbox/` with frontmatter |
 | `okm capture [text]` | Timestamped quick-capture note |
 | `okm spot <url>` | Create note from Spotify link (episode, track, album, playlist) |
+| `okm yt <url>` | Create dated note from a YouTube link; prints its path; offers `yt-dlp` title/transcript fetch |
 | `okm open [path]` | Open a note or launch fzf picker |
 | `okm grep <pattern>` | ripgrep across all `.md` files |
 | `okm files [pattern]` | List `.md` paths, optionally filtered |
@@ -143,7 +145,7 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 | `okm obs` | Launch Obsidian GUI |
 | `okm path` | Print vault path |
 
-`okm new`, `capture`, `spot` accept `-t tag1,tag2`.
+`okm new`, `capture`, `spot`, `yt` accept `-t tag1,tag2`.
 
 **Environment variables** (set by `source env.sh`):
 
@@ -172,7 +174,7 @@ Config via `NVIM_APPNAME=km` → `~/.config/km/`. Global `~/.config/nvim` unaffe
 
 | Source | Command | Status |
 |---|---|---|
-| YouTube | `okm yt <URL>` | **Planned** |
+| YouTube | `okm yt <URL>` | Shipped (transcript fetch needs `yt-dlp`) |
 | Spotify | `okm spot <URL>` | Shipped |
 | Local audio | `okm pod <file> "Title"` | **Planned** |
 | Summarise | `okm distill <note>` (Claude / Ollama) | **Planned** |
@@ -190,7 +192,7 @@ Tools: yt-dlp, spotdl, whisperX (large-v3-turbo), ffmpeg, mpv (`s` key → scree
 | `daily-template.md` | `okm today` |
 | `note-template.md` | `okm new` |
 | `capture-template.md` | `okm capture` |
-| `yt-template.md` / `podcast-template.md` | `okm yt` / `okm pod` (planned) |
+| `yt-template.md` / `podcast-template.md` | `okm yt` (shipped) / `okm pod` (planned) |
 | `spotify-episode-template.md` / `spotify-track-template.md` | `okm spot` |
 | `todo-summary-template.md` / `weekly-template.md` | cron scripts |
 | `archive-template.md` | manual |

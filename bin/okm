@@ -41,6 +41,7 @@ Usage:
   okm capture [text] [-t tag1,tag2]
   okm today
   okm spot <spotify-url> [-t tag1,tag2]
+  okm yt <youtube-url> [-t tag1,tag2]
   okm grep <pattern>
   okm files [substring]
   okm recent
@@ -873,6 +874,144 @@ EOF
   exec "$EDITOR_CMD" "$file"
 }
 
+# Extract and validate an 11-char YouTube video ID from common URL forms
+# (watch?v=, youtu.be/, shorts|embed|live/). Prints the ID or fails.
+_youtube_id() {
+  local url="$1" id
+  id="$(printf '%s' "$url" | sed -E '
+    s#.*[?&]v=([A-Za-z0-9_-]{11}).*#\1#; t
+    s#.*youtu\.be/([A-Za-z0-9_-]{11}).*#\1#; t
+    s#.*/(shorts|embed|live)/([A-Za-z0-9_-]{11}).*#\2#; t
+    s#.*#@@#')"
+  if [[ ! "$id" =~ ^[A-Za-z0-9_-]{11}$ ]]; then
+    echo "Invalid YouTube URL: could not extract an 11-char video ID from '$url'" >&2
+    return 1
+  fi
+  printf '%s' "$id"
+}
+
+# Pull title/uploader/upload_date via yt-dlp when present. Sets the _YT_* vars.
+# Graceful no-op offline or without yt-dlp — same pattern as _spotify_fetch_metadata.
+_YT_TITLE="" _YT_AUTHOR="" _YT_DATE=""
+_yt_fetch_metadata() {
+  _YT_TITLE=""; _YT_AUTHOR=""; _YT_DATE=""
+  command -v yt-dlp >/dev/null 2>&1 || return 0
+  local meta
+  meta="$(yt-dlp --no-warnings --skip-download \
+            --print '%(title)s\t%(uploader)s\t%(upload_date)s' "$1" 2>/dev/null | head -1 || true)"
+  [ -n "$meta" ] || return 0
+  _YT_TITLE="$(printf '%s' "$meta" | cut -f1)"
+  _YT_AUTHOR="$(printf '%s' "$meta" | cut -f2)"
+  _YT_DATE="$(printf '%s' "$meta" | cut -f3)"
+}
+
+# Print a plain-text transcript (auto-captions) via yt-dlp, or nothing.
+_yt_fetch_transcript() {
+  command -v yt-dlp >/dev/null 2>&1 || return 0
+  local url="$1" tmp vtt
+  tmp="$(mktemp -d)" || return 0
+  yt-dlp --no-warnings --skip-download --write-auto-subs --write-subs \
+         --sub-langs 'en.*' --sub-format vtt -o "$tmp/sub" "$url" >/dev/null 2>&1 || true
+  vtt="$(find "$tmp" -name '*.vtt' 2>/dev/null | head -1)"
+  if [ -n "$vtt" ]; then
+    sed -E '/-->/d; /^WEBVTT/d; /^NOTE/d; /^[0-9]+$/d; s/<[^>]*>//g' "$vtt" \
+      | sed '/^[[:space:]]*$/d' | awk '!seen[$0]++'
+  fi
+  rm -rf "$tmp"
+}
+
+yt_note() {
+  ensure_dirs
+  parse_tag_flag "$@"
+  local url="${_REMAINING_ARGS[0]:-}"
+  [ -n "$url" ] || { echo "YouTube URL required" >&2; exit 1; }
+
+  case "$url" in
+    *youtube.com/*|*youtu.be/*) ;;
+    *) echo "Not a YouTube URL: $url" >&2; exit 1 ;;
+  esac
+
+  local vid; vid="$(_youtube_id "$url")" || exit 1
+
+  # You handed it a URL, so offer to pull the info down — but only when we can
+  # (yt-dlp present) and won't hang a script (interactive stdin). Declining or a
+  # missing tool leaves a clean offline scaffold.
+  local transcript=""
+  if command -v yt-dlp >/dev/null 2>&1 && [ -t 0 ]; then
+    printf 'Fetch title + transcript from YouTube now? [y/N] ' >&2
+    local reply; read -r reply
+    case "$reply" in
+      [Yy]*)
+        _yt_fetch_metadata "$url"
+        transcript="$(_yt_fetch_transcript "$url")"
+        ;;
+    esac
+  fi
+
+  local title="${_YT_TITLE}"
+  [ -n "$title" ] || title="YouTube ${vid}"
+
+  local pub_date=""
+  [ -n "$_YT_DATE" ] && pub_date="${_YT_DATE:0:4}-${_YT_DATE:4:2}-${_YT_DATE:6:2}"
+
+  local slug; slug="$(slugify "$title")" || exit 1
+  local file rel
+  file="$VAULT/$NOTES_DIR/$(date +%F)-${slug}.md"
+  rel="${file#"$VAULT"/}"
+
+  if [ ! -f "$file" ]; then
+    local safe_title safe_author tags_yaml
+    safe_title="$(yaml_escape_dq "$title")"
+    safe_author="$(yaml_escape_dq "${_YT_AUTHOR}")"
+    tags_yaml="$(_tags_yaml "source/youtube")"
+    # vid is validated [A-Za-z0-9_-]{11}; source_url is rebuilt canonically rather
+    # than echoing the raw URL, so no untrusted query string enters the heredoc.
+    cat > "$file" <<EOF
+---
+title: "${safe_title}"
+source_type: youtube
+source_url: "https://www.youtube.com/watch?v=${vid}"
+video_id: "${vid}"
+author: "${safe_author}"
+publish_date: ${pub_date}
+captured_date: $(date +%F)
+captured_via: okm-yt
+tags: ${tags_yaml}
+---
+
+# ${title}
+
+> **Disclaimer:** Educational content only. Not financial advice.
+
+## Summary
+
+<!-- short sentences, bullets over paragraphs, numbers over prose -->
+
+-
+
+## Actionable Insights
+
+-
+
+## Key Quotes
+
+> [MM:SS] "..."
+
+## Transcript
+
+EOF
+    if [ -n "$transcript" ]; then
+      printf '%s\n' "$transcript" >> "$file"
+    else
+      printf '%s\n' "<!-- okm yt fills this when yt-dlp is installed and you opt in; otherwise paste it here -->" >> "$file"
+    fi
+    echo "Created: $rel"
+  else
+    echo "Exists: $rel"
+  fi
+  exec "$EDITOR_CMD" "$file"
+}
+
 open_obsidian() {
   flatpak run md.obsidian.Obsidian >/dev/null 2>&1 &
 }
@@ -1049,6 +1188,7 @@ case "${1:-help}" in
   capture) shift; capture_note "$@" ;;
   today) shift; today_note ;;
   spot) shift; spot_note "$@" ;;
+  yt) shift; yt_note "$@" ;;
   grep) shift; grep_vault "${1:-}" ;;
   files) shift; files_vault "${1:-}" ;;
   recent) shift; recent_notes ;;
