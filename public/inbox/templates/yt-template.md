@@ -2,7 +2,7 @@
 Format Specification: yt-template
 Required frontmatter: title, source_type=youtube, source_url, author, publish_date, captured_date, captured_via, tags
 Required sections: Disclaimer, Thumbnail, Summary, Actionable Insights, Sources Cited, Follow-ups, Structured Data, Key Quotes, Screenshots (REQUIRED — capture every key visual moment so the note replaces re-watching), Timestamps, Transcript
-Producer: okm yt <URL> (planned) + mpv `s` for screenshots
+Producer: okm yt <URL> (planned) + mpv `s` for screenshots — e.g. okm yt https://www.youtube.com/watch?v=3k20zFlbFfE
 -->
 ---
 title: "Video Title Here"
