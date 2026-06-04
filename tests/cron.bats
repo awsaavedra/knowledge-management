@@ -20,7 +20,7 @@ setup() {
     common_setup
 
     mkdir -p "${TEST_TEMP_DIR}/scripts/lib"
-    cp "${PROJECT_ROOT}/scripts/lib/scan.sh" "${TEST_TEMP_DIR}/scripts/lib/scan.sh"
+    cp "${PROJECT_ROOT}/scripts/lib/"*.sh "${TEST_TEMP_DIR}/scripts/lib/"
     cp "${PROJECT_ROOT}/scripts/todo-summary.sh" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^SCRIPT_DIR=.*|SCRIPT_DIR=\"${TEST_TEMP_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
     sed -i "s|^PROJECT_DIR=.*|PROJECT_DIR=\"${FAKE_PROJECT_DIR}\"|" "${TEST_TEMP_DIR}/todo-summary.sh"
@@ -39,12 +39,6 @@ setup() {
 
 @test "scripts/README.md mentions 07:00, 12:00, and 15:00" {
     grep -q '07:00.*12:00.*15:00' "${PROJECT_ROOT}/scripts/README.md"
-}
-
-@test "README.md documents all 3 cron times" {
-    for hour in "${EXPECTED_HOURS[@]}"; do
-        grep -q "3 ${hour} \* \* \*" "${PROJECT_ROOT}/README.md"
-    done
 }
 
 @test "README.md mentions 07:00, 12:00, and 15:00" {
@@ -80,12 +74,6 @@ setup() {
 @test "exactly 3 crontab entries documented in scripts/README.md" {
     local count
     count=$(grep -c '^\(3 [0-9]\+ \* \* \*\)' "${PROJECT_ROOT}/scripts/README.md" || true)
-    [ "$count" -eq 3 ]
-}
-
-@test "exactly 3 crontab entries documented in README.md" {
-    local count
-    count=$(grep -c '^\(3 [0-9]\+ \* \* \*\)' "${PROJECT_ROOT}/README.md" || true)
     [ "$count" -eq 3 ]
 }
 

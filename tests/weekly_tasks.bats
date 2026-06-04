@@ -7,7 +7,7 @@ setup() {
     common_setup
 
     mkdir -p "${TEST_TEMP_DIR}/scripts/lib"
-    cp "${PROJECT_ROOT}/scripts/lib/scan.sh" "${TEST_TEMP_DIR}/scripts/lib/scan.sh"
+    cp "${PROJECT_ROOT}/scripts/lib/"*.sh "${TEST_TEMP_DIR}/scripts/lib/"
     cp "${PROJECT_ROOT}/scripts/weekly-tasks.sh" "${TEST_TEMP_DIR}/weekly-tasks.sh"
     sed -i "s|^SCRIPT_DIR=.*|SCRIPT_DIR=\"${TEST_TEMP_DIR}\"|" "${TEST_TEMP_DIR}/weekly-tasks.sh"
     sed -i "s|^PROJECT_DIR=.*|PROJECT_DIR=\"${FAKE_PROJECT_DIR}\"|" "${TEST_TEMP_DIR}/weekly-tasks.sh"
