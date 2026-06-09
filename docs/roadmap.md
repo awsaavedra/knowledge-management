@@ -213,6 +213,51 @@ After a wiki page is written or updated, scans the vault for pages that *should*
 
 ---
 
+## Project Structure Simplification
+
+> **Goal:** the repo root contains only what *must* live at root. `README.md` is the only markdown at root; every other doc lives under `docs/`. Tool code, vault content, and meta-config each have exactly one home.
+
+### Why the root is busy
+
+The repo plays two roles at once: it is the **tool** (`bin/`, `scripts/`, `config/`, `tests/`, `env.sh`) and the **default vault** (`public/`, `private/`, `.obsidian/`, `ORCHESTRATOR.md`, `.loom/`). Both sets of top-level entries are load-bearing for their role; the clutter comes from root-level markdown and dead wiring, not from the directories themselves.
+
+### Step 1 — Root markdown moves to `docs/` (low risk, do first)
+
+| Move | Reference updates |
+|---|---|
+| `CONTRIBUTING.md` → `docs/CONTRIBUTING.md` | `README.md` *See Also* link. GitHub auto-detects `CONTRIBUTING.md` in `docs/`, so the "Contributing guidelines" PR banner keeps working. |
+| `ORCHESTRATOR.md` → `docs/ORCHESTRATOR.md` | `constitution_path` in `.loom/loom.yaml` (vault-root-relative; vault root = repo root, so `docs/ORCHESTRATOR.md` resolves). |
+
+`README.md` and `LICENSE` stay at root (GitHub convention and license detection). After this step the only root files are `README.md`, `LICENSE`, `env.sh`, and dotfiles (`.envrc`, `.gitignore`, `.gitmodules`).
+
+### Step 2 — Repair dead wiring
+
+- `.claude/commands/*.md` symlinks all point at `../../.ai/skills/`, which no longer exists — every one is dangling. Re-point them at `../../docs/skills/` (or delete the directory if slash-command access to skills is no longer used).
+- Normalize `docs/` filename casing: `DESIGN_NOTES.md` and `PVS.md` are uppercase, the rest lowercase. Pick lowercase (`design-notes.md`, `pvs.md`) and update links in `README.md`.
+
+### Step 3 — Considered and rejected (KISS/YAGNI)
+
+| Idea | Verdict |
+|---|---|
+| Merge `bin/` into `scripts/` | **No.** `bin/` is on `$PATH` via `env.sh` (user-facing executables); `scripts/` is setup/cron/CI machinery. The split is semantic, not clutter. |
+| Umbrella `tool/` dir for `bin/` + `config/` + `scripts/` + `tests/` | **No.** Pure cosmetics for high churn: path rewrites across `env.sh`, `scripts/setup-km.sh`, `scripts/verify-km.sh`, the BATS suite, and CI. |
+| Split tool repo from vault content (`public/`, `private/`, `.obsidian/`, `.loom/`) | **Defer to v3 / PVS.** The right long-term cut — root becomes purely a tool repo, vault lives at `$OBSIDIAN_VAULT` — but the repo-as-default-vault is what makes onboarding one `git clone`. Revisit when PVS defines a portable vault root. |
+
+### Target root
+
+```
+.
+├── bin/  config/  docs/  scripts/  tests/     # tool
+├── public/  private/                           # vault (default)
+├── env.sh
+├── README.md  LICENSE
+└── .envrc  .gitignore  .gitmodules  .github/  .obsidian/  .loom/  .claude/
+```
+
+**Rule going forward:** new markdown goes in `docs/` (or `docs/skills/`), never the root. New top-level directories need a reason neither `docs/`, `scripts/`, nor the vault can serve.
+
+---
+
 ## Core Principle
 
 > Every feature must make the vault more **legible** — to both humans and agents — without making it more fragile. The vault is a shared workspace with contracts, not just a folder of files.
