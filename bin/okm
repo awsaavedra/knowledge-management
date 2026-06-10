@@ -1569,26 +1569,16 @@ port_cmd() {
   git -C "$VAULT" remote add origin "$new_url" 2>/dev/null || \
     git -C "$VAULT" remote set-url origin "$new_url"
 
-  # Install pre-push hook.
-  local git_dir hook_dir
-  git_dir="$(git -C "$VAULT" rev-parse --git-dir 2>/dev/null || echo ".git")"
-  [[ "$git_dir" = /* ]] || git_dir="$VAULT/$git_dir"
-  hook_dir="${git_dir}/hooks"
-  mkdir -p "$hook_dir"
-  cat > "$hook_dir/pre-push" <<'HOOK'
-#!/usr/bin/env bash
-# Installed by okm port. Blocks pushes to the public OSS upstream.
-REMOTE_URL="$2"
-BLOCKLIST="${KM_UPSTREAM_PATTERN:-knowledge-management}"
-if [[ "$REMOTE_URL" =~ $BLOCKLIST ]]; then
-  if [[ "${KM_ALLOW_UPSTREAM_PUSH:-0}" != "1" ]]; then
-    echo "ERROR: push to upstream OSS blocked. Remote: $REMOTE_URL" >&2
-    echo "Override: KM_ALLOW_UPSTREAM_PUSH=1 git push ..." >&2
-    exit 1
+  # Activate the tracked pre-push privacy guard. core.hooksPath keeps the one
+  # authoritative copy in scripts/hooks/ — same activation as setup-km.sh.
+  local guard_status="core.hooksPath=scripts/hooks"
+  if [ -f "$VAULT/scripts/hooks/pre-push" ]; then
+    chmod +x "$VAULT/scripts/hooks/pre-push" 2>/dev/null || true
+    git -C "$VAULT" config core.hooksPath scripts/hooks
+  else
+    guard_status="NOT ACTIVATED (scripts/hooks/pre-push missing)"
+    echo "okm port: WARNING — scripts/hooks/pre-push not found; privacy guard not activated" >&2
   fi
-fi
-HOOK
-  chmod 755 "$hook_dir/pre-push"
 
   if ! $no_push; then
     command -v gh >/dev/null 2>&1 && \
@@ -1599,7 +1589,7 @@ HOOK
   echo "okm port: done."
   echo "  origin  → git@github.com:${handle}/${new_repo}.git"
   echo "  upstream push → DISABLED"
-  echo "  pre-push hook → installed"
+  echo "  privacy guard → ${guard_status}"
 }
 
 case "${1:-help}" in

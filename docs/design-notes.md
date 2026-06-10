@@ -61,9 +61,9 @@ Structural goal: accidental pushes to upstream impossible. Two topologies under 
 
 ### Approach A — asymmetric remotes
 
-`origin` → private user repo · `upstream` → public OSS (fetch-only, push URL `DISABLED`) · pre-push hook blocklists upstream · `okm sync` refuses if `origin` matches upstream.
+`origin` → private user repo · `upstream` → public OSS (fetch-only, push URL `DISABLED`) · tracked pre-push guard (`scripts/hooks/pre-push`, activated via `core.hooksPath`) blocks vault content from leaving · `okm sync` refuses if `origin` matches upstream.
 
-**`okm port <handle> [--public] [--no-push]`:** `gh` auth + `okm audit` → create private repo → rename/disable upstream → add new origin → install hook → push.
+**`okm port <handle> [--public] [--no-push]`:** `gh` auth + `okm audit` → create private repo → rename/disable upstream → add new origin → activate guard → push.
 
 *Pro:* minimal delta from v0. *Con:* vault shares git history with app; PRs need throwaway fork.
 

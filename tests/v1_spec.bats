@@ -417,7 +417,7 @@ tags: [foo]
 # =============================================================================
 # Fork-safety: okm port <handle>
 # =============================================================================
-# Full design: README.md § Fork-safety architecture → Approach A
+# Full design: docs/design-notes.md § Fork-safety architecture → Approach A
 #
 # okm port flow:
 #   1. Preconditions: gh CLI installed + auth OK; clean working tree; okm audit passes.
@@ -425,34 +425,37 @@ tags: [foo]
 #   3. git remote rename origin upstream
 #   4. git remote set-url --push upstream DISABLED
 #   5. git remote add origin git@github.com:{handle}/{handle}-knowledge-management.git
-#   6. Install pre-push hook (see content below).
+#   6. Activate the tracked pre-push privacy guard: core.hooksPath=scripts/hooks.
+#      The guard content has one authoritative copy (scripts/hooks/pre-push);
+#      its block/allow behavior is specced in privacy.bats.
 #   7. git push -u origin main  (skipped if --no-push)
 #   8. Print topology summary.
 #
-# Pre-push hook content (.git/hooks/pre-push, mode 755):
-# -------------------------------------------------------
-#   #!/usr/bin/env bash
-#   # Installed by okm port. Blocks pushes to the public OSS upstream.
-#   REMOTE_URL="$2"
-#   BLOCKLIST="${KM_UPSTREAM_PATTERN:-knowledge-management}"
-#   if [[ "$REMOTE_URL" =~ $BLOCKLIST ]]; then
-#     if [[ "${KM_ALLOW_UPSTREAM_PUSH:-0}" != "1" ]]; then
-#       echo "ERROR: push to upstream OSS blocked. Remote: $REMOTE_URL" >&2
-#       echo "Override: KM_ALLOW_UPSTREAM_PUSH=1 git push ..." >&2
-#       exit 1
-#     fi
-#   fi
-# -------------------------------------------------------
-# okm sync uses git push with no remote arg (bin/okm:639), following @{u}
-# tracking branch — safe by construction once origin points at the private repo.
+# okm sync uses git push with no remote arg, following the @{u} tracking
+# branch — safe by construction once origin points at the private repo.
 
-@test "okm port installs pre-push hook" {
+@test "okm port activates tracked privacy guard via core.hooksPath" {
+    git -C "${FAKE_VAULT_DIR}" init -q -b main
+    git -C "${FAKE_VAULT_DIR}" config user.email "t@t"
+    git -C "${FAKE_VAULT_DIR}" config user.name "t"
+    mkdir -p "${FAKE_VAULT_DIR}/scripts/hooks"
+    cp "${PROJECT_ROOT}/scripts/hooks/pre-push" "${FAKE_VAULT_DIR}/scripts/hooks/pre-push"
+    git -C "${FAKE_VAULT_DIR}" add -A
+    git -C "${FAKE_VAULT_DIR}" commit -qm "seed"
+    run "${OKM}" port testhandle --no-push
+    assert_success
+    run git -C "${FAKE_VAULT_DIR}" config core.hooksPath
+    assert_output "scripts/hooks"
+    [ -x "${FAKE_VAULT_DIR}/scripts/hooks/pre-push" ]
+}
+
+@test "okm port warns when tracked guard is missing instead of failing" {
     git -C "${FAKE_VAULT_DIR}" init -q -b main
     git -C "${FAKE_VAULT_DIR}" config user.email "t@t"
     git -C "${FAKE_VAULT_DIR}" config user.name "t"
     run "${OKM}" port testhandle --no-push
     assert_success
-    [ -x "${FAKE_VAULT_DIR}/.git/hooks/pre-push" ]
+    assert_output --partial "privacy guard not activated"
 }
 
 @test "okm port sets upstream push URL to DISABLED" {
@@ -465,49 +468,6 @@ tags: [foo]
     local push_url
     push_url=$(git -C "${FAKE_VAULT_DIR}" remote get-url --push upstream)
     assert_output --partial "DISABLED"
-}
-
-@test "pre-push hook blocks push to upstream URL" {
-    git -C "${FAKE_VAULT_DIR}" init -q -b main
-    git -C "${FAKE_VAULT_DIR}" config user.email "t@t"
-    git -C "${FAKE_VAULT_DIR}" config user.name "t"
-    # Install hook directly
-    mkdir -p "${FAKE_VAULT_DIR}/.git/hooks"
-    cat > "${FAKE_VAULT_DIR}/.git/hooks/pre-push" <<'HOOK'
-#!/usr/bin/env bash
-REMOTE_URL="$2"
-BLOCKLIST="${KM_UPSTREAM_PATTERN:-knowledge-management}"
-if [[ "$REMOTE_URL" =~ $BLOCKLIST ]]; then
-    if [[ "${KM_ALLOW_UPSTREAM_PUSH:-0}" != "1" ]]; then
-        echo "ERROR: push to upstream OSS blocked. Remote: $REMOTE_URL" >&2
-        exit 1
-    fi
-fi
-HOOK
-    chmod 755 "${FAKE_VAULT_DIR}/.git/hooks/pre-push"
-    run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" upstream \
-        "https://github.com/user/knowledge-management.git"
-    assert_failure
-    assert_output --partial "blocked"
-}
-
-@test "pre-push hook allows override with KM_ALLOW_UPSTREAM_PUSH=1" {
-    mkdir -p "${FAKE_VAULT_DIR}/.git/hooks"
-    cat > "${FAKE_VAULT_DIR}/.git/hooks/pre-push" <<'HOOK'
-#!/usr/bin/env bash
-REMOTE_URL="$2"
-BLOCKLIST="${KM_UPSTREAM_PATTERN:-knowledge-management}"
-if [[ "$REMOTE_URL" =~ $BLOCKLIST ]]; then
-    if [[ "${KM_ALLOW_UPSTREAM_PUSH:-0}" != "1" ]]; then
-        echo "ERROR: push to upstream OSS blocked." >&2
-        exit 1
-    fi
-fi
-HOOK
-    chmod 755 "${FAKE_VAULT_DIR}/.git/hooks/pre-push"
-    KM_ALLOW_UPSTREAM_PUSH=1 run bash "${FAKE_VAULT_DIR}/.git/hooks/pre-push" \
-        upstream "https://github.com/user/knowledge-management.git"
-    assert_success
 }
 
 @test "okm port refuses if working tree is dirty" {
