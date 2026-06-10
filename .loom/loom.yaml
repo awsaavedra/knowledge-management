@@ -35,7 +35,7 @@ vault:
   wiki_dir: "public/inbox/wiki"          # synthesizer output (sub-dir of inbox zone)
   shared_dir: "public/loom-logs"         # orchestrator ledger (top-level, not inside inbox)
   ledger_path: "public/loom-logs/task_ledger.md"
-  constitution_path: "ORCHESTRATOR.md"
+  constitution_path: "docs/ORCHESTRATOR.md"
   zone_registry: ".loom/zone_registry.yaml"
   vault_mode: "direct"                   # PARA vault uses direct FS; no Obsidian CLI required
 

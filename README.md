@@ -281,4 +281,4 @@ Port slow Bash/Python utilities to Rust once patterns stabilize. **Mirror when:*
 - [`docs/PVS.md`](docs/PVS.md) — Portable Vault Specification
 - [`scripts/README.md`](scripts/README.md) — cron job docs and crontab entries
 - [`scripts/setup-km.sh`](scripts/setup-km.sh) — canonical source for versions and defaults
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributing features and fork workflow
+- [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) — contributing features and fork workflow

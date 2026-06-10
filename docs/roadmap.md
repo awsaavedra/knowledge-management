@@ -245,7 +245,7 @@ After a wiki page is written or updated, scans the vault for pages that *should*
 
 ### Why the root is busy
 
-The repo plays two roles at once: it is the **tool** (`bin/`, `scripts/`, `config/`, `tests/`, `env.sh`) and the **default vault** (`public/`, `private/`, `.obsidian/`, `ORCHESTRATOR.md`, `.loom/`). Both sets of top-level entries are load-bearing for their role; the clutter comes from root-level markdown and dead wiring, not from the directories themselves.
+The repo plays two roles at once: it is the **tool** (`bin/`, `scripts/`, `config/`, `tests/`, `env.sh`) and the **default vault** (`public/`, `private/`, `.obsidian/`, `.loom/`; constitution at `docs/ORCHESTRATOR.md`). Both sets of top-level entries are load-bearing for their role; the clutter comes from root-level markdown and dead wiring, not from the directories themselves.
 
 ### Execution protocol (for the session doing this work)
 
