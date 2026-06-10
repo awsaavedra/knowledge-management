@@ -2,8 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Disclaimer:** Content in this vault (financial, health, investment topics) is for educational purposes only. See [`docs/disclaimer.md`](docs/disclaimer.md).
-
 Open-source knowledge OS for Obsidian users who live in Vim, Neovim, and the CLI — file-native, offline-first, continuously tested. Treats notes like code: plain Markdown, local files, terminal workflows, composable CLI. AI is optional and layered on top.
 
 **Design principles:** instant startup; fresh local indexing; composable CLI (pipes, JSON, CI); non-destructive by default; no lock-in; small memorable command surface; editor/toolchain interop; local-first; lightweight; **ejectable** — every note readable with `cat`/`grep`/any CommonMark renderer, vault survives Obsidian disappearing (see [PVS](docs/pvs.md)).
@@ -88,7 +86,6 @@ Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-n
 ├── bin/okm                         # vault CLI
 ├── config/nvim/                    # NVIM_APPNAME=km → ~/.config/km/
 ├── config/{lazygit,mpv,vim}/
-├── docs/ai-instructions.md         # AI assistant rules
 ├── docs/skills/                    # AI skills (argumentation, debug, research, …)
 ├── docs/pvs.md                     # Portable Vault Specification
 ├── docs/design-notes.md            # N/B code index, fork-safety design
@@ -119,7 +116,7 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 - **Fork before sharing.** Work in your fork; `okm sync` pushes to whatever `origin` points at.
 - **`private/` is local-only by default.** Excluded from git regardless of `KM_TRACK_NOTES`. Opt in with git-crypt.
 - **Secrets never tracked.** `.gitignore` excludes `.env*`, `*.pem`, `*.key`, `*.crt`, `*credentials*`, `id_rsa*`, `id_ed25519*`.
-- AI assistants don't read `private/` — see `docs/ai-instructions.md`.
+- AI assistants don't read `private/`.
 - `okm grep/tags/files/tagged/recent` skip `private/` by default (`KM_INCLUDE_PRIVATE=1` to scan).
 - Never touch user global configs (`~/.config/nvim`, `~/.zshrc`, etc.).
 - **WSL2:** setup installs a Nerd Font to Windows fonts and may update Windows Terminal. Disable: `KM_INSTALL_FONT=0`.
@@ -277,7 +274,6 @@ Port slow Bash/Python utilities to Rust once patterns stabilize. **Mirror when:*
 
 ## See Also
 
-- [`docs/ai-instructions.md`](docs/ai-instructions.md) — AI assistant rules
 - [`docs/skills/README.md`](docs/skills/README.md) — AI skills library
 - [`docs/design-notes.md`](docs/design-notes.md) — N/B code index, fork-safety design, v0 shipped detail
 - [`docs/pvs.md`](docs/pvs.md) — Portable Vault Specification
