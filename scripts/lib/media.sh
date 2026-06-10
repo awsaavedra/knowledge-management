@@ -259,8 +259,6 @@ tags: ${tags_yaml}
 
 # ${title}
 
-> **Disclaimer:** Educational content only. Not financial advice.
-
 ## Summary
 
 <!-- short sentences, bullets over paragraphs, numbers over prose -->
