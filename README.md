@@ -92,6 +92,8 @@ Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-n
 ├── docs/skills/                    # AI skills (argumentation, debug, research, …)
 ├── docs/pvs.md                     # Portable Vault Specification
 ├── docs/design-notes.md            # N/B code index, fork-safety design
+├── docs/CONTRIBUTING.md            # contributing features and fork workflow
+├── docs/ORCHESTRATOR.md            # vault constitution for loom agents
 ├── scripts/setup-km.sh             # install and configure
 ├── scripts/verify-km.sh            # post-install checks
 ├── scripts/{todo-summary,weekly-tasks}.sh   # cron scanners
@@ -263,7 +265,7 @@ git add .gitattributes && git commit -m "configure git-crypt"
 | **v2** | 🟡 in progress | Media ingest (`okm pod`, `okm distill` shipped), encryption, performance |
 | **v3** | 🔵 planned | macOS support, Portable Vault Specification (PVS) |
 
-Full item lists: [`docs/roadmap.md`](docs/roadmap.md). Project-structure simplification plan (root keeps `README.md` only; all other markdown moves to `docs/`): [`docs/roadmap.md#project-structure-simplification`](docs/roadmap.md#project-structure-simplification). v1 specs + reproduction steps: `tests/v1_spec.bats`. v0 shipped clusters and regression guard: [`docs/design-notes.md`](docs/design-notes.md). Fork-safety architecture: [`docs/design-notes.md#fork-safety-architecture`](docs/design-notes.md#fork-safety-architecture).
+Full item lists: [`docs/roadmap.md`](docs/roadmap.md). Project-structure simplification (root keeps `README.md` only; all other markdown lives in `docs/`) — rationale and rejected alternatives: [`docs/roadmap.md#project-structure-simplification`](docs/roadmap.md#project-structure-simplification). v1 specs + reproduction steps: `tests/v1_spec.bats`. v0 shipped clusters and regression guard: [`docs/design-notes.md`](docs/design-notes.md). Fork-safety architecture: [`docs/design-notes.md#fork-safety-architecture`](docs/design-notes.md#fork-safety-architecture).
 
 ---
 

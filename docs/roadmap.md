@@ -241,51 +241,21 @@ After a wiki page is written or updated, scans the vault for pages that *should*
 
 ## Project Structure Simplification
 
-> **Goal:** the repo root contains only what *must* live at root. `README.md` is the only markdown at root; every other doc lives under `docs/`. Tool code, vault content, and meta-config each have exactly one home.
+> **Status:** executed 2026-06-09. The repo root contains only what *must* live at root — `README.md` is the only markdown there; every other doc lives under `docs/`. Tool code, vault content, and meta-config each have exactly one home.
 
-### Why the root is busy
+### Why the root keeps two roles
 
-The repo plays two roles at once: it is the **tool** (`bin/`, `scripts/`, `config/`, `tests/`, `env.sh`) and the **default vault** (`public/`, `private/`, `.obsidian/`, `.loom/`; constitution at `docs/ORCHESTRATOR.md`). Both sets of top-level entries are load-bearing for their role; the clutter comes from root-level markdown and dead wiring, not from the directories themselves.
+The repo plays two roles at once: it is the **tool** (`bin/`, `scripts/`, `config/`, `tests/`, `env.sh`) and the **default vault** (`public/`, `private/`, `.obsidian/`, `.loom/`; constitution at `docs/ORCHESTRATOR.md`). Both sets of top-level entries are load-bearing for their role.
 
-### Execution protocol (for the session doing this work)
+### What changed (executed 2026-06-09)
 
-1. **Load `docs/skills/software-engineering.md` first** — apply its *Documentation* rules (atomic updates: reference fixes land in the same commit as the move; reflect actual state; no historical archaeology) and its commit format `#type, what; what` with no Co-Authored-By. `docs/skills/code-review.md` is the post-step self-check.
-2. **Gate every step on the full suite:** `bash tests/run_all.sh` must stay green (528 tests as of v1.0.0+2; only environment-dependent `skip`s allowed). Run it before starting (baseline) and after each step. No test pins any path this plan touches — verified 2026-06-09: the suite asserts only on `docs/skills/transcripts.md`, `docs/skills/distill-prompt.md`, and `.envrc`, none of which move.
-3. **Link check after each step:** `grep -rn 'CONTRIBUTING\.md\|ORCHESTRATOR\.md\|DESIGN_NOTES\|PVS\.md' README.md docs/ .loom/ --include='*.md' --include='*.yaml'` — every hit must point at a file that exists.
-4. **One commit per step**, message per convention (suggested messages below).
-5. **Do not** start the v3 tool/vault split or anything in the rejected table — scope is exactly Steps 1–2.
-6. **Pushing** (only if asked): a pre-push guard blocks both remotes by default; override per its own message with `KM_ALLOW_UPSTREAM_PUSH=1 git push …`. Both remotes are private.
+- `CONTRIBUTING.md` → `docs/CONTRIBUTING.md` and `ORCHESTRATOR.md` → `docs/ORCHESTRATOR.md`; README links and `.loom/loom.yaml` `constitution_path` updated in the same commits. GitHub auto-detects `CONTRIBUTING.md` in `docs/`, so the "Contributing guidelines" PR banner keeps working. `README.md` and `LICENSE` stay at root (GitHub convention and license detection).
+- All 8 `.claude/commands/*.md` symlinks re-pointed from the removed `.ai/skills/` to `docs/skills/` — slash-command access to skills stays live. `docs/skills/` files without a symlink (`distill-prompt.md`, `transcripts.md`, `README.md`) are intentional.
+- `docs/DESIGN_NOTES.md` → `docs/design-notes.md` and `docs/PVS.md` → `docs/pvs.md`; all inbound links updated.
 
-### Step 1 — Root markdown moves to `docs/` (low risk, do first)
+Each step was gated on a green full suite (`bash tests/run_all.sh`) and a repo-wide link check; both passed throughout.
 
-Facts verified 2026-06-09: neither file contains relative markdown links of its own (CONTRIBUTING.md's `bash scripts/...` snippets are run-from-repo-root instructions, still correct after the move). All inbound references are listed below — nothing else in the repo, tests, or scripts points at these files.
-
-| Move (use `git mv`) | Inbound references to update (complete list) |
-|---|---|
-| `CONTRIBUTING.md` → `docs/CONTRIBUTING.md` | `README.md` *See Also*: `[\`CONTRIBUTING.md\`](CONTRIBUTING.md)` → `[\`docs/CONTRIBUTING.md\`](docs/CONTRIBUTING.md)`. GitHub auto-detects `CONTRIBUTING.md` in `docs/`, so the "Contributing guidelines" PR banner keeps working. |
-| `ORCHESTRATOR.md` → `docs/ORCHESTRATOR.md` | `.loom/loom.yaml` → `constitution_path: "ORCHESTRATOR.md"` → `"docs/ORCHESTRATOR.md"` (path is vault-root-relative; vault root = repo root, so it resolves). Also the prose mention of `ORCHESTRATOR.md` in *Why the root is busy* above. |
-
-`README.md` and `LICENSE` stay at root (GitHub convention and license detection). After this step the only root files are `README.md`, `LICENSE`, `env.sh`, and dotfiles (`.envrc`, `.gitignore`, `.gitmodules`).
-
-Suggested commit: `#refactor, root markdown → docs/ — CONTRIBUTING.md + ORCHESTRATOR.md moved; README link + loom constitution_path updated; suite green`
-
-### Step 2 — Repair dead wiring
-
-- **Re-point `.claude/commands/*.md` symlinks.** All 8 (`argumentation`, `code-review`, `debug`, `delegation`, `diagnostic`, `research`, `security`, `software-engineering`) dangle at `../../.ai/skills/` (directory no longer exists; real files live in `docs/skills/`). Re-point rather than delete — slash-command access to skills is in active use. Mechanical fix from repo root:
-
-  ```bash
-  for f in .claude/commands/*.md; do
-    ln -sfn "../../docs/skills/$(basename "$f")" "$f"
-  done
-  ```
-
-  Verify: `find .claude/commands -xtype l` prints nothing (no dangling links remain). Note `docs/skills/` has more files than `.claude/commands/` (`distill-prompt.md`, `transcripts.md`, `README.md` have no symlink) — that is fine; only repair the 8 that exist.
-
-- **Normalize `docs/` filename casing:** `git mv docs/DESIGN_NOTES.md docs/design-notes.md` and `git mv docs/PVS.md docs/pvs.md`. Inbound references (complete list, verified 2026-06-09): `README.md` — 6 hits (`PVS` link in *Design principles*, two lines in the *Architecture* tree diagram, two `DESIGN_NOTES` links in the *Roadmap* paragraph, both files in *See Also*) — and `docs/roadmap.md` — 1 hit (`docs/PVS.md` in the v3 Version Map entry). `docs/skills/README.md` links only `../ai-instructions.md`, already lowercase.
-
-Suggested commit: `#fix, dead wiring — .claude/commands symlinks re-pointed at docs/skills/; DESIGN_NOTES.md + PVS.md → lowercase; all inbound links updated; suite green`
-
-### Step 3 — Considered and rejected (KISS/YAGNI)
+### Considered and rejected (KISS/YAGNI)
 
 | Idea | Verdict |
 |---|---|
@@ -293,7 +263,7 @@ Suggested commit: `#fix, dead wiring — .claude/commands symlinks re-pointed at
 | Umbrella `tool/` dir for `bin/` + `config/` + `scripts/` + `tests/` | **No.** Pure cosmetics for high churn: path rewrites across `env.sh`, `scripts/setup-km.sh`, `scripts/verify-km.sh`, the BATS suite, and CI. |
 | Split tool repo from vault content (`public/`, `private/`, `.obsidian/`, `.loom/`) | **Defer to v3 / PVS.** The right long-term cut — root becomes purely a tool repo, vault lives at `$OBSIDIAN_VAULT` — but the repo-as-default-vault is what makes onboarding one `git clone`. Revisit when PVS defines a portable vault root. |
 
-### Target root
+### Root layout
 
 ```
 .
