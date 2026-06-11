@@ -31,7 +31,7 @@ Tests stub `EDITOR=true` and use a temporary `OBSIDIAN_VAULT`, so they don't tou
 - Keep changes scoped — one logical change per PR.
 - If you add or rename an `okm` subcommand, update the table in `README.md`.
 - If you add a new env var, document it in the `env.sh` table in `README.md`.
-- Add or update a `.bats` test for any behavioural change. CI (`.github/workflows/test.yml`) runs the full suite on every PR.
+- Add or update a `.bats` test for any behavioural change. CI (`.github/workflows/test.yml`) is temporarily manual-dispatch only — run `bash tests/run_all.sh` locally before opening a PR.
 - Don't commit notes — `.gitignore` excludes vault notes under `public/` and `private/` (templates excepted), and a pre-push guard blocks any vault content from reaching the `knowledge-management` repo (see below).
 
 ## Reporting issues
