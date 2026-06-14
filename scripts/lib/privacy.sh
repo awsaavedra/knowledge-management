@@ -38,6 +38,19 @@ km_repo_is_public_tool() {
     [ "${slug##*/}" = "knowledge-management" ]
 }
 
+# Returns 0 if URL is a personal vault fork — repo name ends in
+# "-knowledge-management" (i.e. "{handle}-knowledge-management").
+# Deterministic and offline; no gh check needed since the naming convention
+# is the gate. The public tool repo ("knowledge-management") never matches
+# because it has no leading "{handle}-" prefix.
+km_repo_is_personal_vault() {
+    local slug
+    slug="$(km_parse_github_slug "$1")"
+    [ -n "$slug" ] || return 1
+    local repo="${slug##*/}"
+    [[ "$repo" == *-knowledge-management ]]
+}
+
 # km_check_url_is_private REMOTE_URL
 # Returns:
 #   0 — URL is empty (local-only), or the GitHub repo is confirmed private

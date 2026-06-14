@@ -25,8 +25,11 @@ zero=0000000000000000000000000000000000000000
 
 # The destination must be free of vault content when it is the public tool repo
 # (certain, offline) or any other non-private remote (visibility check).
+# Personal vault forks ({handle}-knowledge-management) are always allowed —
+# that naming convention is the deterministic offline gate; no gh check needed.
 destination_must_be_clean() {
     km_repo_is_public_tool "$remote_url" && return 0
+    km_repo_is_personal_vault "$remote_url" && return 1
     ! km_check_url_is_private "$remote_url"
 }
 
