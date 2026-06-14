@@ -179,7 +179,7 @@ _yt_fetch_metadata() {
   raw="$(yt-dlp --no-warnings --skip-download --dump-json "$1" 2>/dev/null | head -1 || true)"
   [ -n "$raw" ] || return 0
   local parsed
-  parsed="$(printf '%s' "$raw" | python3 -c '
+  parsed="$(printf '%s' "$raw" | _python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 print(d.get("title", ""), d.get("uploader", ""), d.get("upload_date", ""), sep="\n")
@@ -190,12 +190,23 @@ print(d.get("title", ""), d.get("uploader", ""), d.get("upload_date", ""), sep="
   _YT_DATE="$(printf '%s'  "$parsed" | sed -n '3p')"
 }
 
+# Resolve the python3 interpreter: prefer the project venv so youtube_transcript_api
+# is found even when env.sh hasn't been sourced in the calling shell.
+_python3() {
+  local venv_py="${OKM_SCRIPT_DIR}/venv/bin/python3"
+  if [ -x "$venv_py" ]; then
+    "$venv_py" "$@"
+  else
+    python3 "$@"
+  fi
+}
+
 # Print a timestamped transcript via youtube_transcript_api, or nothing.
 # Output format: [MM:SS] text  (or [HH:MM:SS] for videos over an hour)
 # Tries English first, then any available language.
 _yt_fetch_transcript() {
   local vid="$1"
-  python3 - "$vid" 2>/dev/null <<'PYEOF'
+  _python3 - "$vid" 2>/dev/null <<'PYEOF'
 import sys
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 
@@ -242,7 +253,7 @@ yt_note() {
   fi
   # Fetch transcript via youtube_transcript_api (independent of yt-dlp).
   local transcript=""
-  if python3 -c "import youtube_transcript_api" 2>/dev/null; then
+  if _python3 -c "import youtube_transcript_api" 2>/dev/null; then
     transcript="$(_yt_fetch_transcript "$vid")" || true
   fi
 
