@@ -19,7 +19,7 @@ Notable changes to the knowledge-management tool. Format loosely follows
 - Neovim is now **opt-in**: `setup-km.sh` only downloads the nvim binary, links its config, and bootstraps plugins when `nvim` is chosen. `verify-km.sh` skips the nvim checks for vim users. vim is the lightweight default.
 - Media ingest (`spot`, `yt`, `pod`, `distill`) extracted from `bin/okm` into `scripts/lib/media.sh`.
 - Pre-push privacy guard now has a single tracked home — `scripts/hooks/pre-push`, activated via `core.hooksPath` by `okm port` — replacing the previous generated hook.
-- Project structure simplified: root keeps `README.md` only; all other markdown lives under `docs/` (`CONTRIBUTING.md`, `ORCHESTRATOR.md`, `design-notes.md`, `pvs.md`).
+- Project structure simplified: root keeps `README.md` only; all other markdown lives under `docs/` (`CONTRIBUTING.md`, `ORCHESTRATOR.md`, `design.md`, `pvs.md`).
 
 ## v1.0.0 — 2026-06-09
 
@@ -32,7 +32,7 @@ Theme: fork-safety, edge-case bugs, tagging gaps. Specs and reproduction steps: 
 - `okm rename-tag <old> <new>` — closes the tagging gap set, alongside exact-match `okm tagged`.
 
 ### Fixed
-- Edge-case hardening across path safety (vault boundary via `realpath`), YAML escaping, and frontmatter handling — itemized as N/B codes in [`design-notes.md`](design-notes.md).
+- Edge-case hardening across path safety (vault boundary via `realpath`), YAML escaping, and frontmatter handling — itemized as N/B codes in [`design.md`](design.md).
 
 ## v0 — 2026-03 through 2026-06 (untagged)
 

@@ -253,7 +253,7 @@ The repo plays two roles at once: it is the **tool** (`bin/`, `scripts/`, `confi
 
 - `CONTRIBUTING.md` → `docs/CONTRIBUTING.md` and `ORCHESTRATOR.md` → `docs/ORCHESTRATOR.md`; README links and `.loom/loom.yaml` `constitution_path` updated in the same commits. GitHub auto-detects `CONTRIBUTING.md` in `docs/`, so the "Contributing guidelines" PR banner keeps working. `README.md` and `LICENSE` stay at root (GitHub convention and license detection).
 - All 8 `.claude/commands/*.md` symlinks re-pointed from the removed `.ai/skills/` to `docs/skills/` — slash-command access to skills stays live. `docs/skills/` files without a symlink (`distill-prompt.md`, `transcripts.md`, `README.md`) are intentional.
-- `docs/DESIGN_NOTES.md` → `docs/design-notes.md` and `docs/PVS.md` → `docs/pvs.md`; all inbound links updated.
+- `docs/DESIGN_NOTES.md` → `docs/design-notes.md` → `docs/design.md` and `docs/PVS.md` → `docs/pvs.md`; all inbound links updated.
 
 Each step was gated on a green full suite (`bash tests/run_all.sh`) and a repo-wide link check; both passed throughout.
 

@@ -91,7 +91,7 @@ Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-n
 ├── config/{lazygit,mpv,vim}/
 ├── docs/skills/                    # AI skills (argumentation, debug, research, …)
 ├── docs/pvs.md                     # Portable Vault Specification
-├── docs/design-notes.md            # N/B code index, fork-safety design
+├── docs/design.md                  # N/B code index, fork-safety design, design principles
 ├── docs/CONTRIBUTING.md            # contributing features and fork workflow
 ├── docs/ORCHESTRATOR.md            # vault constitution for loom agents
 ├── scripts/setup-km.sh             # install and configure
@@ -268,7 +268,7 @@ git add .gitattributes && git commit -m "configure git-crypt"
 | **v2** | 🟡 in progress | Media ingest (`okm pod`, `okm distill` shipped), trust infrastructure |
 | **v3** | 🔵 planned | Rust mirrors of v2 features, encryption key workflow, push-safety (destination-aware notes, server-side vault guard), macOS support, Portable Vault Specification (PVS) |
 
-Full item lists: [`docs/roadmap.md`](docs/roadmap.md). Project-structure simplification (root keeps `README.md` only; all other markdown lives in `docs/`) — rationale and rejected alternatives: [`docs/roadmap.md#project-structure-simplification`](docs/roadmap.md#project-structure-simplification). v1 specs + reproduction steps: `tests/v1_spec.bats`. v0 shipped clusters and regression guard: [`docs/design-notes.md`](docs/design-notes.md). Fork-safety architecture: [`docs/design-notes.md#fork-safety-architecture`](docs/design-notes.md#fork-safety-architecture).
+Full item lists: [`docs/roadmap.md`](docs/roadmap.md). Project-structure simplification (root keeps `README.md` only; all other markdown lives in `docs/`) — rationale and rejected alternatives: [`docs/roadmap.md#project-structure-simplification`](docs/roadmap.md#project-structure-simplification). v1 specs + reproduction steps: `tests/v1_spec.bats`. v0 shipped clusters and regression guard: [`docs/design.md`](docs/design.md). Fork-safety architecture: [`docs/design.md#fork-safety-architecture`](docs/design.md#fork-safety-architecture).
 
 ---
 
@@ -283,7 +283,7 @@ Port slow Bash/Python utilities to Rust once patterns stabilize. **Mirror when:*
 - [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — release notes per version
 - [`docs/SECURITY.md`](docs/SECURITY.md) — privacy model and vulnerability reporting
 - [`docs/skills/README.md`](docs/skills/README.md) — AI skills library
-- [`docs/design-notes.md`](docs/design-notes.md) — N/B code index, fork-safety design, v0 shipped detail
+- [`docs/design.md`](docs/design.md) — N/B code index, fork-safety design, design principles, v0 shipped detail
 - [`docs/pvs.md`](docs/pvs.md) — Portable Vault Specification
 - [`scripts/README.md`](scripts/README.md) — cron job docs and crontab entries
 - [`tools/README.md`](tools/README.md) — MCP servers and vault tools (charter + candidates)
