@@ -55,6 +55,19 @@ Each entry records the decision and why it exists, so the code comments stay ter
 
 ---
 
+## Core design principle: friction over prohibition
+
+Safety mechanisms in this project are **speed bumps, not walls**. The goal is to make bad practice inconvenient enough that it doesn't happen by accident, while preserving the user's ability to make deliberate, informed decisions.
+
+Concretely:
+- Defaults are safe (private remotes, gitignored notes, `gh` visibility check before push).
+- Every guard has an explicit override (`--no-verify`, `KM_FORCE_SYNC=1`, `KM_ALLOW_UPSTREAM_PUSH=1`).
+- The override is intentionally awkward — it requires a conscious extra step, not just a confirmation prompt.
+
+The user is always the final authority. One-off exceptions and deliberate bad practice are allowed; the system just ensures they require effort proportional to the risk.
+
+---
+
 ## Fork-safety architecture (v1)
 
 Structural goal: accidental pushes to upstream impossible. Two topologies under evaluation.
