@@ -136,7 +136,7 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 
 | Subcommand | What it does |
 |---|---|
-| `okm today` | Open/create this week's note (`YYYY-MM-DD-weekly.md`, Mon–Sun) |
+| `okm today` | Open/create this week's note (`YYYY-MM-DD-weekly.md`, Mon–Sun); unfinished `- [ ]` tasks roll forward from the previous week's note |
 | `okm new <title>` | Create slugified note in `public/inbox/` with frontmatter |
 | `okm capture [text]` | Timestamped quick-capture note |
 | `okm spot <url>` | Create note from Spotify link (episode, track, album, playlist) |

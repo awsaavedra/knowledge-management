@@ -639,6 +639,34 @@ EOF
   exec "$EDITOR_CMD" "$file"
 }
 
+# Pull unfinished tasks from the most recent prior weekly note so they roll
+# into the new week — same idea as the weekly-tasks.sh cron carry-forward, but
+# for the simple "## Tasks" list in okm today's weekly note. Emits one
+# "- [ ] item" line per unchecked, non-empty task; checked items (- [x]) and the
+# empty "- [ ]" placeholder are left behind. Searches within $DAILY_DIR, so the
+# public and private sides each carry forward independently.
+_carry_forward_tasks() {
+  local cur_week_start="$1" dir="$VAULT/$DAILY_DIR" prev
+  # Newest weekly note strictly before this week (ISO date prefix sorts chronologically).
+  prev="$(
+    find "$dir" -maxdepth 1 -name '*-weekly.md' 2>/dev/null \
+      | sed 's#.*/##' \
+      | sort \
+      | awk -v cur="${cur_week_start}-weekly.md" '$0 < cur' \
+      | tail -1
+  )"
+  [ -n "$prev" ] || return 0
+  awk '
+    /^## Tasks[[:space:]]*$/ { intasks=1; next }
+    /^## /                   { intasks=0 }
+    intasks && /^- \[ \]/ {
+      rest = $0
+      sub(/^- \[ \][[:space:]]*/, "", rest)
+      if (rest != "") print "- [ ] " rest
+    }
+  ' "$dir/$prev"
+}
+
 # Opens the current week's note (Mon–Sun), named <week-start>-weekly.md.
 # "today" is kept as the command name; it resolves to the week containing today.
 today_note() {
@@ -651,7 +679,11 @@ today_note() {
   week_end="$(_date_add "$today" "+$((7 - dow))")"
   file="$VAULT/$DAILY_DIR/${week_start}-weekly.md"
   local tags_yaml; tags_yaml="$(_tags_yaml "weekly")"
-  [ -f "$file" ] || cat > "$file" <<EOF
+  if [ ! -f "$file" ]; then
+    # Roll unfinished tasks from the previous week's note into this one.
+    local carried; carried="$(_carry_forward_tasks "$week_start")"
+    [ -n "$carried" ] && carried="${carried}"$'\n'
+    cat > "$file" <<EOF
 ---
 week_start: $week_start
 week_end: $week_end
@@ -667,11 +699,12 @@ tags: ${tags_yaml}
 
 ## Tasks
 
-- [ ]
+${carried}- [ ]
 
 ## Reflection
 
 EOF
+  fi
   exec "$EDITOR_CMD" "$file"
 }
 

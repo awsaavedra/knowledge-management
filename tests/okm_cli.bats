@@ -133,6 +133,33 @@ setup() {
     [ -d "${FAKE_VAULT_DIR}/public/inbox" ]
 }
 
+@test "okm today carries unfinished tasks forward from the previous week" {
+    local dow week_start prev_week
+    dow="$(date +%u)"
+    week_start="$(date -d "-$((dow - 1)) days" +%F)"
+    prev_week="$(date -d "${week_start} -7 days" +%F)"
+    cat > "${FAKE_VAULT_DIR}/public/daily/${prev_week}-weekly.md" <<EOF
+---
+week_start: ${prev_week}
+---
+# Week of ${prev_week}
+
+## Tasks
+
+- [ ] carry me over
+- [x] leave me behind
+- [ ]
+
+## Reflection
+EOF
+    run "${OKM}" today
+    local file="${FAKE_VAULT_DIR}/public/daily/${week_start}-weekly.md"
+    [ -f "$file" ]
+    # Unchecked item rolls into the new week; checked item and empty placeholder do not.
+    grep -q '^- \[ \] carry me over' "$file"
+    ! grep -q 'leave me behind' "$file"
+}
+
 # === okm files ===
 
 @test "okm files lists .md files" {
