@@ -1082,7 +1082,7 @@ crypt_cmd() {
   case "$sub" in
     init)
       command -v git-crypt >/dev/null 2>&1 || {
-        echo "git-crypt is not installed. Install it with: sudo apt install git-crypt" >&2
+        echo "git-crypt is not installed. Install it with: $(_pkg_install_hint git-crypt)" >&2
         exit 1
       }
       git -C "$VAULT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {

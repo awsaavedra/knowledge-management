@@ -12,7 +12,7 @@ Open-source knowledge OS for Obsidian users who live in Vim, Neovim, and the CLI
 
 | Tool | Role | Installed by |
 |---|---|---|
-| Obsidian | GUI vault viewer, graph view | Flatpak (network revoked) |
+| Obsidian | GUI vault viewer, graph view | Flatpak (network revoked; Linux only) |
 | Vim | Default terminal editor | apt; project vimrc via `bin/vim` |
 | Neovim + obsidian.nvim | Optional editor + vault integration | **opt-in at setup** → `bin/nvim` + lazy.nvim |
 | lazygit | TUI git client | `bin/lazygit` via GitHub release |
@@ -21,13 +21,18 @@ Open-source knowledge OS for Obsidian users who live in Vim, Neovim, and the CLI
 | ffmpeg / mpv | Audio/video processing | apt |
 | ripgrep / fzf | Search and fuzzy picking | apt |
 
-**Platform:** Debian/Ubuntu (apt + Flatpak), x86_64/arm64. macOS and other distros not yet supported.
+**Platform:** x86_64/arm64 on:
+- **Ubuntu 24.04** (also under WSL2 on Windows) — `apt` + Flatpak
+- **Omarchy** (Arch Linux + Hyprland) — `pacman` + Flatpak
+- **macOS** — `brew` (Obsidian/Flatpak steps are skipped; install Obsidian manually)
+
+Setup auto-detects the OS and its package manager (`apt` / `pacman` / `brew`); package names are mapped per platform from a single canonical list.
 
 ---
 
 ## Setup
 
-**Prerequisites:** `bash` ≥ 4.0, `git`, `curl`, `flatpak`, `sudo` access, GitHub account. Debian/Ubuntu only.
+**Prerequisites:** `bash` ≥ 4.0, `git`, `curl`, `sudo` access, GitHub account, and a supported package manager (`apt` on Ubuntu/WSL2, `pacman` on Omarchy, `brew` on macOS). `flatpak` is installed for you on Linux.
 
 > **Fork first.** On GitHub: fork this repo, then go to your fork's **Settings → General → Repository name** and rename it to `{your-github-handle}-knowledge-management`. Clone *your fork*, not this repo, so `okm sync` pushes to your private copy.
 

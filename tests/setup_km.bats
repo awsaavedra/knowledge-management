@@ -431,3 +431,114 @@ _setup_fake_gh_handle() {
     result="$(_date_add "2026-01-31" "+1")"
     [ "$result" = "2026-02-01" ]
 }
+
+# === platform.sh — Omarchy / package-manager detection ===
+
+@test "is_omarchy true when OMARCHY_PATH is set" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    OMARCHY_PATH="/home/test/.local/share/omarchy" run is_omarchy
+    assert_success
+}
+
+@test "is_omarchy true when ~/.local/share/omarchy exists" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    mkdir -p "${HOME}/.local/share/omarchy"
+    OMARCHY_PATH="" run is_omarchy
+    assert_success
+}
+
+@test "is_omarchy false without markers" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    # HOME is the fake home (no omarchy dir); unset the inherited OMARCHY_PATH.
+    OMARCHY_PATH="" run is_omarchy
+    assert_failure
+}
+
+@test "km_pkg_manager returns pacman on Arch (no apt, has pacman)" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    # Stub the detection primitives the function relies on. Capture output and
+    # restore `command` before asserting, so bats-assert keeps the real builtin.
+    is_macos() { return 1; }
+    command() { case "$2" in apt-get) return 1 ;; pacman) return 0 ;; *) return 1 ;; esac; }
+    output="$(km_pkg_manager)"
+    unset -f command
+    [ "$output" = "pacman" ]
+}
+
+@test "km_pkg_manager prefers apt when both apt and pacman exist" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    is_macos() { return 1; }
+    command() { case "$2" in apt-get) return 0 ;; pacman) return 0 ;; *) return 1 ;; esac; }
+    output="$(km_pkg_manager)"
+    unset -f command
+    [ "$output" = "apt" ]
+}
+
+@test "km_pkg_manager returns brew on macOS" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    is_macos() { return 0; }
+    run km_pkg_manager
+    assert_output "brew"
+}
+
+@test "_pkg_install_hint uses pacman syntax on Arch" {
+    source "${PROJECT_ROOT}/scripts/lib/platform.sh"
+    km_pkg_manager() { echo pacman; }
+    run _pkg_install_hint ripgrep
+    assert_output "sudo pacman -S ripgrep"
+}
+
+# === setup-km.sh — package-name mapping (_km_pkg_name) ===
+
+@test "_km_pkg_name maps python packages for pacman" {
+    run _km_pkg_name pacman python3-venv
+    assert_output "python"
+    run _km_pkg_name pacman python3-pip
+    assert_output "python-pip"
+}
+
+@test "_km_pkg_name passes through unchanged names for pacman" {
+    run _km_pkg_name pacman ripgrep
+    assert_output "ripgrep"
+    run _km_pkg_name pacman wl-clipboard
+    assert_output "wl-clipboard"
+}
+
+@test "_km_pkg_name keeps apt names canonical" {
+    run _km_pkg_name apt python3-venv
+    assert_output "python3-venv"
+}
+
+@test "_km_pkg_name skips Linux-only and bundled packages on brew" {
+    run _km_pkg_name brew flatpak
+    assert_output ""
+    run _km_pkg_name brew xclip
+    assert_output ""
+    run _km_pkg_name brew python3-pip
+    assert_output ""
+    run _km_pkg_name brew ripgrep
+    assert_output "ripgrep"
+}
+
+# === setup-km.sh — install_system_packages dispatch ===
+
+@test "install_system_packages dispatches to pacman with mapped names" {
+    PLATFORM_PKG=pacman
+    # Stub the manager-specific installer to record what it was handed.
+    install_pacman_packages() { printf '%s\n' "$@"; }
+    run install_system_packages git python3-venv python3-pip flatpak
+    assert_line "git"
+    assert_line "python"
+    assert_line "python-pip"
+    assert_line "flatpak"
+}
+
+@test "install_system_packages drops empty-mapped packages on brew" {
+    PLATFORM_PKG=brew
+    install_brew_packages() { printf '%s\n' "$@"; }
+    run install_system_packages git flatpak xclip ripgrep
+    assert_line "git"
+    assert_line "ripgrep"
+    refute_line "flatpak"
+    refute_line "xclip"
+}

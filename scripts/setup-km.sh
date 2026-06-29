@@ -17,8 +17,14 @@ _rotate_logs() {
     local i=0
     for f in "${logs[@]}"; do
         i=$((i + 1))
-        [ "$i" -ge 5 ] && rm -f "$f"
+        if [ "$i" -ge 5 ]; then
+            rm -f "$f"
+        fi
     done
+    # Never return the exit status of the trailing test: this runs before the
+    # ERR trap is installed, so a non-zero return would exit the script silently
+    # under `set -e` (e.g. when 1–4 old logs exist and the final `-ge 5` is false).
+    return 0
 }
 _rotate_logs
 
@@ -98,7 +104,109 @@ install_apt_packages() {
     sudo apt install -y "${to_install[@]}"
 }
 
+install_pacman_packages() {
+    local packages=("$@")
+    local to_install=()
+
+    for pkg in "${packages[@]}"; do
+        if pacman -Q "${pkg}" >/dev/null 2>&1; then
+            log_info "SKIP: pacman package '${pkg}' already installed"
+        else
+            log_info "QUEUE: pacman package '${pkg}' will be installed"
+            to_install+=("${pkg}")
+        fi
+    done
+
+    if [ "${#to_install[@]}" -eq 0 ]; then
+        log_info "SKIP: all pacman packages already present"
+        return 0
+    fi
+
+    # --needed skips up-to-date packages; --noconfirm keeps setup non-interactive.
+    # We deliberately do NOT run `pacman -Sy` first: a partial refresh without a
+    # full upgrade risks breakage on Arch. If install fails on a stale mirror DB,
+    # the error tells the user to run `sudo pacman -Syu`.
+    log_info "Installing: ${to_install[*]}"
+    sudo pacman -S --needed --noconfirm "${to_install[@]}"
+}
+
+install_brew_packages() {
+    if ! command -v brew >/dev/null 2>&1; then
+        log_error "Homebrew not found — install it from https://brew.sh then re-run setup"
+        return 1
+    fi
+    local packages=("$@")
+    local to_install=()
+
+    for pkg in "${packages[@]}"; do
+        if brew list --formula "${pkg}" >/dev/null 2>&1; then
+            log_info "SKIP: brew package '${pkg}' already installed"
+        else
+            log_info "QUEUE: brew package '${pkg}' will be installed"
+            to_install+=("${pkg}")
+        fi
+    done
+
+    if [ "${#to_install[@]}" -eq 0 ]; then
+        log_info "SKIP: all brew packages already present"
+        return 0
+    fi
+
+    log_info "Installing: ${to_install[*]}"
+    brew install "${to_install[@]}"
+}
+
+# Translate a canonical (Debian/apt) package name to the name used by the active
+# package manager. Prints an empty string when the dependency is bundled or
+# unavailable there (caller skips it). Keeps the single canonical package list at
+# the call site portable across apt, pacman, and brew.
+_km_pkg_name() {
+    local mgr="$1" canonical="$2"
+    case "${mgr}" in
+        apt) printf '%s' "${canonical}" ;;
+        pacman)
+            case "${canonical}" in
+                python3-venv) printf 'python' ;;       # venv ships with Arch's python
+                python3-pip)  printf 'python-pip' ;;
+                *)            printf '%s' "${canonical}" ;;
+            esac ;;
+        brew)
+            case "${canonical}" in
+                python3-venv|python3-pip)        printf '' ;;  # bundled with brew python
+                xdg-utils|xclip|wl-clipboard|flatpak) printf '' ;;  # Linux-only on macOS
+                *)                               printf '%s' "${canonical}" ;;
+            esac ;;
+    esac
+}
+
+# Install system packages via whichever manager detect_platform selected,
+# mapping the canonical (apt) names through _km_pkg_name first.
+install_system_packages() {
+    local mgr="${PLATFORM_PKG:-$(km_pkg_manager)}"
+    local mapped=() name
+    for canonical in "$@"; do
+        name="$(_km_pkg_name "${mgr}" "${canonical}")"
+        [ -z "${name}" ] && continue
+        # De-dup: several canonical names can collapse to one (e.g. python3-venv
+        # + python3-pip → python on pacman is two distinct names, but brew maps
+        # both to empty; guard the general case anyway).
+        case " ${mapped[*]} " in *" ${name} "*) continue ;; esac
+        mapped+=("${name}")
+    done
+
+    case "${mgr}" in
+        apt)    install_apt_packages    "${mapped[@]}" ;;
+        pacman) install_pacman_packages "${mapped[@]}" ;;
+        brew)   install_brew_packages   "${mapped[@]}" ;;
+        *)      log_error "No supported package manager (apt/pacman/brew) found"; return 1 ;;
+    esac
+}
+
 ensure_flathub_remote() {
+    if ! command -v flatpak >/dev/null 2>&1; then
+        log_warn "flatpak not available — skipping Flathub remote (Obsidian install will be skipped)"
+        return 0
+    fi
     if flatpak remotes --user --columns=name 2>/dev/null | grep -qx 'flathub'; then
         log_info "SKIP: Flathub remote already configured (user installation)"
     else
@@ -108,6 +216,10 @@ ensure_flathub_remote() {
 }
 
 install_obsidian() {
+    if ! command -v flatpak >/dev/null 2>&1; then
+        log_warn "flatpak not available — skipping Obsidian install. Install Obsidian manually for your platform."
+        return 0
+    fi
     if flatpak list --user --app --columns=application 2>/dev/null | grep -qx 'md.obsidian.Obsidian'; then
         log_info "SKIP: Obsidian flatpak already installed (user installation)"
     else
@@ -326,7 +438,26 @@ detect_platform() {
         aarch64|arm64) PLATFORM_ARCH="arm64" ;;
         *)             log_error "Unsupported architecture: ${arch}"; exit 1 ;;
     esac
-    log_info "Platform: ${PLATFORM_OS}/${PLATFORM_ARCH}"
+
+    # Which system package manager drives install_system_packages. The three
+    # supported targets are macOS (brew), Ubuntu 24.04 / WSL2 (apt), and
+    # Omarchy / Arch (pacman).
+    PLATFORM_PKG="$(km_pkg_manager)"
+    if [ "${PLATFORM_PKG}" = "unknown" ]; then
+        log_error "No supported package manager found (need brew, apt, or pacman)."
+        log_error "Supported platforms: macOS, Ubuntu 24.04 (+ WSL2), Omarchy."
+        exit 1
+    fi
+
+    local distro="${PLATFORM_OS}"
+    if is_omarchy; then
+        distro="omarchy"
+    elif is_wsl2; then
+        distro="wsl2"
+    elif is_arch; then
+        distro="arch"
+    fi
+    log_info "Platform: ${distro} ${PLATFORM_OS}/${PLATFORM_ARCH} (pkg: ${PLATFORM_PKG})"
 }
 
 install_nvim() {
@@ -645,7 +776,7 @@ install_direnv() {
         if command -v direnv >/dev/null 2>&1; then
             log_info "OK: direnv installed to ${bin_dir}"
         else
-            log_error "FAIL: direnv install failed — check network or install manually: sudo apt install direnv"
+            log_error "FAIL: direnv install failed — check network or install manually: $(_pkg_install_hint direnv)"
             return 1
         fi
     fi
@@ -689,6 +820,10 @@ install_vault_privacy_hook() {
 # After this, Obsidian cannot initiate outbound connections regardless of its
 # internal settings. Explicit git push/pull (via okm sync or lazygit) is unaffected.
 ensure_obsidian_offline() {
+    if ! command -v flatpak >/dev/null 2>&1; then
+        log_warn "flatpak not available — skipping Obsidian offline enforcement"
+        return 0
+    fi
     local override_file="${HOME}/.local/share/flatpak/overrides/md.obsidian.Obsidian"
 
     if [ -f "${override_file}" ] && grep -q '!network' "${override_file}"; then
@@ -714,7 +849,8 @@ if $DRY_RUN; then
 fi
 
 log_info "==> Installing packages"
-install_apt_packages vim git ripgrep fzf xdg-utils flatpak xclip wl-clipboard curl unzip \
+# Canonical (apt) names; install_system_packages maps them to pacman/brew.
+install_system_packages vim git ripgrep fzf xdg-utils flatpak xclip wl-clipboard curl unzip \
     ffmpeg mpv python3-venv python3-pip
 
 log_info "==> Ensuring Flathub is configured"

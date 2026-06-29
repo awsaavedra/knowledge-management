@@ -78,7 +78,7 @@ else
     elif "${wlcopy_ok}"; then
         _pass "clipboard: wl-clipboard installed"
     else
-        _fail "clipboard: neither xclip nor wl-clipboard — run: sudo apt install xclip wl-clipboard"
+        _fail "clipboard: neither xclip nor wl-clipboard — run: $(_pkg_install_hint 'xclip wl-clipboard')"
     fi
 fi
 
@@ -88,7 +88,7 @@ _section "Flatpak / Obsidian"
 if command -v flatpak >/dev/null 2>&1; then
     _pass "flatpak  ($(command -v flatpak))"
 else
-    _fail "flatpak not found — run: sudo apt install flatpak"
+    _fail "flatpak not found — run: $(_pkg_install_hint flatpak)"
 fi
 
 if flatpak list --app --columns=application 2>/dev/null | grep -qx 'md.obsidian.Obsidian'; then
@@ -330,7 +330,7 @@ if command -v direnv >/dev/null 2>&1; then
         _warn "direnv: .envrc not allowed — run: direnv allow . to activate auto-loading"
     fi
 else
-    _warn "direnv not installed — run: sudo apt install direnv (or see https://direnv.net/); auto-activation will not work"
+    _warn "direnv not installed — run: $(_pkg_install_hint direnv) (or see https://direnv.net/); auto-activation will not work"
 fi
 
 # Check that env.sh did NOT modify ~/.zshrc

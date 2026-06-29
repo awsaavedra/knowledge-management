@@ -4,6 +4,25 @@
 
 ---
 
+## Supported Platforms
+
+`scripts/setup-km.sh` auto-detects the OS and its package manager (`km_pkg_manager` in `scripts/lib/platform.sh`) and maps a single canonical (apt) package list to the right names per platform. All platforms target `x86_64` / `arm64`.
+
+| Platform | Package manager | Tested | Supported since |
+|---|---|---|---|
+| Ubuntu 24.04 (native & WSL2) | `apt` + Flatpak | ✅ Tested | v0 |
+| Omarchy (Arch + Hyprland) | `pacman` + Flatpak | 🟡 Pending | v3 (added 2026-06-25) |
+| macOS | `brew` | 🟡 Pending (partial — no Mac hardware to test) | v3 (in progress) |
+
+**Legend:** ✅ Tested = setup + full suite verified on real hardware. 🟡 Pending = code path implemented and detected, end-to-end run not yet confirmed on that OS.
+
+**Per-platform notes:**
+- **Ubuntu 24.04 / WSL2** — reference platform. Under WSL2, setup also installs a Nerd Font to Windows fonts and may update Windows Terminal (disable with `KM_INSTALL_FONT=0`).
+- **Omarchy** — detected via `OMARCHY_PATH` / `~/.local/share/omarchy`. Canonical apt names are mapped to `pacman` (`_km_pkg_name`); installs run through `install_system_packages`. Pending a confirmed end-to-end setup run.
+- **macOS** — Homebrew install path (`install_brew_packages` + brew name mapping) is in place, and Obsidian/Flatpak steps self-skip when `flatpak` is absent (install Obsidian manually). Remaining before full support: BSD-vs-GNU userland differences (`sed -i`, `date`, `realpath`), `open` vs `xdg-open`/Flatpak launchers, and a native Obsidian (cask/`.dmg`) install. See the macOS bullet under [v3](#v3--planned).
+
+---
+
 ## Version Map
 
 How the phases below and the README roadmap themes land in tagged versions.
@@ -26,7 +45,8 @@ Fork-safety, edge-case bugs, tagging gaps. Specs and reproduction steps: `tests/
 - **Encryption** — *moved from v2 (2026-06-10).* `okm crypt init` (git-crypt) shipped; remaining v3 scope: document the key backup/restore workflow.
 - **Destination-aware note publishing** — `.gitignore` is destination-blind, so pushing `public/` notes to a private personal remote today needs manual `.gitignore` opt-in (`public/inbox/*.md` line) plus an authenticated `gh` for the fail-closed visibility check in `km_check_url_is_private`. v3: notes flow to the private vault remote and never to the public tool repo without manual surgery.
 - **Server-side vault-content guard** — CI check on the public `knowledge-management` repo that rejects any push/PR containing vault paths (reuse the `km_path_is_vault_content` predicate), backing the client-side pre-push hook with a hard wall. Blocked on re-enabling Actions.
-- **macOS support** — *postponed from v2 (2026-06-09): no Mac hardware to test against, and macOS behavior can't be faithfully simulated on Linux.* Scope when picked up: Homebrew package install path in `scripts/setup-km.sh` (a draft `install_brew_packages` helper was written and reverted — trivial to recreate), BSD vs GNU userland differences (`sed -i`, `date`, `realpath`), and `open` vs `xdg-open`/flatpak launchers.
+- **Omarchy support** — *added 2026-06-25.* `scripts/setup-km.sh` now auto-detects the package manager (`km_pkg_manager` in `scripts/lib/platform.sh`) and drives installs through `install_system_packages`, which maps the single canonical (apt) package list to `pacman` names. Omarchy (Arch + Hyprland) is detected via `OMARCHY_PATH` / `~/.local/share/omarchy`. Supported platforms are now macOS, Ubuntu 24.04 (+ WSL2), and Omarchy.
+- **macOS support** — *partial as of 2026-06-25; full support still postponed (no Mac hardware to test against).* The Homebrew package install path (`install_brew_packages` + brew name mapping) is now in `scripts/setup-km.sh`, and Obsidian/Flatpak steps self-skip when `flatpak` is absent. Remaining scope before macOS is fully supported: BSD vs GNU userland differences (`sed -i`, `date`, `realpath`), `open` vs `xdg-open`/flatpak launchers, and a native Obsidian (cask/`.dmg`) install instead of the manual step.
 - **Portable Vault Specification (PVS)** — see `docs/pvs.md`; includes the tool/vault repo split deferred from the structure plan below.
 - Phases 2–3 below (agent legibility, synthesis layer) slot into v3+ as design firms up.
 

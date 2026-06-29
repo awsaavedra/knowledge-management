@@ -528,6 +528,27 @@ tags: [foo]
     [ "$count" -le 5 ]
 }
 
+@test "setup-km.sh does not exit silently when 1-4 stale logs exist (rotate regression)" {
+    # Regression: _rotate_logs runs at top level BEFORE the ERR trap is installed.
+    # Its loop body `[ "$i" -ge 5 ] && rm -f "$f"` returns the test's exit status,
+    # so with 1–4 existing logs the final `-ge 5` is false → the function returns
+    # non-zero → `set -e` exited the whole script with code 1 and ZERO output,
+    # before any logging or the trap could report it. Fix: _rotate_logs ends with
+    # an explicit `return 0`. The existing rotation test above uses 10 logs, which
+    # lands in the safe window (final `-ge 5` true → rm → returns 0), so it never
+    # caught this. Guard every count in the broken window.
+    for n in 1 2 3 4; do
+        rm -f "${HOME}/.local/log/"setup-km-*.log
+        local i
+        for i in $(seq 1 "$n"); do
+            touch "${HOME}/.local/log/setup-km-200${i}-01-01.log"
+        done
+        run bash "${PROJECT_ROOT}/scripts/setup-km.sh" --dry-run
+        assert_success
+        assert_output --partial "Detecting platform"
+    done
+}
+
 # =============================================================================
 # Known papercuts from v0 audit — document here, fix in v1
 # =============================================================================
