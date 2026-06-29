@@ -48,6 +48,8 @@ Open a GitHub issue with:
 - Bash: `set -euo pipefail`, quote variables, prefer `[[ ]]` over `[ ]`. Match the style of `bin/okm` and the existing scripts.
 - Markdown: short sentences, tables for structured data, no filler.
 - No new external runtime dependencies without discussion — offline-first is a hard constraint.
+- Commit messages: `#type, clause; clause` — `type` is the intent (`add`/`fix`/`doc`/`refactor`/`stabilize`/`edit`), clauses are semicolon-separated. No `Co-Authored-By` trailers.
+- One commit, one concern. **Never bundle vault notes with harness changes in the same commit.** A harness change (code, tests, docs, config) and a vault note (`public/` or `private/` content) belong in separate commits, even when made in the same sitting. The pre-push hook (above) only blocks vault content at push time; this convention keeps it from being authored into a harness commit in the first place, so harness history stays cleanly portable to the public repo without history surgery.
 
 ## Contributing features from a personal fork
 
