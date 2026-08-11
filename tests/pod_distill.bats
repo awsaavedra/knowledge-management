@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# Tests for okm pod (local audio capture) and okm distill (AI summary).
-# Offline by design: whisperx / claude / ollama are stubbed on PATH or skipped.
+# Tests for okm pod (local-file capture) and okm distill (AI summary).
+# Offline by design: okm never transcribes audio; claude / ollama are stubbed.
 
 load 'helpers/test_helper'
 
@@ -21,21 +21,6 @@ setup() {
     : > "${AUDIO_FILE}"
 }
 
-# Stub whisperx: writes a fixed transcript into the --output_dir okm passes.
-stub_whisperx() {
-    cat > "${STUB_DIR}/whisperx" <<'EOF'
-#!/bin/bash
-out=""
-while [ $# -gt 0 ]; do
-    case "$1" in --output_dir) out="$2"; shift ;; esac
-    shift
-done
-echo "stub transcript line" > "${out}/audio.txt"
-EOF
-    chmod +x "${STUB_DIR}/whisperx"
-    export PATH="${STUB_DIR}:${PATH}"
-}
-
 # Stub an LLM CLI: drains stdin, emits a fixed summary.
 stub_llm() {
     printf '#!/bin/sh\ncat >/dev/null\necho "- %s stub summary"\n' "$1" > "${STUB_DIR}/$1"
@@ -49,73 +34,53 @@ make_note() {
     echo "public/inbox/source-note.md"
 }
 
-# === okm pod — local audio capture ===
+# === okm pod — local file capture (no ASR; we never transcribe audio) ===
 
-@test "okm pod: requires an audio file argument" {
+@test "okm pod: requires a link or file argument" {
     run "${OKM}" pod
     assert_failure
-    assert_output --partial "Audio file required"
+    assert_output --partial "Podcast link or file required"
 }
 
-@test "okm pod: rejects a nonexistent audio file" {
+@test "okm pod: rejects a nonexistent path that is not a link" {
+    export OKM_POD_OFFLINE=1
     run "${OKM}" pod "${BATS_TEST_TMPDIR}/missing.mp3"
     assert_failure
-    assert_output --partial "File not found"
+    assert_output --partial "Not a link or a readable file"
 }
 
-@test "okm pod: without whisper creates an offline scaffold and warns" {
-    if command -v whisperx >/dev/null 2>&1 || command -v whisper >/dev/null 2>&1; then
-        skip "whisper installed — offline scaffold path not reachable"
-    fi
+@test "okm pod: a raw audio file becomes a metadata scaffold (no transcription)" {
     local today; today="$(date +%F)"
     run "${OKM}" pod "${AUDIO_FILE}"
     assert_success
-    assert_output --partial "Created: public/inbox/${today}-morning-episode.md"
-    assert_output --partial "transcript will be empty"
-    local f="${FAKE_VAULT_DIR}/public/inbox/${today}-morning-episode.md"
-    run grep -q 'paste or run whisperX' "$f"; assert_success
-}
-
-@test "okm pod: writes local-audio frontmatter" {
-    stub_whisperx
-    local today; today="$(date +%F)"
-    "${OKM}" pod "${AUDIO_FILE}" >/dev/null
-    local f="${FAKE_VAULT_DIR}/public/inbox/${today}-morning-episode.md"
-    run grep -q 'source_type: local-audio' "$f"; assert_success
+    local f="${FAKE_VAULT_DIR}/public/inbox/podcast-MorningEpisode-${today}.md"
+    [ -f "$f" ]
+    run grep -q 'source_type: podcast' "$f"; assert_success
+    run grep -q 'source_platform: local' "$f"; assert_success
     run grep -q 'source_file: "morning-episode.mp3"' "$f"; assert_success
     run grep -q 'captured_via: okm-pod' "$f"; assert_success
     run grep -q 'source/podcast' "$f"; assert_success
+    run grep -q 'does not transcribe audio' "$f"; assert_success
 }
 
-@test "okm pod: uses an explicit title for slug and heading" {
-    stub_whisperx
+@test "okm pod: uses an explicit title for the filename and heading" {
     local today; today="$(date +%F)"
     run "${OKM}" pod "${AUDIO_FILE}" Deep Work Episode
     assert_success
-    assert_output --partial "Created: public/inbox/${today}-deep-work-episode.md"
-    local f="${FAKE_VAULT_DIR}/public/inbox/${today}-deep-work-episode.md"
+    assert_output --partial "Created: public/inbox/podcast-DeepWorkEpisode-${today}.md"
+    local f="${FAKE_VAULT_DIR}/public/inbox/podcast-DeepWorkEpisode-${today}.md"
     run grep -q '^# Deep Work Episode' "$f"; assert_success
 }
 
-@test "okm pod: embeds the whisperx transcript" {
-    stub_whisperx
-    local today; today="$(date +%F)"
-    "${OKM}" pod "${AUDIO_FILE}" >/dev/null
-    local f="${FAKE_VAULT_DIR}/public/inbox/${today}-morning-episode.md"
-    run grep -q 'stub transcript line' "$f"; assert_success
-}
-
 @test "okm pod: -t merges custom tags with source/podcast" {
-    stub_whisperx
     local today; today="$(date +%F)"
     "${OKM}" pod -t finance "${AUDIO_FILE}" >/dev/null
-    local f="${FAKE_VAULT_DIR}/public/inbox/${today}-morning-episode.md"
+    local f="${FAKE_VAULT_DIR}/public/inbox/podcast-MorningEpisode-${today}.md"
     run grep -q 'finance' "$f"; assert_success
     run grep -q 'source/podcast' "$f"; assert_success
 }
 
 @test "okm pod: second run reports existing note instead of overwriting" {
-    stub_whisperx
     "${OKM}" pod "${AUDIO_FILE}" >/dev/null
     run "${OKM}" pod "${AUDIO_FILE}"
     assert_success

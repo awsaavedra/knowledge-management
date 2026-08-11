@@ -160,6 +160,79 @@ EOF
     ! grep -q 'leave me behind' "$file"
 }
 
+@test "okm today carries tasks forward across skipped weeks" {
+    local dow week_start old_week
+    dow="$(date +%u)"
+    week_start="$(date -d "-$((dow - 1)) days" +%F)"
+    # A note three weeks back, with the intervening weeks having no note at all.
+    old_week="$(date -d "${week_start} -21 days" +%F)"
+    cat > "${FAKE_VAULT_DIR}/public/daily/${old_week}-weekly.md" <<EOF
+---
+week_start: ${old_week}
+---
+# Week of ${old_week}
+
+## Tasks
+
+- [ ] ancient unfinished task
+
+## Reflection
+EOF
+    run "${OKM}" today
+    local file="${FAKE_VAULT_DIR}/public/daily/${week_start}-weekly.md"
+    # Survives the gap even though no note exists for the weeks in between.
+    grep -q '^- \[ \] ancient unfinished task' "$file"
+}
+
+@test "okm today does not resurrect a task checked off in a later week" {
+    local dow week_start week_a week_b
+    dow="$(date +%u)"
+    week_start="$(date -d "-$((dow - 1)) days" +%F)"
+    week_a="$(date -d "${week_start} -14 days" +%F)"  # older
+    week_b="$(date -d "${week_start} -7 days" +%F)"   # newer
+    cat > "${FAKE_VAULT_DIR}/public/daily/${week_a}-weekly.md" <<EOF
+---
+week_start: ${week_a}
+---
+## Tasks
+
+- [ ] finish later
+EOF
+    cat > "${FAKE_VAULT_DIR}/public/daily/${week_b}-weekly.md" <<EOF
+---
+week_start: ${week_b}
+---
+## Tasks
+
+- [x] finish later
+EOF
+    run "${OKM}" today
+    local file="${FAKE_VAULT_DIR}/public/daily/${week_start}-weekly.md"
+    # Latest state wins: it was checked off, so it must not come back.
+    ! grep -q 'finish later' "$file"
+}
+
+@test "okm today deduplicates a task carried across many weeks" {
+    local dow week_start week_a week_b
+    dow="$(date +%u)"
+    week_start="$(date -d "-$((dow - 1)) days" +%F)"
+    week_a="$(date -d "${week_start} -14 days" +%F)"
+    week_b="$(date -d "${week_start} -7 days" +%F)"
+    for w in "$week_a" "$week_b"; do
+        cat > "${FAKE_VAULT_DIR}/public/daily/${w}-weekly.md" <<EOF
+---
+week_start: ${w}
+---
+## Tasks
+
+- [ ] recurring task
+EOF
+    done
+    run "${OKM}" today
+    local file="${FAKE_VAULT_DIR}/public/daily/${week_start}-weekly.md"
+    [ "$(grep -c '^- \[ \] recurring task' "$file")" -eq 1 ]
+}
+
 # === okm files ===
 
 @test "okm files lists .md files" {
@@ -219,85 +292,110 @@ EOF
     assert_output --partial "test commit message"
 }
 
-# === okm spot ===
+# === okm pod — podcast capture (link or file) ===
+# Hermetic: OKM_POD_FEED_FILE injects a local RSS feed (no network);
+# OKM_POD_OFFLINE=1 forces the graceful-degradation path.
 
-@test "okm spot requires a URL" {
-    run "${OKM}" spot
-    assert_failure
-    assert_output --partial "Spotify URL required"
+# Write a fixture feed (+ local VTT transcript) and echo the feed path.
+_pod_fixture_feed() {
+    local vtt="${BATS_TEST_TMPDIR}/fix.vtt"
+    cat > "$vtt" <<'VTT'
+WEBVTT
+
+00:00:01.000 --> 00:00:04.000
+Welcome to the show.
+VTT
+    local feed="${BATS_TEST_TMPDIR}/fix-feed.xml"
+    cat > "$feed" <<XML
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+<channel><title>Danielle Newnham Podcast</title>
+  <item>
+    <title>Riva Tez on Genius, Mania and The Impact of Cancel Culture</title>
+    <itunes:episode>99</itunes:episode>
+    <pubDate>Mon, 1 Jan 2024 14:59:52 +0000</pubDate>
+    <enclosure length="1" type="audio/mpeg" url="https://cdn.example.com/riva.mp3"/>
+    <podcast:transcript url="file://${vtt}" type="text/vtt"/>
+  </item>
+</channel></rss>
+XML
+    echo "$feed"
 }
 
-@test "okm spot rejects non-Spotify URLs" {
-    run "${OKM}" spot "https://youtube.com/watch?v=abc123"
+@test "okm pod requires a link or file" {
+    run "${OKM}" pod
     assert_failure
-    assert_output --partial "Not a Spotify URL"
+    assert_output --partial "Podcast link or file required"
 }
 
-@test "okm spot creates episode note with podcast template" {
-    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
+@test "okm pod rejects a bare non-link, non-file string" {
+    run "${OKM}" pod "not-a-link"
+    assert_failure
+    assert_output --partial "Not a link or a readable file"
+}
+
+@test "okm pod redirects a YouTube link to okm video" {
+    run "${OKM}" pod "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    assert_failure
+    assert_output --partial "use 'okm video"
+    run "${OKM}" pod "https://youtu.be/dQw4w9WgXcQ"
+    assert_failure
+    assert_output --partial "okm video"
+}
+
+@test "okm pod resolves an episode via the feed into a PascalCase filename" {
+    export OKM_POD_FEED_FILE="$(_pod_fixture_feed)"
+    run "${OKM}" pod "https://open.spotify.com/episode/077HR1ZC7hySodvybYdm6H?si=x"
     assert_success
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-episode-5snnwbraj8xpzcz87iasxi.md"
+    local file="${FAKE_VAULT_DIR}/public/inbox/podcast-DanielleNewnhamPodcast-RivaTezOnGeniusManiaAndTheImpactOfCancelCulture-99-2024-01-01.md"
     [ -f "$file" ]
-    grep -q "source_type: spotify-episode" "$file"
-    grep -q "source_url:" "$file"
-    grep -q "source/podcast" "$file"
-    grep -q "## Player" "$file"
-    grep -q "embed/episode" "$file"
-    grep -q "## Summary" "$file"
+    grep -q "source_type: podcast" "$file"
+    grep -q "source_platform: spotify" "$file"
+    grep -q 'show: "Danielle Newnham Podcast"' "$file"
+    grep -q "episode: 99" "$file"
+    grep -q "publish_date: 2024-01-01" "$file"
     grep -q "## Transcript" "$file"
+    grep -q "^\[00:01\] Welcome to the show." "$file"
 }
 
-@test "okm spot creates track note with music template" {
-    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6"
+@test "okm pod embeds an existing RSS transcript verbatim" {
+    export OKM_POD_FEED_FILE="$(_pod_fixture_feed)"
+    "${OKM}" pod "https://feeds.example.com/x.xml" >/dev/null
+    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'podcast-*.md' | head -1)"
+    run grep -q "Welcome to the show." "$f"; assert_success
+}
+
+@test "okm pod degrades gracefully offline (scaffold, no hard fail)" {
+    export OKM_POD_OFFLINE=1
+    run "${OKM}" pod "https://open.spotify.com/episode/077HR1ZC7hySodvybYdm6H?si=x"
     assert_success
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-track-6rqhfgbbkwnb9mlmuqdhg6.md"
-    [ -f "$file" ]
-    grep -q "source_type: spotify-track" "$file"
-    grep -q "source/music" "$file"
-    grep -q "## Player" "$file"
-    grep -q "embed/track" "$file"
-    grep -q "## Notes" "$file"
-    # Track notes should NOT have transcript section
-    ! grep -q "## Transcript" "$file"
+    assert_output --partial "Created: public/inbox/podcast-"
+    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'podcast-*.md' | head -1)"
+    run grep -q "does not transcribe audio" "$f"; assert_success
 }
 
-@test "okm spot creates album note" {
-    run "${OKM}" spot "https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3"
-    assert_success
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-album-1dfixlwupkv3kt3tnv35m3.md"
-    [ -f "$file" ]
-    grep -q "source_type: spotify-album" "$file"
-}
-
-@test "okm spot creates playlist note" {
-    run "${OKM}" spot "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
-    assert_success
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-playlist-37i9dqzf1dxcbwigoybm5m.md"
-    [ -f "$file" ]
-    grep -q "source_type: spotify-playlist" "$file"
-    grep -q "source/playlist" "$file"
-}
-
-@test "okm spot is idempotent (does not overwrite existing)" {
-    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-episode-5snnwbraj8xpzcz87iasxi.md"
-    [ -f "$file" ]
-    echo "user added content" >> "$file"
-    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
+@test "okm pod is idempotent (does not overwrite existing)" {
+    export OKM_POD_FEED_FILE="$(_pod_fixture_feed)"
+    "${OKM}" pod "https://feeds.example.com/x.xml" >/dev/null
+    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'podcast-*.md' | head -1)"
+    echo "user added content" >> "$f"
+    run "${OKM}" pod "https://feeds.example.com/x.xml"
     assert_output --partial "Exists:"
-    grep -q "user added content" "$file"
+    grep -q "user added content" "$f"
 }
 
-@test "okm spot embed URL has correct format" {
-    run "${OKM}" spot "https://open.spotify.com/episode/5sNnwbraj8xpzCZ87iASXi"
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-episode-5snnwbraj8xpzcz87iasxi.md"
-    grep -q "https://open.spotify.com/embed/episode/5sNnwbraj8xpzCZ87iASXi" "$file"
-}
-
-@test "okm spot includes Listen on Spotify link" {
-    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6"
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-track-6rqhfgbbkwnb9mlmuqdhg6.md"
-    grep -q "Listen on Spotify" "$file"
+@test "okm pod imports a local transcript file verbatim" {
+    local srt="${BATS_TEST_TMPDIR}/local.srt"
+    cat > "$srt" <<'SRT'
+1
+00:00:02,000 --> 00:00:05,000
+Local transcript line.
+SRT
+    run "${OKM}" pod "$srt" "My Local Talk"
+    assert_success
+    local file="${FAKE_VAULT_DIR}/public/inbox/podcast-MyLocalTalk-$(date +%F).md"
+    [ -f "$file" ]
+    grep -q "^\[00:02\] Local transcript line." "$file"
 }
 
 @test "okm sync with no changes says so" {
@@ -423,20 +521,6 @@ private secret payload"
     [ -f "$file" ]
 }
 
-# === N16: Spotify ID validation ===
-
-@test "N16: okm spot with truncated track URL (no ID) is rejected" {
-    run "${OKM}" spot "https://open.spotify.com/track/"
-    assert_failure
-    assert_output --partial "Invalid Spotify URL"
-}
-
-@test "N16: okm spot with bare domain URL is rejected" {
-    run "${OKM}" spot "https://open.spotify.com/"
-    assert_failure
-    assert_output --partial "Invalid Spotify URL"
-}
-
 # === N26: backslash escaping in YAML ===
 
 @test "N26: okm new escapes backslashes in YAML title" {
@@ -469,8 +553,9 @@ private secret payload"
     assert_output --partial "Invalid tag"
 }
 
-@test "N27: okm spot -t rejects invalid tags" {
-    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6" -t 'evil]'
+@test "N27: okm pod -t rejects invalid tags" {
+    export OKM_POD_OFFLINE=1
+    run "${OKM}" pod "https://open.spotify.com/episode/077HR1ZC7hySodvybYdm6H" -t 'evil]'
     assert_failure
     assert_output --partial "Invalid tag"
 }
@@ -502,37 +587,38 @@ private secret payload"
     assert_success
 }
 
-# === okm yt — YouTube capture ===
+# === okm video — video/lecture capture (link or file) ===
 
-@test "okm yt: creates a dated note and prints its relative path" {
-    run "${OKM}" yt "https://www.youtube.com/watch?v=3k20zFlbFfE" < /dev/null
+@test "okm video: creates a note and prints its relative path" {
+    run "${OKM}" video "https://www.youtube.com/watch?v=3k20zFlbFfE" < /dev/null
     assert_success
-    assert_output --partial "Created: public/inbox/"
-    [ -n "$(find "${FAKE_VAULT_DIR}/public/inbox" -name '*-*.md')" ]
+    assert_output --partial "Created: public/inbox/video-"
+    [ -n "$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'video-*.md')" ]
 }
 
-@test "okm yt: writes youtube frontmatter with a canonical source_url" {
-    "${OKM}" yt "https://youtu.be/3k20zFlbFfE?t=42" < /dev/null >/dev/null
-    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name '*.md' | head -1)"
-    run grep -q 'source_type: youtube' "$f"; assert_success
+@test "okm video: writes video frontmatter with a canonical source_url" {
+    "${OKM}" video "https://youtu.be/3k20zFlbFfE?t=42" < /dev/null >/dev/null
+    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'video-*.md' | head -1)"
+    run grep -q 'source_type: video' "$f"; assert_success
+    run grep -q 'source_platform: youtube' "$f"; assert_success
     run grep -q 'video_id: "3k20zFlbFfE"' "$f"; assert_success
     run grep -q 'source_url: "https://www.youtube.com/watch?v=3k20zFlbFfE"' "$f"; assert_success
 }
 
-@test "okm yt: rejects a non-YouTube URL" {
-    run "${OKM}" yt "https://example.com/watch?v=abcdefghijk" < /dev/null
+@test "okm video: rejects an unsupported link" {
+    run "${OKM}" video "https://example.com/watch?v=abcdefghijk" < /dev/null
     assert_failure
-    assert_output --partial "Not a YouTube URL"
+    assert_output --partial "Not a supported video link"
 }
 
-@test "okm yt: rejects a YouTube URL with no video id" {
-    run "${OKM}" yt "https://www.youtube.com/feed/subscriptions" < /dev/null
+@test "okm video: rejects a YouTube URL with no video id" {
+    run "${OKM}" video "https://www.youtube.com/feed/subscriptions" < /dev/null
     assert_failure
     assert_output --partial "video ID"
 }
 
-@test "okm yt: requires a URL argument" {
-    run "${OKM}" yt < /dev/null
+@test "okm video: requires a link or file argument" {
+    run "${OKM}" video < /dev/null
     assert_failure
-    assert_output --partial "URL required"
+    assert_output --partial "Video link or file required"
 }

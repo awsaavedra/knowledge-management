@@ -22,51 +22,32 @@ setup() {
 }
 
 # =============================================================================
-# N9: okm spot — URL escape in markdown link
+# N9: okm pod — URL escape in markdown link
 # =============================================================================
-# okm spot generates: [Listen on Spotify](${url})
-# If the Spotify URL contains ) or backtick characters the markdown link
-# syntax breaks: the ) closes the link prematurely, backtick opens a code span.
-#
-# Fix: percent-encode ) as %29 and ` as %60 in the URL before embedding,
-# or use angle-bracket form: [Listen on Spotify](<${url}>).
-# Angle-bracket form is CommonMark-compliant and handles all special chars.
+# okm pod generates: [Open episode](<${url}>)
+# The angle-bracket form is CommonMark-compliant and safely handles URLs that
+# contain ) or backtick characters, which would otherwise break the link.
 
-@test "N9: okm spot URL with ) does not break markdown link syntax" {
-    # Simulate a note already written with a URL containing )
-    # The fix must be in the template substitution in bin/okm spot handler.
-    # Verify the generated note parses as valid markdown (link has matching parens).
-    create_vault_file "public/inbox/spot-paren.md" "---
-title: Track With Paren
-tags: [source/spotify]
----
-[Listen on Spotify](https://open.spotify.com/track/abc?si=foo%29bar)"
-    # A markdown parser reading this must see one complete link, not two fragments.
-    # Acceptance: the url in the link does not contain a bare unescaped ).
-    run grep -oP '\[Listen on Spotify\]\(<?\K[^)>]+' \
-        "${FAKE_VAULT_DIR}/public/inbox/spot-paren.md"
-    refute_output --partial ")"
+@test "N9: okm pod writes the source URL in angle-bracket markdown form" {
+    export OKM_POD_OFFLINE=1
+    run "${OKM}" pod "https://open.spotify.com/episode/077HR1ZC7hySodvybYdm6H?si=a)b"
+    assert_success
+    local f; f="$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'podcast-*.md' | head -1)"
+    # Angle-bracket form keeps the whole URL (including ')') inside one link.
+    run grep -F '[Open episode](<https://open.spotify.com/episode/077HR1ZC7hySodvybYdm6H?si=a)b>)' "$f"
+    assert_success
 }
 
 # =============================================================================
-# F2: okm spot — document network requirement
+# F2: okm pod — graceful degradation when metadata can't be fetched
 # =============================================================================
-# okm spot fetches Spotify metadata over the network. v0 has no offline-mode
-# docs and no error message distinguishing "bad URL" from "no network".
-#
-# Fix: add to okm spot handler — if spotdl/network call fails, emit:
-#   "okm spot requires network access. Check connectivity or use --offline."
-# Also: update README offline mode table to list okm spot as networked.
-# (README already done. This test covers the error message.)
+# okm pod resolves episode metadata over the network. When that fails (offline
+# or the source is blocked) it must not hard-fail: it writes an offline scaffold
+# and warns on stderr so the user knows why the note is bare.
 
-@test "F2: okm spot emits network-required message on fetch failure" {
-    # Use a valid-format 22-char ID; spotdl is not in PATH so metadata fetch
-    # always fails, but okm spot succeeds with an offline scaffold + warning.
-    local fake_bin="${TEST_TEMP_DIR}/fake_bin"
-    mkdir -p "$fake_bin"
-    # INVALID = 7 chars + 15 zeros = 22-char valid-format Spotify ID
-    run env PATH="${fake_bin}:${PATH}" "${OKM}" spot \
-        "https://open.spotify.com/track/INVALID000000000000000"
+@test "F2: okm pod warns and scaffolds when metadata can't be fetched" {
+    export OKM_POD_OFFLINE=1
+    run "${OKM}" pod "https://open.spotify.com/episode/077HR1ZC7hySodvybYdm6H"
     assert_success
     assert_output --partial "network"
 }

@@ -86,8 +86,8 @@ fi
 
 # Templates must always be present
 missing_templates=()
-for tmpl in daily-template note-template capture-template yt-template \
-            spotify-episode-template spotify-track-template podcast-template \
+for tmpl in daily-template note-template capture-template video-template \
+            podcast-template \
             todo-summary-template weekly-template archive-template; do
   git ls-files --error-unmatch "public/inbox/templates/${tmpl}.md" &>/dev/null \
     || missing_templates+=("public/inbox/templates/${tmpl}.md")

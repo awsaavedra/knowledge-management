@@ -20,12 +20,16 @@ setup() {
     grep -q '^bin/lazygit$' "$GITIGNORE"
 }
 
-@test "public/inbox/*.md is ignored" {
-    grep -q 'public/inbox/\*.md' "$GITIGNORE"
+@test "public/ notes are tracked (NOT gitignored)" {
+    # This repo commits public/{inbox,daily,archive}/*.md as first-class content.
+    ! grep -qE '^public/inbox/\*\.md' "$GITIGNORE"
+    ! grep -qE '^public/daily/\*\.md' "$GITIGNORE"
+    ! grep -qE '^public/archive/\*\.md' "$GITIGNORE"
 }
 
-@test "public/inbox/templates/ directory is exempted from inbox ignore" {
-    grep -q '!public/inbox/templates/' "$GITIGNORE"
+@test "private/ notes ARE gitignored (local-only by default)" {
+    grep -q '^private/inbox/\*.md' "$GITIGNORE"
+    grep -q '^private/daily/\*.md' "$GITIGNORE"
 }
 
 @test "swap files *.swp are ignored" {

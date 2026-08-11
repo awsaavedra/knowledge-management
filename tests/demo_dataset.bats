@@ -43,10 +43,10 @@ demo_count() {
     echo "$output" | grep -q 'Usage: seed-demo.sh'
 }
 
-@test "seed-demo.sh (default) writes 11 demo-* files into the public PARA" {
+@test "seed-demo.sh (default) writes 9 demo-* files into the public PARA" {
     run bash "${FAKE_PROJECT_DIR}/scripts/seed-demo.sh"
     [ "$status" -eq 0 ]
-    [ "$(demo_count)" -eq 11 ]
+    [ "$(demo_count)" -eq 9 ]
 }
 
 @test "seed-demo.sh prints a verification checklist after seeding" {
@@ -77,18 +77,18 @@ demo_count() {
     ! grep -l '{{[A-Z_]*}}' "${FAKE_VAULT_DIR}/public/archive/"demo-*.md
 }
 
-@test "seed-demo.sh is idempotent (re-run keeps count at 11)" {
+@test "seed-demo.sh is idempotent (re-run keeps count at 9)" {
     bash "${FAKE_PROJECT_DIR}/scripts/seed-demo.sh"
     bash "${FAKE_PROJECT_DIR}/scripts/seed-demo.sh"
-    [ "$(demo_count)" -eq 11 ]
+    [ "$(demo_count)" -eq 9 ]
 }
 
 @test "seed-demo.sh --teardown removes every demo-* file" {
     bash "${FAKE_PROJECT_DIR}/scripts/seed-demo.sh"
-    [ "$(demo_count)" -eq 11 ]
+    [ "$(demo_count)" -eq 9 ]
     run bash "${FAKE_PROJECT_DIR}/scripts/seed-demo.sh" --teardown
     [ "$status" -eq 0 ]
-    echo "$output" | grep -q 'Removed 11 demo-\* files'
+    echo "$output" | grep -q 'Removed 9 demo-\* files'
     [ "$(demo_count)" -eq 0 ]
 }
 

@@ -186,14 +186,23 @@ tags: [other]
     grep -q "tags: \[capture, inbox, extra\]" "$found"
 }
 
-# === -t flag on okm spot ===
+# === -t flag on okm pod ===
 
-@test "okm spot -t adds extra tags to spotify note" {
-    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6" -t "favorite"
+@test "okm pod -t adds extra tags to the podcast note" {
+    local feed="${BATS_TEST_TMPDIR}/tag-feed.xml"
+    cat > "$feed" <<'XML'
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+<channel><title>Tag Show</title>
+  <item><title>Tag Episode</title><pubDate>Mon, 1 Jan 2024 00:00:00 +0000</pubDate></item>
+</channel></rss>
+XML
+    export OKM_POD_FEED_FILE="$feed"
+    run "${OKM}" pod "https://feeds.example.com/x.xml" -t "favorite"
     assert_success
-    local file="${FAKE_VAULT_DIR}/public/inbox/spotify-track-6rqhfgbbkwnb9mlmuqdhg6.md"
-    [ -f "$file" ]
-    grep -q "source/music, favorite" "$file"
+    local file; file="$(find "${FAKE_VAULT_DIR}/public/inbox" -name 'podcast-*.md' | head -1)"
+    [ -n "$file" ]
+    grep -q "source/podcast, favorite" "$file"
 }
 
 # === Tagging-cluster regressions (B2, B3, B4, N10, N11, N17, N21, N22, N23) ===

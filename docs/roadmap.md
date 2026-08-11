@@ -4,6 +4,20 @@
 
 ---
 
+## TODO (priority)
+
+- **Enforce the design: private repo vs public repo (`{handle}-knowledge-management`).**
+  Make note-tracking repo-identity-aware so `public/*` **and** `private/*` notes are
+  tracked/committed **only** in a personal `{handle}-knowledge-management` vault, and
+  never tracked in or pushed to the shared `knowledge-management` tool repo.
+  Push-side is already enforced by `scripts/hooks/pre-push`; the remaining work is the
+  tracking-side — an identity-aware `.gitignore` (e.g. written by `okm port`), with
+  `private/*` tracked only under git-crypt. Corollary: `public/*` and `private/*`
+  note changes must always be committed **separately** from harness/tool changes.
+  Spec: `docs/design.md` § "Note-tracking rule".
+
+---
+
 ## Supported Platforms
 
 `scripts/setup-km.sh` auto-detects the OS and its package manager (`km_pkg_manager` in `scripts/lib/platform.sh`) and maps a single canonical (apt) package list to the right names per platform. All platforms target `x86_64` / `arm64`.

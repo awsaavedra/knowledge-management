@@ -24,8 +24,7 @@ setup() {
 # --- Enriched video / podcast templates ---
 
 ENRICHED_TEMPLATES=(
-    yt-template.md
-    spotify-episode-template.md
+    video-template.md
     podcast-template.md
 )
 
@@ -49,16 +48,10 @@ ENRICHED_TEMPLATES=(
     done
 }
 
-@test "yt-template marks Screenshots as REQUIRED" {
-    local f="${PROJECT_ROOT}/public/inbox/templates/yt-template.md"
+@test "video-template marks Screenshots as REQUIRED" {
+    local f="${PROJECT_ROOT}/public/inbox/templates/video-template.md"
     grep -q 'Screenshots (REQUIRED' "$f"
     grep -q 'REQUIRED for video notes' "$f"
-}
-
-@test "spotify-episode-template marks Key Quotes as REQUIRED audio substitute" {
-    local f="${PROJECT_ROOT}/public/inbox/templates/spotify-episode-template.md"
-    grep -q 'Key Quotes (REQUIRED' "$f"
-    grep -q 'REQUIRED for audio-only sources' "$f"
 }
 
 @test "podcast-template marks Key Quotes as REQUIRED audio substitute" {

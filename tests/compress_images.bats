@@ -9,7 +9,7 @@ setup() {
     COMPRESS_SCRIPT="${PROJECT_ROOT}/scripts/compress-images.py"
     export OBSIDIAN_VAULT="${FAKE_VAULT_DIR}"
 
-    mkdir -p "${FAKE_VAULT_DIR}/attachments" "${FAKE_VAULT_DIR}/public/inbox" "${FAKE_VAULT_DIR}/public/archive"
+    mkdir -p "${FAKE_VAULT_DIR}/public/attachments" "${FAKE_VAULT_DIR}/public/inbox" "${FAKE_VAULT_DIR}/public/archive"
 }
 
 has_pillow() {
@@ -38,8 +38,8 @@ has_pillow() {
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='red')
-img.save('${FAKE_VAULT_DIR}/attachments/foo.png')
-img.save('${FAKE_VAULT_DIR}/attachments/super-foo.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/foo.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/super-foo.png')
 "
     create_vault_file "public/inbox/note.md" "Two images: ![[foo.png]] and ![[super-foo.png]] both shown."
 
@@ -62,7 +62,7 @@ img.save('${FAKE_VAULT_DIR}/attachments/super-foo.png')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='blue')
-img.save('${FAKE_VAULT_DIR}/attachments/cat.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/cat.png')
 "
     # 'cat.png' is referenced as a wikilink AND appears as a non-link substring.
     create_vault_file "public/inbox/note.md" "Pic: ![[cat.png]]. Note: the file cat.png-archive is unrelated."
@@ -82,7 +82,7 @@ img.save('${FAKE_VAULT_DIR}/attachments/cat.png')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='green')
-img.save('${FAKE_VAULT_DIR}/attachments/diagram.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/diagram.png')
 "
     create_vault_file "public/inbox/note.md" "![alt text](attachments/diagram.png)"
 
@@ -99,7 +99,7 @@ img.save('${FAKE_VAULT_DIR}/attachments/diagram.png')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='yellow')
-img.save('${FAKE_VAULT_DIR}/attachments/anno.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/anno.png')
 "
     create_vault_file "public/inbox/note.md" "Annotated: ![[anno.png|My caption]]"
 
@@ -115,14 +115,14 @@ img.save('${FAKE_VAULT_DIR}/attachments/anno.png')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='red')
-img.save('${FAKE_VAULT_DIR}/attachments/test.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/test.png')
 "
     create_vault_file "public/inbox/note.md" "Look: ![[test.png]]"
 
     python3 "${COMPRESS_SCRIPT}" --dry-run
 
-    [ -f "${FAKE_VAULT_DIR}/attachments/test.png" ]
-    ! [ -f "${FAKE_VAULT_DIR}/attachments/test.webp" ]
+    [ -f "${FAKE_VAULT_DIR}/public/attachments/test.png" ]
+    ! [ -f "${FAKE_VAULT_DIR}/public/attachments/test.webp" ]
     grep -q "test.png" "${FAKE_VAULT_DIR}/public/inbox/note.md"
 }
 
@@ -132,14 +132,14 @@ img.save('${FAKE_VAULT_DIR}/attachments/test.png')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='blue')
-img.save('${FAKE_VAULT_DIR}/attachments/photo.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/photo.png')
 "
     create_vault_file "public/inbox/note.md" "See ![[photo.png]] here"
 
     python3 "${COMPRESS_SCRIPT}"
 
-    ! [ -f "${FAKE_VAULT_DIR}/attachments/photo.png" ]
-    [ -f "${FAKE_VAULT_DIR}/attachments/photo.webp" ]
+    ! [ -f "${FAKE_VAULT_DIR}/public/attachments/photo.png" ]
+    [ -f "${FAKE_VAULT_DIR}/public/attachments/photo.webp" ]
     grep -q "photo.webp" "${FAKE_VAULT_DIR}/public/inbox/note.md"
     ! grep -q "photo.png" "${FAKE_VAULT_DIR}/public/inbox/note.md"
 }
@@ -150,13 +150,13 @@ img.save('${FAKE_VAULT_DIR}/attachments/photo.png')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='green')
-img.save('${FAKE_VAULT_DIR}/attachments/keep-me.jpg')
+img.save('${FAKE_VAULT_DIR}/public/attachments/keep-me.jpg')
 "
 
     python3 "${COMPRESS_SCRIPT}" --keep
 
-    [ -f "${FAKE_VAULT_DIR}/attachments/keep-me.jpg" ]
-    [ -f "${FAKE_VAULT_DIR}/attachments/keep-me.webp" ]
+    [ -f "${FAKE_VAULT_DIR}/public/attachments/keep-me.jpg" ]
+    [ -f "${FAKE_VAULT_DIR}/public/attachments/keep-me.webp" ]
 }
 
 @test "already-converted files are skipped" {
@@ -165,8 +165,8 @@ img.save('${FAKE_VAULT_DIR}/attachments/keep-me.jpg')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='white')
-img.save('${FAKE_VAULT_DIR}/attachments/already.png')
-img.save('${FAKE_VAULT_DIR}/attachments/already.webp')
+img.save('${FAKE_VAULT_DIR}/public/attachments/already.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/already.webp')
 "
 
     run python3 "${COMPRESS_SCRIPT}"
@@ -180,7 +180,7 @@ img.save('${FAKE_VAULT_DIR}/attachments/already.webp')
     python3 -c "
 from PIL import Image
 img = Image.new('RGB', (10, 10), color='yellow')
-img.save('${FAKE_VAULT_DIR}/attachments/archived-img.png')
+img.save('${FAKE_VAULT_DIR}/public/attachments/archived-img.png')
 "
     create_vault_file "public/archive/old.md" "Image: ![[archived-img.png]]"
 

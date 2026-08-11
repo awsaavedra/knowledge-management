@@ -6,7 +6,10 @@ Notable changes to the knowledge-management tool. Format loosely follows
 ## Unreleased
 
 ### Added
-- `okm pod <file> [title]` — dated note from a local audio/video file; transcribes via whisperX when installed, offline scaffold otherwise.
+- `okm pod <link|file>` — podcast capture that resolves a Spotify/Apple/RSS link (or generic episode page) to the show's RSS feed for title, show, `itunes:episode`, and `pubDate`, and embeds an existing transcript when the feed publishes `<podcast:transcript>` (VTT/SRT/Podcast-Index-JSON). Local `.srt`/`.vtt`/`.txt` files import verbatim; raw media → metadata scaffold.
+- `okm video <link|file>` — video/lecture capture; YouTube metadata via `yt-dlp`, captions via `youtube-transcript-api`. Replaces `okm yt`.
+- Media notes use the convention `{format}-{Channel}-{Title}[-{episode}]-{YYYY-MM-DD}.md` (PascalCase fields, ISO publish date), e.g. `podcast-DanielleNewnhamPodcast-RivaTezOnGeniusManiaAndTheImpactOfCancelCulture-99-2024-01-01.md`.
+- `docs/test.md` — manual test plan for `okm today` (weekly note), `okm pod`, and `okm video`.
 - `okm distill <note>` — AI bullet summary written alongside a note (`--model claude|ollama`).
 - shellcheck lint gate in CI (`--severity=warning` across `bin/okm`, `scripts/`, `scripts/lib/`, and the pre-push hook).
 - `docs/CHANGELOG.md` and `docs/SECURITY.md`.
@@ -17,7 +20,11 @@ Notable changes to the knowledge-management tool. Format loosely follows
 - `okm today` now opens **this week's** note — `YYYY-MM-DD-weekly.md` (Monday start, Mon–Sun) — instead of a per-day file.
 - Default `EDITOR` is now `vim` (was `nvim`). The editor chosen at setup is saved to `.km-editor` and is authoritative in the project env — it overrides an `EDITOR` inherited from your shell rc (so a global `export EDITOR=nvim` won't beat your vim choice). Per-command override still works: `EDITOR=emacs okm today`.
 - Neovim is now **opt-in**: `setup-km.sh` only downloads the nvim binary, links its config, and bootstraps plugins when `nvim` is chosen. `verify-km.sh` skips the nvim checks for vim users. vim is the lightweight default.
-- Media ingest (`spot`, `yt`, `pod`, `distill`) extracted from `bin/okm` into `scripts/lib/media.sh`.
+- Media ingest (`pod`, `video`, `distill`) lives in `scripts/lib/media.sh`.
+
+### Removed
+- `okm spot` (Spotify capture, incl. music track/album/playlist notes) and `okm yt` — superseded by `okm pod` and `okm video`. Templates `spotify-episode-template.md`/`spotify-track-template.md` removed; `yt-template.md` → `video-template.md`.
+- whisperX / any self-transcription path. **okm pulls transcripts that already exist at the source; it never transcribes audio itself.** Sources without a published transcript get a scaffold.
 - Pre-push privacy guard now has a single tracked home — `scripts/hooks/pre-push`, activated via `core.hooksPath` by `okm port` — replacing the previous generated hook.
 - Project structure simplified: root keeps `README.md` only; all other markdown lives under `docs/` (`CONTRIBUTING.md`, `ORCHESTRATOR.md`, `design.md`, `pvs.md`).
 

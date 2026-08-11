@@ -57,7 +57,11 @@ setup() {
 }
 
 @test "inherited EDITOR is used when there is no saved choice" {
-    EDITOR=emacs KM_EDITOR_FILE="${TEST_TEMP_DIR}/no-such-file" source "${PROJECT_ROOT}/env.sh"
+    # A real shell rc exports EDITOR, so simulate that: an un-exported temp
+    # assignment (EDITOR=emacs source ...) isn't reliably visible to env.sh's
+    # ${EDITOR:-vim} across bash modes, which is a test artifact, not a bug.
+    export EDITOR=emacs
+    KM_EDITOR_FILE="${TEST_TEMP_DIR}/no-such-file" source "${PROJECT_ROOT}/env.sh"
     [ "$EDITOR" = "emacs" ]
 }
 

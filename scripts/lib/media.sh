@@ -1,113 +1,423 @@
 #!/usr/bin/env bash
-# media.sh — okm media-ingest commands: spot, yt, pod, distill.
+# media.sh — okm media-ingest commands: pod, video, distill.
 #
 # Sourced by bin/okm (not executable on its own). Uses bin/okm helpers
 # (ensure_dirs, parse_tag_flag, slugify, yaml_escape_dq, _tags_yaml, iso_now,
 # resolve_note) and globals (VAULT, NOTES_DIR, EDITOR_CMD, _REMAINING_ARGS).
+#
+# Design principle (do NOT change without discussion): we PULL transcripts and
+# metadata that already exist at the source — RSS <podcast:transcript>, YouTube
+# caption tracks, or a local transcript file. We never transcribe audio
+# ourselves: whisperX / ASR is intentionally out of scope. If a source exposes
+# no transcript, the note is scaffolded and left for the human/loom agent.
+#
+# Filename convention (both commands):
+#   {format}-{Channel}-{Title}[-{episode}]-{YYYY-MM-DD}.md
+#   - format   : "podcast" (okm pod) or "video" (okm video)
+#   - Channel  : show/uploader name, PascalCase (omitted if unknown)
+#   - Title    : episode/video title, PascalCase
+#   - episode  : itunes:episode number, digits only (omitted if unknown)
+#   - date     : ISO publish date; sorts chronologically
 
-_spotify_type() {
-  case "$1" in
-    *episode*)  echo "episode" ;;
-    *show*)     echo "show" ;;
-    *album*)    echo "album" ;;
-    *playlist*) echo "playlist" ;;
-    *)          echo "track" ;;
+# Resolve the python3 interpreter: prefer the project venv so optional deps
+# (youtube_transcript_api) are found even when env.sh hasn't been sourced.
+_python3() {
+  local venv_py="${OKM_SCRIPT_DIR}/venv/bin/python3"
+  if [ -x "$venv_py" ]; then
+    "$venv_py" "$@"
+  else
+    python3 "$@"
+  fi
+}
+
+# PascalCase a free-text field for use as one filename segment: transliterate
+# "&" to "and", drop apostrophes, split on any non-alphanumeric run, capitalise
+# the first letter of each token, and concatenate. Caps length so a single long
+# title can't blow past filesystem limits (N18-style guard).
+pascal_field() {
+  local out
+  out="$(printf '%s' "$1" \
+    | tr '\n\r\t' '   ' \
+    | sed -E "s/&/ and /g; s/'//g" \
+    | sed -E 's/[^A-Za-z0-9]+/ /g' \
+    | awk '{ s=""; for (i=1;i<=NF;i++) s = s toupper(substr($i,1,1)) substr($i,2); print s }')"
+  # Cap a single field at 80 chars so the whole name stays well under 200.
+  printf '%s' "${out:0:80}"
+}
+
+# Build the note filename (without directory) from the resolved metadata.
+# Args: format channel title episode date
+_media_filename() {
+  local fmt="$1" channel="$2" title="$3" episode="$4" date="$5"
+  local parts="$fmt"
+  [ -n "$channel" ] && parts="${parts}-$(pascal_field "$channel")"
+  parts="${parts}-$(pascal_field "$title")"
+  [ -n "$episode" ] && parts="${parts}-${episode}"
+  [ -n "$date" ] && parts="${parts}-${date}"
+  printf '%s' "$parts"
+}
+
+# ---------------------------------------------------------------------------
+# okm pod — podcast capture from a link (Spotify / Apple / RSS / page) or file.
+# ---------------------------------------------------------------------------
+
+# Resolve a podcast link to a single episode's metadata + transcript and print
+# it as one JSON object, or print nothing on failure. All network access lives
+# here so the rest of the command stays testable. Test hooks:
+#   OKM_POD_OFFLINE=1        — skip all network, print nothing (forces fallback)
+#   OKM_POD_FEED_FILE=<path> — parse this local RSS file instead of fetching
+#   OKM_POD_EPISODE_MATCH=<s>— select the item whose title contains <s>
+_pod_meta_json() {
+  [ "${OKM_POD_OFFLINE:-0}" = "1" ] && return 1
+  _python3 - "$1" <<'PYEOF'
+import json, os, re, sys, urllib.request, urllib.parse
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
+
+UA = "Mozilla/5.0 (okm podcast fetcher)"
+SOURCE = sys.argv[1]
+
+def get(url, headers=None):
+    h = {"User-Agent": UA}
+    if headers:
+        h.update(headers)
+    req = urllib.request.Request(url, headers=h)
+    with urllib.request.urlopen(req, timeout=25) as r:
+        return r.read().decode("utf-8", "replace")
+
+def norm(s):
+    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
+def itunes_search_feed(show_name):
+    q = urllib.parse.urlencode({"term": show_name, "entity": "podcast", "limit": 5})
+    data = json.loads(get("https://itunes.apple.com/search?" + q))
+    tgt = norm(show_name)
+    for r in data.get("results", []):
+        if r.get("feedUrl") and (norm(r.get("collectionName")) == tgt or not tgt):
+            return r["feedUrl"]
+    for r in data.get("results", []):
+        if r.get("feedUrl"):
+            return r["feedUrl"]
+    return None
+
+def itunes_lookup(id_):
+    data = json.loads(get("https://itunes.apple.com/lookup?id=%s" % id_))
+    return data.get("results", [])
+
+# --- Resolve (feed_url, episode_title_hint) from the source URL ---------------
+feed_url, ep_hint = None, os.environ.get("OKM_POD_EPISODE_MATCH", "")
+
+feed_file = os.environ.get("OKM_POD_FEED_FILE")
+if feed_file:
+    feed_xml = open(feed_file, encoding="utf-8").read()
+else:
+    try:
+        if "open.spotify.com" in SOURCE and "/episode/" in SOURCE:
+            m = re.search(r"/episode/([A-Za-z0-9]+)", SOURCE)
+            emb = get("https://open.spotify.com/embed/episode/%s" % m.group(1))
+            j = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', emb, re.S)
+            ent = json.loads(j.group(1))["props"]["pageProps"]["state"]["data"]["entity"]
+            ep_hint = ent.get("name") or ep_hint
+            feed_url = itunes_search_feed(ent.get("subtitle") or "")
+        elif "podcasts.apple.com" in SOURCE:
+            cid = re.search(r"/id(\d+)", SOURCE)
+            eid = re.search(r"[?&]i=(\d+)", SOURCE)
+            if eid:
+                for r in itunes_lookup(eid.group(1)):
+                    if r.get("kind") == "podcast-episode":
+                        ep_hint = r.get("trackName") or ep_hint
+                        feed_url = r.get("feedUrl") or feed_url
+            if not feed_url and cid:
+                for r in itunes_lookup(cid.group(1)):
+                    if r.get("feedUrl"):
+                        feed_url = r["feedUrl"]; break
+        elif re.search(r"\.(xml|rss)(\?|$)", SOURCE) or "feeds." in SOURCE:
+            feed_url = SOURCE
+        else:
+            parsed = urllib.parse.urlparse(SOURCE)
+            slug = parsed.path.rstrip("/").split("/")[-1]
+            try:
+                page = get(SOURCE)
+            except Exception:
+                page = ""
+            lm = re.search(r'<link[^>]+type="application/rss\+xml"[^>]+href="([^"]+)"', page) \
+                 or re.search(r'<link[^>]+href="([^"]+)"[^>]+type="application/rss\+xml"', page)
+            if lm:
+                feed_url = lm.group(1)
+            else:
+                # JS-only host pages (Simplecast/Transistor/Buzzsprout/etc.) expose
+                # no metadata server-side. Derive the show from the subdomain and
+                # find its feed via iTunes; match the episode by the URL slug.
+                sub = parsed.netloc.split(".")[0]
+                if sub and sub not in ("www", "feeds", "feed", "rss", "open",
+                                       "podcasts", "player", "pca", "pod", "api"):
+                    feed_url = itunes_search_feed(sub.replace("-", " "))
+            if not ep_hint:
+                tm = re.search(r"<title>(.*?)</title>", page, re.S)
+                if tm:
+                    ep_hint = re.sub(r"\s+", " ", tm.group(1)).strip()
+                elif slug:
+                    ep_hint = slug.replace("-", " ")
+    except Exception:
+        pass
+    if not feed_url:
+        sys.exit(1)
+    feed_xml = get(feed_url)
+
+# --- Parse the feed and select the episode -----------------------------------
+try:
+    root = ET.fromstring(feed_xml.encode("utf-8"))
+except Exception:
+    sys.exit(1)
+
+ns = {
+    "itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd",
+    "podcast": "https://podcastindex.org/namespace/1.0",
+}
+channel = root.find("channel")
+if channel is None:
+    sys.exit(1)
+
+def chan_title():
+    t = channel.findtext("title") or ""
+    a = channel.findtext("itunes:author", default="", namespaces=ns)
+    return t or a
+
+items = channel.findall("item")
+if not items:
+    sys.exit(1)
+
+chosen = None
+if ep_hint:
+    h = norm(ep_hint)
+    for it in items:
+        if norm(it.findtext("title")) == h:
+            chosen = it; break
+    if chosen is None:
+        for it in items:
+            t = norm(it.findtext("title"))
+            if h and (h in t or t in h):
+                chosen = it; break
+if chosen is None:
+    chosen = items[0]  # latest
+
+def txt(el, path, nsp=None):
+    return (el.findtext(path, default="", namespaces=nsp) or "").strip()
+
+title = txt(chosen, "title")
+episode = txt(chosen, "itunes:episode", ns)
+episode = episode if episode.isdigit() else ""
+
+date = ""
+pub = txt(chosen, "pubDate")
+if pub:
+    try:
+        date = parsedate_to_datetime(pub).strftime("%Y-%m-%d")
+    except Exception:
+        date = ""
+
+enclosure, enc_type = "", ""
+enc = chosen.find("enclosure")
+if enc is not None:
+    enclosure = enc.get("url", "")
+    enc_type = enc.get("type", "")
+
+tr_url, tr_type = "", ""
+for tr in chosen.findall("podcast:transcript", ns):
+    ty = (tr.get("type") or "").lower()
+    tr_url = tr.get("url", ""); tr_type = ty
+    if "vtt" in ty or "srt" in ty or "json" in ty:
+        break  # prefer a time-aligned format
+
+print(json.dumps({
+    "channel": chan_title(),
+    "title": title,
+    "episode": episode,
+    "date": date,
+    "enclosure": enclosure,
+    "enclosure_type": enc_type,
+    "transcript_url": tr_url,
+    "transcript_type": tr_type,
+}))
+PYEOF
+}
+
+# Fetch a transcript URL and render it as timestamped lines. Supports VTT, SRT,
+# Podcast Index JSON, and plain text/HTML. Prints nothing on failure.
+# Test hook: OKM_POD_TRANSCRIPT_FILE overrides the URL with a local file.
+_pod_fetch_transcript() {
+  local url="$1" type="$2"
+  _python3 - "$url" "$type" <<'PYEOF'
+import os, re, sys, json, html, urllib.request
+
+url, ttype = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else "").lower()
+override = os.environ.get("OKM_POD_TRANSCRIPT_FILE")
+
+def stamp(sec):
+    sec = int(sec); h, rem = divmod(sec, 3600); m, s = divmod(rem, 60)
+    return "%02d:%02d:%02d" % (h, m, s) if h else "%02d:%02d" % (m, s)
+
+try:
+    if override:
+        raw = open(override, encoding="utf-8").read()
+    elif os.path.exists(url):
+        raw = open(url, encoding="utf-8").read()
+    else:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (okm)"})
+        raw = urllib.request.urlopen(req, timeout=25).read().decode("utf-8", "replace")
+except Exception:
+    sys.exit(1)
+
+out = []
+looks_json = "json" in ttype or raw.lstrip().startswith("{")
+if looks_json:
+    try:
+        data = json.loads(raw)
+        segs = data.get("segments", data if isinstance(data, list) else [])
+        for s in segs:
+            t = s.get("startTime", s.get("start"))
+            body = (s.get("body") or s.get("text") or "").strip()
+            if body:
+                out.append("[%s] %s" % (stamp(t), body) if t is not None else body)
+    except Exception:
+        out = []
+
+if not out and ("vtt" in ttype or "srt" in ttype or "-->" in raw):
+    def to_sec(ts):
+        parts = [float(p.replace(",", ".")) for p in ts.split(":")]
+        while len(parts) < 3:
+            parts.insert(0, 0.0)
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    cur, buf = None, []
+    for line in raw.splitlines():
+        line = line.strip()
+        if line == "WEBVTT" or line.isdigit():
+            continue
+        m = re.match(r"(\d{1,2}:\d{2}(?::\d{2})?[.,]\d+)\s*-->", line)
+        if m:
+            if cur is not None and buf:
+                out.append("[%s] %s" % (cur, " ".join(buf)))
+            cur, buf = stamp(to_sec(m.group(1))), []
+            continue
+        if line and cur is not None:
+            buf.append(re.sub(r"<[^>]+>", "", line))
+    if cur is not None and buf:
+        out.append("[%s] %s" % (cur, " ".join(buf)))
+
+if not out:  # plain text or HTML
+    text = re.sub(r"<[^>]+>", " ", raw)
+    text = html.unescape(re.sub(r"\s+\n", "\n", text)).strip()
+    if text:
+        out = [text]
+
+if not out:
+    sys.exit(1)
+print("\n".join(out))
+PYEOF
+}
+
+# Given a local file, return "transcript" if it is a recognised transcript
+# format we can import verbatim, else "media".
+_pod_local_kind() {
+  case "${1,,}" in
+    *.srt|*.vtt|*.txt|*.json) echo "transcript" ;;
+    *) echo "media" ;;
   esac
 }
 
-# N16: extract and validate the Spotify ID (exactly 22 base62 chars).
-_spotify_id() {
-  local url="$1" id
-  id="$(printf '%s' "$url" | sed -E 's#.*/[a-z]+/([a-zA-Z0-9]+)(\?.*)?$#\1#')"
-  if [ -z "$id" ] || [[ ! "$id" =~ ^[a-zA-Z0-9]{22}$ ]]; then
-    echo "Invalid Spotify URL: could not extract a valid ID from '$url'" >&2
-    return 1
-  fi
-  echo "$id"
-}
-
-_SPOT_ARTIST="" _SPOT_TITLE=""
-_spotify_fetch_metadata() {
-  _SPOT_ARTIST=""; _SPOT_TITLE=""
-  local url="$1" meta=""
-  if command -v spotdl >/dev/null 2>&1; then
-    meta="$(spotdl save "$url" --output "{artist} - {title}" 2>/dev/null | head -1 || true)"
-  fi
-  if [ -z "$meta" ]; then
-    echo "okm spot requires network access to fetch Spotify metadata. Continuing with offline scaffold." >&2
-    return 0
-  fi
-  _SPOT_ARTIST="$(printf '%s' "$meta" | sed 's/ - .*//')"
-  _SPOT_TITLE="$(printf '%s' "$meta" | sed 's/^[^-]*- //')"
-}
-
-_spotify_source_tag() {
-  case "$1" in
-    episode|show) echo "source/podcast" ;;
-    track|album)  echo "source/music" ;;
-    playlist)     echo "source/playlist" ;;
-    *)            echo "source/spotify" ;;
-  esac
-}
-
-spot_note() {
+pod_note() {
   ensure_dirs
   parse_tag_flag "$@"
-  local url="${_REMAINING_ARGS[0]:-}"
-  [ -n "$url" ] || { echo "Spotify URL required" >&2; exit 1; }
+  local src="${_REMAINING_ARGS[0]:-}"
+  [ -n "$src" ] || { echo "Podcast link or file required" >&2; exit 1; }
 
-  case "$url" in
-    *open.spotify.com/*|*spotify:*) ;;
-    *) echo "Not a Spotify URL: $url" >&2; exit 1 ;;
-  esac
+  local fmt="podcast" platform="" source_url="" source_file=""
+  local channel="" title="" episode="" date="" enclosure="" transcript=""
 
-  local spot_type spot_id embed_url
-  spot_type="$(_spotify_type "$url")"
-  spot_id="$(_spotify_id "$url")" || exit 1
-  embed_url="https://open.spotify.com/embed/${spot_type}/${spot_id}"
-
-  _spotify_fetch_metadata "$url"
-  local title="${_SPOT_TITLE}" artist="${_SPOT_ARTIST}"
-
-  if [ -z "$title" ]; then
-    title="$(printf '%s' "$url" | sed -E 's|.*/[a-zA-Z]+/[a-zA-Z0-9]+[?/]?||; s/[?#].*//' | tr '-' ' ')"
-    [ -n "$title" ] || title="Spotify ${spot_type} ${spot_id}"
+  if [ -f "$src" ]; then
+    # Local file: import a transcript verbatim, or scaffold for raw media.
+    platform="local"; source_file="$(basename "$src")"
+    title="${_REMAINING_ARGS[*]:1}"
+    [ -n "$title" ] || title="$(basename "${src%.*}")"
+    date="$(date +%F)"
+    if [ "$(_pod_local_kind "$src")" = "transcript" ]; then
+      transcript="$(_pod_fetch_transcript "$src" "${src##*.}" || true)"
+    fi
+  else
+    case "$src" in
+      *youtube.com/*|*youtu.be/*)
+        echo "okm pod: that's a YouTube link — use 'okm video $src' for videos/lectures." >&2
+        exit 1 ;;
+    esac
+    case "$src" in
+      http://*|https://*|spotify:*) ;;
+      *) echo "Not a link or a readable file: $src" >&2; exit 1 ;;
+    esac
+    source_url="$src"
+    case "$src" in
+      *open.spotify.com*|spotify:*) platform="spotify" ;;
+      *podcasts.apple.com*)         platform="apple" ;;
+      *)                            platform="rss" ;;
+    esac
+    local meta; meta="$(_pod_meta_json "$src" || true)"
+    if [ -n "$meta" ]; then
+      channel="$(printf '%s' "$meta" | _json_get channel)"
+      title="$(printf '%s' "$meta" | _json_get title)"
+      episode="$(printf '%s' "$meta" | _json_get episode)"
+      date="$(printf '%s' "$meta" | _json_get date)"
+      enclosure="$(printf '%s' "$meta" | _json_get enclosure)"
+      local tr_url tr_type
+      tr_url="$(printf '%s' "$meta" | _json_get transcript_url)"
+      tr_type="$(printf '%s' "$meta" | _json_get transcript_type)"
+      [ -n "$tr_url" ] && transcript="$(_pod_fetch_transcript "$tr_url" "$tr_type" || true)"
+    fi
+    # Graceful degradation: no metadata (offline / unresolved) → scaffold with
+    # a deterministic id-based name rather than failing.
+    if [ -z "$title" ]; then
+      echo "okm pod: could not fetch episode metadata over the network (offline or source blocked) — wrote an offline scaffold." >&2
+      # Fallback title from the URL's last path segment (unique per episode),
+      # e.g. .../episodes/riva-tez -> "riva tez" -> RivaTez.
+      local seg
+      seg="$(printf '%s' "$src" | sed -E 's#[?#].*$##; s#/+$##; s#.*/##' | head -c 40)"
+      seg="${seg//-/ }"
+      title="${seg:-podcast episode}"
+      date="${date:-$(date +%F)}"
+    fi
   fi
 
-  local slug file
-  slug="$(slugify "$title")" || exit 1
-  file="$VAULT/$NOTES_DIR/$slug.md"
+  local name file rel
+  name="$(_media_filename "$fmt" "$channel" "$title" "$episode" "$date")"
+  file="$VAULT/$NOTES_DIR/${name}.md"
+  rel="${file#"$VAULT"/}"
 
-  local safe_title safe_artist source_tag tags_yaml
+  if [ -f "$file" ]; then
+    echo "Exists: $rel"
+    exec "$EDITOR_CMD" "$file"
+  fi
+
+  local safe_title safe_channel tags_yaml
   safe_title="$(yaml_escape_dq "$title")"
-  safe_artist="$(yaml_escape_dq "$artist")"
-  source_tag="$(_spotify_source_tag "$spot_type")"
-  tags_yaml="$(_tags_yaml "$source_tag")"
+  safe_channel="$(yaml_escape_dq "$channel")"
+  tags_yaml="$(_tags_yaml "source/podcast")"
 
-  if [ ! -f "$file" ]; then
-    # Frontmatter + player are shared; only the body sections differ by type.
-    cat > "$file" <<EOF
----
-title: "${safe_title}"
-source_type: spotify-${spot_type}
-source_url: "${url}"
-author: "${safe_artist}"
-created: $(iso_now)
-tags: ${tags_yaml}
----
-
-# ${title}
-
-## Player
-
-[Listen on Spotify](<${url}>)
-
-<iframe src="${embed_url}" width="100%" height="352" frameBorder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-
-EOF
-    case "$spot_type" in
-      episode|show)
-        cat >> "$file" <<'EOF'
+  {
+    printf -- '---\n'
+    printf 'title: "%s"\n' "$safe_title"
+    printf 'source_type: podcast\n'
+    printf 'source_platform: %s\n' "$platform"
+    [ -n "$source_url" ]  && printf 'source_url: "%s"\n' "$source_url"
+    [ -n "$source_file" ] && printf 'source_file: "%s"\n' "$source_file"
+    [ -n "$safe_channel" ] && printf 'show: "%s"\n' "$safe_channel"
+    [ -n "$episode" ]     && printf 'episode: %s\n' "$episode"
+    [ -n "$date" ]        && printf 'publish_date: %s\n' "$date"
+    [ -n "$enclosure" ]   && printf 'audio_url: "%s"\n' "$enclosure"
+    printf 'captured_date: %s\n' "$(date +%F)"
+    printf 'captured_via: okm-pod\n'
+    printf 'tags: %s\n' "$tags_yaml"
+    printf -- '---\n\n'
+    printf '# %s\n\n' "$title"
+    [ -n "$source_url" ] && printf '## Player\n\n[Open episode](<%s>)\n\n' "$source_url"
+    cat <<'BODY'
 ## Summary
 
 <!-- caveman speech: short sentences, no filler, bullets over paragraphs -->
@@ -122,38 +432,35 @@ EOF
 
 - [ ]
 
-## Structured Data
-
 ## Key Quotes
 
 > [MM:SS] "..."
 
 ## Transcript
 
-<!-- okm distill or whisperX after downloading audio -->
+BODY
+    if [ -n "$transcript" ]; then
+      printf '%s\n' "$transcript"
+    else
+      printf '%s\n' "<!-- No transcript published at the source. okm pulls existing transcripts (RSS <podcast:transcript> or YouTube captions) only — it does not transcribe audio. Paste one here or fill by hand. -->"
+    fi
+  } > "$file"
 
-EOF
-        ;;
-      *)
-        cat >> "$file" <<'EOF'
-## Notes
-
--
-
-## Why I saved this
-
-EOF
-        ;;
-    esac
-    echo "Created: $file"
-  else
-    echo "Exists: $file"
-  fi
+  echo "Created: $rel"
   exec "$EDITOR_CMD" "$file"
 }
 
-# Extract and validate an 11-char YouTube video ID from common URL forms
-# (watch?v=, youtu.be/, shorts|embed|live/). Prints the ID or fails.
+# Minimal JSON string/number field reader (stdin JSON, key as $1). Avoids a hard
+# jq dependency; values are simple (no nested objects, no escaped quotes here).
+_json_get() {
+  _python3 -c 'import json,sys; print(json.load(sys.stdin).get(sys.argv[1],""))' "$1" 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------------------
+# okm video — video capture from a link (YouTube) or file.
+# ---------------------------------------------------------------------------
+
+# Extract and validate an 11-char YouTube video ID from common URL forms.
 _youtube_id() {
   local url="$1" id
   id="$(printf '%s' "$url" | sed -E '
@@ -169,8 +476,7 @@ _youtube_id() {
 }
 
 # Pull title/uploader/upload_date via yt-dlp when present. Sets the _YT_* vars.
-# Graceful no-op offline or without yt-dlp — same pattern as _spotify_fetch_metadata.
-# Uses --dump-json + Python to parse reliably; --print '\t' is literal in yt-dlp 2024.x.
+# Graceful no-op offline or without yt-dlp.
 _YT_TITLE="" _YT_AUTHOR="" _YT_DATE=""
 _yt_fetch_metadata() {
   _YT_TITLE=""; _YT_AUTHOR=""; _YT_DATE=""
@@ -190,30 +496,16 @@ print(d.get("title", ""), d.get("uploader", ""), d.get("upload_date", ""), sep="
   _YT_DATE="$(printf '%s'  "$parsed" | sed -n '3p')"
 }
 
-# Resolve the python3 interpreter: prefer the project venv so youtube_transcript_api
-# is found even when env.sh hasn't been sourced in the calling shell.
-_python3() {
-  local venv_py="${OKM_SCRIPT_DIR}/venv/bin/python3"
-  if [ -x "$venv_py" ]; then
-    "$venv_py" "$@"
-  else
-    python3 "$@"
-  fi
-}
-
 # Print a timestamped transcript via youtube_transcript_api, or nothing.
-# Output format: [MM:SS] text  (or [HH:MM:SS] for videos over an hour)
-# Tries English first, then any available language.
 _yt_fetch_transcript() {
   local vid="$1"
   _python3 - "$vid" 2>/dev/null <<'PYEOF'
 import sys
-from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound
 
 vid = sys.argv[1]
 try:
     ytt = YouTubeTranscriptApi()
-    # Try English first; fall back to the first available language.
     try:
         transcript_list = ytt.list(vid)
         try:
@@ -234,67 +526,73 @@ except Exception:
 PYEOF
 }
 
-yt_note() {
+video_note() {
   ensure_dirs
   parse_tag_flag "$@"
-  local url="${_REMAINING_ARGS[0]:-}"
-  [ -n "$url" ] || { echo "YouTube URL required" >&2; exit 1; }
+  local src="${_REMAINING_ARGS[0]:-}"
+  [ -n "$src" ] || { echo "Video link or file required" >&2; exit 1; }
 
-  case "$url" in
-    *youtube.com/*|*youtu.be/*) ;;
-    *) echo "Not a YouTube URL: $url" >&2; exit 1 ;;
-  esac
+  local fmt="video" platform="" source_url="" source_file=""
+  local channel="" title="" date="" transcript="" vid=""
 
-  local vid; vid="$(_youtube_id "$url")" || exit 1
-
-  # Fetch metadata via yt-dlp (graceful no-op if absent/offline).
-  if command -v yt-dlp >/dev/null 2>&1; then
-    _yt_fetch_metadata "$url"
-  fi
-  # Fetch transcript via youtube_transcript_api (independent of yt-dlp).
-  local transcript=""
-  if _python3 -c "import youtube_transcript_api" 2>/dev/null; then
-    transcript="$(_yt_fetch_transcript "$vid")" || true
-  fi
-
-  local title="${_YT_TITLE}"
-  [ -n "$title" ] || title="YouTube ${vid}"
-
-  local pub_date="" note_date
-  if [ -n "$_YT_DATE" ] && [[ "$_YT_DATE" =~ ^[0-9]{8}$ ]]; then
-    pub_date="${_YT_DATE:0:4}-${_YT_DATE:4:2}-${_YT_DATE:6:2}"
-    note_date="$pub_date"
+  if [ -f "$src" ]; then
+    platform="local"; source_file="$(basename "$src")"
+    title="${_REMAINING_ARGS[*]:1}"
+    [ -n "$title" ] || title="$(basename "${src%.*}")"
+    date="$(date +%F)"
   else
-    note_date="$(date +%F)"
+    case "$src" in
+      *youtube.com/*|*youtu.be/*) ;;
+      *) echo "Not a supported video link or a readable file: $src" >&2; exit 1 ;;
+    esac
+    platform="youtube"; source_url="$src"
+    vid="$(_youtube_id "$src")" || exit 1
+    _yt_fetch_metadata "$src"
+    if _python3 -c "import youtube_transcript_api" 2>/dev/null; then
+      transcript="$(_yt_fetch_transcript "$vid")" || true
+    fi
+    title="${_YT_TITLE}"
+    channel="${_YT_AUTHOR}"
+    [ -n "$title" ] || title="YouTube ${vid}"
+    if [ -n "$_YT_DATE" ] && [[ "$_YT_DATE" =~ ^[0-9]{8}$ ]]; then
+      date="${_YT_DATE:0:4}-${_YT_DATE:4:2}-${_YT_DATE:6:2}"
+    else
+      date="$(date +%F)"
+    fi
+    source_url="https://www.youtube.com/watch?v=${vid}"
   fi
 
-  local slug; slug="$(slugify "$title")" || exit 1
-  local file rel
-  file="$VAULT/$NOTES_DIR/${note_date}-${slug}.md"
+  local name file rel
+  name="$(_media_filename "$fmt" "$channel" "$title" "" "$date")"
+  file="$VAULT/$NOTES_DIR/${name}.md"
   rel="${file#"$VAULT"/}"
 
-  if [ ! -f "$file" ]; then
-    local safe_title safe_author tags_yaml
-    safe_title="$(yaml_escape_dq "$title")"
-    safe_author="$(yaml_escape_dq "${_YT_AUTHOR}")"
-    tags_yaml="$(_tags_yaml "source/youtube")"
-    # vid is validated [A-Za-z0-9_-]{11}; source_url is rebuilt canonically rather
-    # than echoing the raw URL, so no untrusted query string enters the heredoc.
-    cat > "$file" <<EOF
----
-title: "${safe_title}"
-source_type: youtube
-source_url: "https://www.youtube.com/watch?v=${vid}"
-video_id: "${vid}"
-author: "${safe_author}"
-publish_date: ${pub_date}
-captured_date: $(date +%F)
-captured_via: okm-yt
-tags: ${tags_yaml}
----
+  if [ -f "$file" ]; then
+    echo "Exists: $rel"
+    exec "$EDITOR_CMD" "$file"
+  fi
 
-# ${title}
+  local safe_title safe_channel tags_yaml
+  safe_title="$(yaml_escape_dq "$title")"
+  safe_channel="$(yaml_escape_dq "$channel")"
+  tags_yaml="$(_tags_yaml "source/youtube")"
 
+  {
+    printf -- '---\n'
+    printf 'title: "%s"\n' "$safe_title"
+    printf 'source_type: video\n'
+    printf 'source_platform: %s\n' "$platform"
+    [ -n "$source_url" ]   && printf 'source_url: "%s"\n' "$source_url"
+    [ -n "$source_file" ]  && printf 'source_file: "%s"\n' "$source_file"
+    [ -n "$vid" ]          && printf 'video_id: "%s"\n' "$vid"
+    [ -n "$safe_channel" ] && printf 'channel: "%s"\n' "$safe_channel"
+    [ -n "$date" ]         && printf 'publish_date: %s\n' "$date"
+    printf 'captured_date: %s\n' "$(date +%F)"
+    printf 'captured_via: okm-video\n'
+    printf 'tags: %s\n' "$tags_yaml"
+    printf -- '---\n\n'
+    printf '# %s\n\n' "$title"
+    cat <<'BODY'
 ## Summary
 
 <!-- short sentences, bullets over paragraphs, numbers over prose -->
@@ -311,93 +609,15 @@ tags: ${tags_yaml}
 
 ## Transcript
 
-EOF
+BODY
     if [ -n "$transcript" ]; then
-      printf '%s\n' "$transcript" >> "$file"
+      printf '%s\n' "$transcript"
     else
-      printf '%s\n' "<!-- okm yt fills this automatically when youtube_transcript_api is installed (pip install youtube-transcript-api) -->" >> "$file"
+      printf '%s\n' "<!-- No captions available at the source. okm pulls existing transcripts (YouTube captions via youtube-transcript-api) only — it does not transcribe audio. -->"
     fi
-    echo "Created: $rel"
-  else
-    echo "Exists: $rel"
-  fi
-  exec "$EDITOR_CMD" "$file"
-}
+  } > "$file"
 
-# okm pod <audio-file> "Title" [-t tag1,tag2]
-# Transcribe a local audio/video file with whisperX and create a dated note.
-pod_note() {
-  ensure_dirs
-  parse_tag_flag "$@"
-  local audio_file="${_REMAINING_ARGS[0]:-}"
-  local title="${_REMAINING_ARGS[*]:1}"
-  [ -n "$audio_file" ] || { echo "Audio file required" >&2; exit 1; }
-  [ -f "$audio_file" ] || { echo "File not found: $audio_file" >&2; exit 1; }
-  [ -n "$title" ] || title="$(basename "${audio_file%.*}")"
-
-  local slug; slug="$(slugify "$title")" || exit 1
-  local file; file="$VAULT/$NOTES_DIR/$(date +%F)-${slug}.md"
-  local rel="${file#"$VAULT"/}"
-
-  local safe_title; safe_title="$(yaml_escape_dq "$title")"
-  local tags_yaml; tags_yaml="$(_tags_yaml "source/podcast")"
-
-  local transcript=""
-  if command -v whisperx >/dev/null 2>&1 || command -v whisper >/dev/null 2>&1; then
-    local whisper_cmd
-    whisper_cmd="$(command -v whisperx 2>/dev/null || command -v whisper)"
-    local tmp_dir; tmp_dir="$(mktemp -d)"
-    local model="${WHISPER_MODEL:-large-v3-turbo}"
-    "$whisper_cmd" "$audio_file" --model "$model" --output_dir "$tmp_dir" \
-      --output_format txt >/dev/null 2>&1 || true
-    local txt_out; txt_out="$(find "$tmp_dir" -name '*.txt' | head -1)"
-    [ -n "$txt_out" ] && transcript="$(cat "$txt_out")"
-    # No EXIT trap: this function ends with exec, which would skip it anyway.
-    rm -rf "$tmp_dir"
-  else
-    echo "okm pod: whisperX/whisper not installed — transcript will be empty. Install via venv: pip install whisperx" >&2
-  fi
-
-  if [ ! -f "$file" ]; then
-    cat > "$file" <<EOF
----
-title: "${safe_title}"
-source_type: local-audio
-source_file: "$(basename "$audio_file")"
-created: $(iso_now)
-captured_date: $(date +%F)
-captured_via: okm-pod
-tags: ${tags_yaml}
----
-
-# ${title}
-
-## Summary
-
-<!-- short sentences, bullets over paragraphs -->
-
--
-
-## Actionable Insights
-
--
-
-## Key Quotes
-
-> [MM:SS] "..."
-
-## Transcript
-
-EOF
-    if [ -n "$transcript" ]; then
-      printf '%s\n' "$transcript" >> "$file"
-    else
-      printf '%s\n' "<!-- paste or run whisperX to fill this in -->" >> "$file"
-    fi
-    echo "Created: $rel"
-  else
-    echo "Exists: $rel"
-  fi
+  echo "Created: $rel"
   exec "$EDITOR_CMD" "$file"
 }
 

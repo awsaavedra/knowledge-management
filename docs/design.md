@@ -10,12 +10,12 @@ Each entry records the decision and why it exists, so the code comments stay ter
 | N6  | README dual-mode diagram (vault-inside vs vault-outside repo) — deferred to v1 |
 | N7  | Log rotation, `sync -m`, `okm version`, decouple cron tests — deferred to v1 |
 | N8  | `verify-km.sh` direnv check — deferred to v1 |
-| N9  | `okm spot` metadata fetch + URL escape — deferred to v1 |
+| N9  | `okm pod` metadata fetch + URL escape — source URLs embedded in angle-bracket link form `[Open episode](<url>)` |
 | N11 | `okm tag` on a file with no frontmatter prepends `---\ntags: []\n---` instead of refusing |
 | N13 | YAML double-quoted scalars require backslash-first escaping: `\` → `\\`, then `"` → `\"` |
 | N14 | `slugify` fails closed on slugs shorter than 2 chars — prevents creating `-.md` or similar |
 | N15 | `okm sync` refuses if any vault symlink resolves outside the vault (leak-prevention) |
-| N16 | Spotify IDs are exactly 22 base62 characters — reject anything that doesn't match |
+| N16 | Retired — `okm spot`'s 22-char Spotify-ID validation was removed with the command; `okm pod` resolves links via the RSS feed and never hard-fails |
 | N17 | `okm tagged` uses exact-match via `grep -xF`, not regex — prevents `tagged source` matching `source/spotify` |
 | N18 | Slugs are capped at 200 characters with trailing-hyphen trim |
 | N19 | `okm open` validates vault boundary with `realpath -m` (allows non-existent paths for new notes) |
@@ -86,6 +86,30 @@ Structural goal: accidental pushes to upstream impossible. Two topologies under 
 **B2 (side-by-side):** public repo for code; `OBSIDIAN_VAULT` env var points to separate private vault.
 
 *Pro:* no shared history; clean fork/PR; B2 is near-zero code change. *Con:* must extract vault dirs; `okm sync` semantics change.
+
+### Note-tracking rule (repo-identity-conditional) — spec
+
+**Rule.** Vault notes under `public/*` **and** `private/*` are tracked/committed
+**if and only if** the repository is a personal vault named
+`{handle}-knowledge-management` (e.g. `awsaavedra-knowledge-management`). They are
+never tracked in, or pushed to, the shared tool repo named exactly
+`knowledge-management` — that repo carries only tooling, templates, and docs.
+Personal notes are private and stay in the personal vault.
+
+**Enforcement status:**
+- ✅ *Push side (done):* `scripts/hooks/pre-push` refuses to push any `public/`
+  or `private/` content (except inbox templates + `.gitkeep`) to the tool repo
+  (`km_repo_is_public_tool`, deterministic/offline) or any non-private remote.
+  So notes cannot leak to `knowledge-management` even if committed locally.
+- ⏳ *Tracking side (to build):* `.gitignore` is currently static — `public/*`
+  tracked, `private/*` local-only (opt-in via git-crypt). Making *tracking*
+  itself identity-aware (ignore vault notes when the repo is the tool; track
+  them, incl. `private/*` under encryption, when it's `{handle}-knowledge-management`)
+  is deferred. A future spec + enforcement (e.g. `okm port` writing the correct
+  `.gitignore`, or a smudge/guard keyed on the repo name) will complete this.
+
+**Invariant for contributors/agents:** never add `public/*` note paths to
+`.gitignore` in a personal vault — it silently drops the user's tracked content.
 
 **Decision:** A if minimal change acceptable. B2 if structural impossibility preferred. Ship A first, evaluate B after real usage.
 

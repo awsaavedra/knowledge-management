@@ -43,9 +43,8 @@ Usage:
   okm new <title> [-t tag1,tag2]
   okm capture [text] [-t tag1,tag2]
   okm today [-t tag1,tag2]              # opens this week's note (YYYY-MM-DD-weekly.md, Mon–Sun)
-  okm spot <spotify-url> [-t tag1,tag2]
-  okm yt <youtube-url> [-t tag1,tag2]
-  okm pod <audio-file> [title] [-t tag1,tag2]
+  okm pod <link|file> [title] [-t tag1,tag2]     # podcast: pulls metadata + transcript when the source exposes one
+  okm video <link|file> [title] [-t tag1,tag2]   # video/lecture: pulls YouTube captions when available
   okm distill <note> [--model claude|ollama]
   okm grep <pattern>
   okm files [substring]
@@ -57,7 +56,7 @@ Usage:
   okm tagged <tag>
   okm rename-tag <old> <new>
   okm audit [--code-only|--vault-only] [--paths PATH...] [--quiet] [--json]
-  okm private <new|today|capture|yt|spot|pod> [args...]
+  okm private <new|today|capture|pod|video> [args...]
   okm crypt init
   okm port <github-handle> [--no-push]
   okm obs
@@ -71,7 +70,7 @@ need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing: $1" >&2; exit 1
 # shellcheck source=scripts/lib/privacy.sh
 source "${OKM_SCRIPT_DIR}/scripts/lib/privacy.sh"
 # shellcheck source=scripts/lib/media.sh
-source "${OKM_SCRIPT_DIR}/scripts/lib/media.sh"   # spot, yt, pod, distill
+source "${OKM_SCRIPT_DIR}/scripts/lib/media.sh"   # pod, video, distill
 # shellcheck source=scripts/lib/platform.sh
 source "${OKM_SCRIPT_DIR}/scripts/lib/platform.sh"   # _date_add (portable week math)
 
@@ -639,32 +638,49 @@ EOF
   exec "$EDITOR_CMD" "$file"
 }
 
-# Pull unfinished tasks from the most recent prior weekly note so they roll
-# into the new week — same idea as the weekly-tasks.sh cron carry-forward, but
-# for the simple "## Tasks" list in okm today's weekly note. Emits one
-# "- [ ] item" line per unchecked, non-empty task; checked items (- [x]) and the
-# empty "- [ ]" placeholder are left behind. Searches within $DAILY_DIR, so the
-# public and private sides each carry forward independently.
+# Pull unfinished tasks from ALL prior weekly notes so they roll into the new
+# week — same idea as the weekly-tasks.sh cron carry-forward, but for the simple
+# "## Tasks" list in okm today's weekly note. Scanning every prior note (not just
+# the most recent one) means a task survives skipped weeks and notes that predate
+# this feature: an item stays alive until it is actually checked off. Each note is
+# processed in chronological order so a task's *latest* state wins — if it was
+# unchecked in an old week but checked (- [x]) in a newer one, it is treated as
+# done and left behind. Tasks are deduplicated by their text, so an item carried
+# across many weeks emits a single "- [ ] item" line. The empty "- [ ]"
+# placeholder is ignored. Searches within $DAILY_DIR, so the public and private
+# sides each carry forward independently.
 _carry_forward_tasks() {
-  local cur_week_start="$1" dir="$VAULT/$DAILY_DIR" prev
-  # Newest weekly note strictly before this week (ISO date prefix sorts chronologically).
-  prev="$(
+  local cur_week_start="$1" dir="$VAULT/$DAILY_DIR"
+  local -a prev_files=()
+  # All weekly notes strictly before this week, oldest first (ISO date prefix
+  # sorts chronologically).
+  local name
+  while IFS= read -r name; do
+    [ -n "$name" ] && prev_files+=("$dir/$name")
+  done < <(
     find "$dir" -maxdepth 1 -name '*-weekly.md' 2>/dev/null \
       | sed 's#.*/##' \
       | sort \
-      | awk -v cur="${cur_week_start}-weekly.md" '$0 < cur' \
-      | tail -1
-  )"
-  [ -n "$prev" ] || return 0
+      | awk -v cur="${cur_week_start}-weekly.md" '$0 < cur'
+  )
+  [ ${#prev_files[@]} -gt 0 ] || return 0
   awk '
-    /^## Tasks[[:space:]]*$/ { intasks=1; next }
-    /^## /                   { intasks=0 }
-    intasks && /^- \[ \]/ {
+    FNR == 1 { intasks = 0 }
+    /^## Tasks[[:space:]]*$/ { intasks = 1; next }
+    /^## /                   { intasks = 0 }
+    intasks && /^- \[[ xX]\]/ {
+      checked = ($0 ~ /^- \[[xX]\]/) ? 1 : 0
       rest = $0
-      sub(/^- \[ \][[:space:]]*/, "", rest)
-      if (rest != "") print "- [ ] " rest
+      sub(/^- \[[ xX]\][[:space:]]*/, "", rest)
+      if (rest == "") next
+      if (!(rest in seen)) { order[++n] = rest; seen[rest] = 1 }
+      state[rest] = checked
     }
-  ' "$dir/$prev"
+    END {
+      for (i = 1; i <= n; i++)
+        if (state[order[i]] == 0) print "- [ ] " order[i]
+    }
+  ' "${prev_files[@]}"
 }
 
 # Opens the current week's note (Mon–Sun), named <week-start>-weekly.md.
@@ -1096,15 +1112,13 @@ private_cmd() {
       DAILY_DIR="private/daily" NOTES_DIR="private/inbox" today_note "$@" ;;
     capture)
       NOTES_DIR="private/inbox" capture_note "$@" ;;
-    yt)
-      NOTES_DIR="private/inbox" yt_note "$@" ;;
-    spot)
-      NOTES_DIR="private/inbox" spot_note "$@" ;;
     pod)
       NOTES_DIR="private/inbox" pod_note "$@" ;;
+    video)
+      NOTES_DIR="private/inbox" video_note "$@" ;;
     *)
       echo "okm private: unknown subcommand '$sub'" >&2
-      echo "Usage: okm private <new|today|capture|yt|spot|pod> [args...]" >&2
+      echo "Usage: okm private <new|today|capture|pod|video> [args...]" >&2
       exit 1 ;;
   esac
 }
@@ -1201,9 +1215,8 @@ case "${1:-help}" in
   new) shift; new_note "$@" ;;
   capture) shift; capture_note "$@" ;;
   today) shift; today_note "$@" ;;
-  spot) shift; spot_note "$@" ;;
-  yt) shift; yt_note "$@" ;;
   pod) shift; pod_note "$@" ;;
+  video) shift; video_note "$@" ;;
   distill) shift; distill_note "$@" ;;
   grep) shift; grep_vault "${1:-}" ;;
   files) shift; files_vault "${1:-}" ;;

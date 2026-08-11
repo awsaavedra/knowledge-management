@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # seed-demo.sh — Populate the public PARA folders with demo-* files derived
 # from inbox/templates/*. Use --teardown (or --clean) to remove only those
-# files. Demo files are gitignored automatically (existing rules cover
-# inbox/*.md, daily/*.md, archive/*.md, attachments/*.{png,...}).
+# files. public/ notes are tracked content (not gitignored), so remove demo
+# files with --teardown when you're done rather than committing them.
 #
 # Usage:
 #   bash scripts/seed-demo.sh             # seed demo dataset
@@ -101,9 +101,7 @@ seed() {
     render_template "${TEMPLATES}/daily-template.md"           "${VAULT}/public/daily/demo-${today}.md"                              "${today}"
     render_template "${TEMPLATES}/note-template.md"            "${VAULT}/public/inbox/demo-meeting-notes.md"                          "Demo Meeting Notes"
     render_template "${TEMPLATES}/capture-template.md"         "${VAULT}/public/inbox/demo-capture.md"                                "Demo Capture"
-    render_template "${TEMPLATES}/yt-template.md"              "${VAULT}/public/inbox/demo-yt-example.md"                             "Demo YouTube Example"
-    render_template "${TEMPLATES}/spotify-episode-template.md" "${VAULT}/public/inbox/demo-spotify-episode.md"                        "Demo Spotify Episode"
-    render_template "${TEMPLATES}/spotify-track-template.md"   "${VAULT}/public/inbox/demo-spotify-track.md"                          "Demo Spotify Track"
+    render_template "${TEMPLATES}/video-template.md"          "${VAULT}/public/inbox/demo-video-example.md"                          "Demo Video Example"
     render_template "${TEMPLATES}/podcast-template.md"         "${VAULT}/public/inbox/demo-podcast.md"                                "Demo Podcast"
     render_template "${TEMPLATES}/todo-summary-template.md"    "${VAULT}/public/inbox/demo-todo-summary-${year}.md"                   "Demo TODO Summary ${year}"
     render_template "${TEMPLATES}/weekly-template.md"          "${VAULT}/public/inbox/demo-weekly-${today}-to-${week_end}.md"         "Demo Weekly ${today} to ${week_end}"

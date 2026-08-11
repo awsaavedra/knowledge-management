@@ -1,17 +1,19 @@
 <!--
-Format Specification: yt-template
-Required frontmatter: title, source_type=youtube, source_url, author, publish_date, captured_date, captured_via, tags
+Format Specification: video-template
+Required frontmatter: title, source_type=video, source_platform, source_url, video_id, channel, publish_date, captured_date, captured_via, tags
 Required sections: Disclaimer, Thumbnail, Summary, Actionable Insights, Sources Cited, Follow-ups, Structured Data, Key Quotes, Screenshots (REQUIRED — capture every key visual moment so the note replaces re-watching), Timestamps, Transcript
-Producer: okm yt <URL> (planned) + mpv `s` for screenshots — e.g. okm yt https://www.youtube.com/watch?v=3k20zFlbFfE
+Producer: okm video <link|file> — pulls YouTube captions when available + mpv `s` for screenshots — e.g. okm video https://www.youtube.com/watch?v=3k20zFlbFfE
 -->
 ---
 title: "Video Title Here"
-source_type: youtube
+source_type: video
+source_platform: youtube
 source_url: "https://www.youtube.com/watch?v=XXXXXXXXXXX"
-author: "Channel Name"
+video_id: "XXXXXXXXXXX"
+channel: "Channel Name"
 publish_date: 2026-01-01
 captured_date: 2026-01-01
-captured_via: okm-yt
+captured_via: okm-video
 tags: [source/youtube, topic/your-topic]
 ---
 
@@ -73,7 +75,7 @@ tags: [source/youtube, topic/your-topic]
 <!-- REQUIRED for video notes. Press 's' in mpv at every key visual moment: -->
 <!-- diagrams, code, slides, demos, charts, faces during quotes. -->
 <!-- The goal is for the note to replace re-watching the video. -->
-<!-- Audio-only sources (Spotify) substitute Key Quotes for this requirement. -->
+<!-- Audio-only sources (podcasts) substitute Key Quotes for this requirement. -->
 
 ![[screenshot-HHMMSS.png]]
 
@@ -85,6 +87,6 @@ tags: [source/youtube, topic/your-topic]
 
 ## Transcript
 
-<!-- okm yt fetches this automatically, or use whisperX for local transcription -->
+<!-- okm video fetches YouTube captions automatically (youtube-transcript-api). okm never transcribes audio itself. -->
 
 [00:00] Transcript text goes here...

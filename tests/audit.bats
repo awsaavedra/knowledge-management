@@ -60,14 +60,14 @@ stage_file() {
 }
 
 @test "audit: templates under public/inbox/templates/ are NOT flagged" {
-    stage_file "public/inbox/templates/yt-template.md" "template"
+    stage_file "public/inbox/templates/video-template.md" "template"
     git -C "$AUDIT_VAULT" commit -q -m templates
     run "${OKM}" audit
     assert_success
 }
 
 @test "audit: demo-* files are NOT flagged" {
-    stage_file "public/inbox/demo-yt-example.md" "demo"
+    stage_file "public/inbox/demo-video-example.md" "demo"
     git -C "$AUDIT_VAULT" commit -q -m demos
     run "${OKM}" audit
     assert_success

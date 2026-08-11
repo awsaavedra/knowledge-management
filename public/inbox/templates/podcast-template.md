@@ -1,25 +1,27 @@
 <!--
 Format Specification: podcast-template
 Required frontmatter: title, source_type=podcast, source_file, author, created, tags
-Required sections: File, Summary, Actionable Insights, Sources Cited, Follow-ups, Structured Data, Key Quotes (REQUIRED — audio-only equivalent of video screenshots), Transcript
-Producer: okm pod <file> "Title" (planned) — whisperX large-v3-turbo with speaker diarization
+Required sections: Player, Summary, Actionable Insights, Sources Cited, Follow-ups, Structured Data, Key Quotes (REQUIRED — audio-only equivalent of video screenshots), Transcript
+Producer: okm pod <link|file> — resolves the show's RSS feed for metadata + an existing transcript (RSS <podcast:transcript>). okm never transcribes audio itself.
 -->
 ---
 title: "Podcast Episode Title"
 source_type: podcast
-source_file: "attachments/episode-name.mp3"
-author: "Show or Host Name"
-created: 2026-01-01T00:00:00
+source_platform: spotify
+source_url: "https://open.spotify.com/episode/XXXXXXXXXXXXXXXXXXXXXX"
+show: "Show or Host Name"
+episode: 99
+publish_date: 2026-01-01
+captured_date: 2026-01-01
+captured_via: okm-pod
 tags: [source/podcast, topic/your-topic]
 ---
 
 # Podcast Episode Title
 
-## File
+## Player
 
-- Local audio: `[[attachments/episode-name.mp3]]`
-- Duration: HH:MM:SS
-- Recorded: YYYY-MM-DD
+[Open episode](<https://open.spotify.com/episode/XXXXXXXXXXXXXXXXXXXXXX>)
 
 ## Summary
 
@@ -67,6 +69,6 @@ tags: [source/podcast, topic/your-topic]
 
 ## Transcript
 
-<!-- whisperX output: lossless, speaker-diarized. Speaker labels prefixed [SPEAKER_00], [SPEAKER_01], ... -->
+<!-- okm pod embeds the source's published transcript (RSS <podcast:transcript>) when one exists, as timestamped [MM:SS] lines. okm never transcribes audio itself; if the source publishes none, paste one here or leave this scaffold. -->
 
-[00:00] [SPEAKER_00] Transcript text goes here...
+[00:00] Transcript text goes here...

@@ -188,28 +188,31 @@ tags: [safe]
     assert_failure
 }
 
-# === okm spot — URL fuzzing ===
+# === okm pod / okm video — URL fuzzing ===
 
-@test "fuzz: okm spot with non-URL string" {
-    run "${OKM}" spot "not-a-url"
-    assert_failure
-}
-
-@test "fuzz: okm spot with spotify URL missing ID" {
-    run "${OKM}" spot "https://open.spotify.com/track/"
+@test "fuzz: okm pod with non-URL, non-file string" {
+    export OKM_POD_OFFLINE=1
+    run "${OKM}" pod "not-a-url"
     assert_failure
     assert_no_escape
 }
 
-@test "fuzz: okm spot with spotify URL having short ID" {
-    run "${OKM}" spot "https://open.spotify.com/track/abc"
-    assert_failure
-    assert_no_escape
-}
-
-@test "fuzz: okm spot with spotify URL containing query params" {
-    run "${OKM}" spot "https://open.spotify.com/track/6rqhFgbbKwnb9MLmUQDhG6?si=abc123"
+@test "fuzz: okm pod with a spotify URL containing query params (offline scaffold)" {
+    export OKM_POD_OFFLINE=1
+    run "${OKM}" pod "https://open.spotify.com/episode/6rqhFgbbKwnb9MLmUQDhG6?si=abc123&x=)"
     assert_success
+    assert_no_escape
+}
+
+@test "fuzz: okm video with non-URL, non-file string" {
+    run "${OKM}" video "not-a-url"
+    assert_failure
+    assert_no_escape
+}
+
+@test "fuzz: okm video with a YouTube URL having a short id" {
+    run "${OKM}" video "https://www.youtube.com/watch?v=abc"
+    assert_failure
     assert_no_escape
 }
 

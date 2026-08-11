@@ -17,7 +17,7 @@ Open-source knowledge OS for Obsidian users who live in Vim, Neovim, and the CLI
 | Neovim + obsidian.nvim | Optional editor + vault integration | **opt-in at setup** → `bin/nvim` + lazy.nvim |
 | lazygit | TUI git client | `bin/lazygit` via GitHub release |
 | okm | Vault CLI | `bin/okm` (tracked in git) |
-| yt-dlp / whisperX / spotdl | Media transcription | Python venv |
+| yt-dlp / youtube-transcript-api | Video metadata + existing captions (okm never transcribes audio) | Python venv |
 | ffmpeg / mpv | Audio/video processing | apt |
 | ripgrep / fzf | Search and fuzzy picking | apt |
 
@@ -65,7 +65,7 @@ bash scripts/seed-demo.sh --teardown   # clean up
 **Vim:** `EDITOR=vim okm open public/inbox/demo-meeting-notes.md` — expect green `PUBLIC PARA · inbox` statusline. (`bin/vim` wraps `vim -u config/vim/vimrc`; `bin/` is first on `$PATH` via `env.sh` so `vim` loads project config without touching `~/.vimrc`.)
 **Private side test:** `nvim private/inbox/demo-private.md` → red `⚠ PRIVATE PARA` banner.
 
-Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-notes,capture,yt-example,spotify-{episode,track},podcast,todo-summary-YYYY,weekly-*}.md` · `public/attachments/demo-screenshot.png` · `public/archive/demo-completed-project.md`
+Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-notes,capture,video-example,podcast,todo-summary-YYYY,weekly-*}.md` · `public/attachments/demo-screenshot.png` · `public/archive/demo-completed-project.md`
 
 ---
 
@@ -78,7 +78,7 @@ Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-n
 | Neovim | `EDITOR=nvim okm today` | Project config via `NVIM_APPNAME=km` (or save the choice via setup) |
 
 - **Capture:** `okm today` (this week's note) or `okm capture <text>` (timestamped)
-- **Save from a link:** `okm yt <youtube-url>` or `okm spot <spotify-url>` — writes a dated, searchable note (`public/inbox/YYYY-MM-DD-title.md`), prints its path, and opens it. With `yt-dlp`/`spotdl` installed, `okm yt` offers to pull the title + transcript; otherwise it's an offline scaffold you (or a loom agent) fill in.
+- **Save from a link:** `okm pod <podcast-link>` or `okm video <video-link>` — resolves title/show/episode/date from the source (podcast RSS feed or YouTube) into a searchable note (`public/inbox/{format}-{Channel}-{Title}[-{ep}]-{YYYY-MM-DD}.md`), pulls a transcript **only when the source already publishes one** (RSS `<podcast:transcript>` or YouTube captions), prints its path, and opens it. okm never transcribes audio itself; without a published transcript it's an offline scaffold you (or a loom agent) fill in.
 - **Search:** `okm grep <pattern>` (content) or `okm files [pattern]` (paths)
 - **Sync:** `okm sync [message]` — default commit message: `vault sync YYYY-MM-DD HH:MM:SS`
 - **Test before merge:** `bash tests/run_all.sh`
@@ -136,12 +136,11 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 
 | Subcommand | What it does |
 |---|---|
-| `okm today` | Open/create this week's note (`YYYY-MM-DD-weekly.md`, Mon–Sun); unfinished `- [ ]` tasks roll forward from the previous week's note |
+| `okm today` | Open/create this week's note (`YYYY-MM-DD-weekly.md`, Mon–Sun); unfinished `- [ ]` tasks roll forward from all prior weekly notes (surviving skipped weeks), deduplicated, until checked off |
 | `okm new <title>` | Create slugified note in `public/inbox/` with frontmatter |
 | `okm capture [text]` | Timestamped quick-capture note |
-| `okm spot <url>` | Create note from Spotify link (episode, track, album, playlist) |
-| `okm yt <url>` | Create dated note from a YouTube link; prints its path; offers `yt-dlp` title/transcript fetch |
-| `okm pod <file> [title]` | Create dated note from a local audio/video file; transcribes via whisperX when installed |
+| `okm pod <link\|file>` | Create a podcast note from a link (Spotify/Apple/RSS) or file; resolves metadata via the show's RSS feed and pulls an existing `<podcast:transcript>` when published |
+| `okm video <link\|file>` | Create a video/lecture note from a link (YouTube) or file; pulls captions via `youtube-transcript-api` when available |
 | `okm distill <note>` | Write an AI bullet summary alongside a note (`--model claude\|ollama`) |
 | `okm open [path]` | Open a note or launch fzf picker |
 | `okm grep <pattern>` | ripgrep across all `.md` files |
@@ -157,7 +156,7 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 | `okm obs` | Launch Obsidian GUI |
 | `okm path` | Print vault path |
 
-`okm new`, `capture`, `spot`, `yt` accept `-t tag1,tag2`.
+`okm new`, `capture`, `pod`, `video` accept `-t tag1,tag2`.
 
 **Environment variables** (set by `source env.sh`):
 
@@ -182,16 +181,22 @@ Opt-in (choose `nvim` at setup, or `KM_EDITOR=nvim bash scripts/setup-km.sh`). C
 
 ---
 
-## Media Transcription
+## Media capture
 
-| Source | Command | Status |
+okm **pulls** metadata and transcripts that the source already publishes — it
+never transcribes audio itself (no whisperX/ASR). If a source exposes no
+transcript, the note is scaffolded for you (or a loom agent) to fill.
+
+| Source | Command | Transcript source |
 |---|---|---|
-| YouTube | `okm yt <URL>` | Shipped (transcript fetch needs `yt-dlp`) |
-| Spotify | `okm spot <URL>` | Shipped |
-| Local audio | `okm pod <file> "Title"` | Shipped (transcription needs whisperX; offline scaffold otherwise) |
-| Summarise | `okm distill <note>` (Claude / Ollama) | Shipped (needs `claude` CLI or `ollama`) |
+| Podcast (Spotify / Apple / RSS link) | `okm pod <link>` | RSS `<podcast:transcript>` when the publisher includes one |
+| Video / lecture (YouTube link) | `okm video <link>` | YouTube captions via `youtube-transcript-api` |
+| Local file | `okm pod <file>` / `okm video <file>` | imports a `.srt`/`.vtt`/`.txt` transcript file; raw media → metadata scaffold only |
+| Summarise | `okm distill <note>` (Claude / Ollama) | needs `claude` CLI or `ollama` |
 
-Tools: yt-dlp, spotdl, whisperX (large-v3-turbo), ffmpeg, mpv (`s` key → screenshot to `attachments/`).
+Tools: yt-dlp (video metadata), youtube-transcript-api (captions), ffmpeg, mpv
+(`s` key → screenshot to `attachments/`). Filenames follow
+`{format}-{Channel}-{Title}[-{episode}]-{YYYY-MM-DD}.md` (PascalCase, ISO date).
 
 ---
 
@@ -204,8 +209,7 @@ Tools: yt-dlp, spotdl, whisperX (large-v3-turbo), ffmpeg, mpv (`s` key → scree
 | `daily-template.md` | demo daily note (`seed-demo.sh`); `okm today` now writes a Mon–Sun `*-weekly.md` |
 | `note-template.md` | `okm new` |
 | `capture-template.md` | `okm capture` |
-| `yt-template.md` / `podcast-template.md` | `okm yt` / `okm pod` |
-| `spotify-episode-template.md` / `spotify-track-template.md` | `okm spot` |
+| `video-template.md` / `podcast-template.md` | `okm video` / `okm pod` |
 | `todo-summary-template.md` / `weekly-template.md` | cron scripts |
 | `archive-template.md` | manual |
 

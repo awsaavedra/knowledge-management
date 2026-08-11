@@ -13,9 +13,7 @@ EXPECTED_TEMPLATES=(
     daily-template.md
     note-template.md
     capture-template.md
-    yt-template.md
-    spotify-episode-template.md
-    spotify-track-template.md
+    video-template.md
     podcast-template.md
     todo-summary-template.md
     weekly-template.md
@@ -26,7 +24,7 @@ EXPECTED_TEMPLATES=(
     [ -d "${PROJECT_ROOT}/public/inbox/templates" ]
 }
 
-@test "all 10 expected templates exist" {
+@test "all 8 expected templates exist" {
     for tpl in "${EXPECTED_TEMPLATES[@]}"; do
         [ -f "${PROJECT_ROOT}/public/inbox/templates/${tpl}" ]
     done
