@@ -10,11 +10,18 @@
   Make note-tracking repo-identity-aware so `public/*` **and** `private/*` notes are
   tracked/committed **only** in a personal `{handle}-knowledge-management` vault, and
   never tracked in or pushed to the shared `knowledge-management` tool repo.
-  Push-side is already enforced by `scripts/hooks/pre-push`; the remaining work is the
-  tracking-side — an identity-aware `.gitignore` (e.g. written by `okm port`), with
-  `private/*` tracked only under git-crypt. Corollary: `public/*` and `private/*`
-  note changes must always be committed **separately** from harness/tool changes.
-  Spec: `docs/design.md` § "Note-tracking rule".
+  - ✅ *Push side* — `scripts/hooks/pre-push` blocks vault content bound for the tool repo.
+  - ✅ *Publish side* — **`okm publish`** builds a harness-only commit (notes stripped by
+    construction) as the sanctioned harness→`public` path. Convention documented in
+    `docs/design.md` § "Two-remote separation convention".
+  - ⏳ *Tracking side* — an identity-aware `.gitignore` (e.g. written by `okm port`) so
+    tracking itself depends on repo identity, with `private/*` tracked only under git-crypt.
+  - ⏳ *Remote naming* — rename the v1 `origin`/`upstream` remotes created by `okm port` and
+    `setup-km.sh`'s `ensure_upstream_remote` to the `private`/`public` convention (updates
+    `v1_spec.bats` + `setup_km.bats`).
+
+  Corollary: `public/*` and `private/*` note changes must always be committed **separately**
+  from harness/tool changes. Spec: `docs/design.md` § "Note-tracking rule".
 
 ---
 

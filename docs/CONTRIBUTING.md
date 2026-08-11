@@ -50,6 +50,7 @@ Open a GitHub issue with:
 - No new external runtime dependencies without discussion — offline-first is a hard constraint.
 - Commit messages: `#type, clause; clause` — `type` is the intent (`add`/`fix`/`doc`/`refactor`/`stabilize`/`edit`), clauses are semicolon-separated. No `Co-Authored-By` trailers.
 - One commit, one concern. **Never bundle vault notes with harness changes in the same commit.** A harness change (code, tests, docs, config) and a vault note (`public/` or `private/` content) belong in separate commits, even when made in the same sitting. The pre-push hook (above) only blocks vault content at push time; this convention keeps it from being authored into a harness commit in the first place, so harness history stays cleanly portable to the public repo without history surgery.
+- Two remotes, distinguished: `okm sync` pushes everything to your **private** vault remote; **`okm publish`** pushes harness only to the **public** tool repo (notes stripped by construction). Full spec: `docs/design.md` → *Two-remote separation convention*.
 
 ## Contributing features from a personal fork
 

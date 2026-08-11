@@ -39,6 +39,12 @@ setup() {
     assert_failure
 }
 
+@test "okm help lists the publish command" {
+    run "${OKM}" help
+    assert_success
+    assert_output --partial "okm publish"
+}
+
 # === okm path ===
 
 @test "okm path prints vault path" {

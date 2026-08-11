@@ -6,6 +6,7 @@ Notable changes to the knowledge-management tool. Format loosely follows
 ## Unreleased
 
 ### Added
+- `okm publish [--remote name] [--branch name] [-m msg] [--dry-run]` — harness-only push to the public tool repo. Builds a harness-only commit from committed `HEAD` via git plumbing (strips `public/*`/`private/*` notes via `scripts/check-no-vault-content.sh`, keeps inbox templates), preserves the public repo's own `.gitignore`, asserts zero residual vault content, and pushes onto the remote tip. Naming-agnostic (a remote named `public`, else auto-detected by URL). Codifies the two-remote separation convention (`docs/design.md`).
 - `okm pod <link|file>` — podcast capture that resolves a Spotify/Apple/RSS link (or generic episode page) to the show's RSS feed for title, show, `itunes:episode`, and `pubDate`, and embeds an existing transcript when the feed publishes `<podcast:transcript>` (VTT/SRT/Podcast-Index-JSON). Local `.srt`/`.vtt`/`.txt` files import verbatim; raw media → metadata scaffold.
 - `okm video <link|file>` — video/lecture capture; YouTube metadata via `yt-dlp`, captions via `youtube-transcript-api`. Replaces `okm yt`.
 - Media notes use the convention `{format}-{Channel}-{Title}[-{episode}]-{YYYY-MM-DD}.md` (PascalCase fields, ISO publish date), e.g. `podcast-DanielleNewnhamPodcast-RivaTezOnGeniusManiaAndTheImpactOfCancelCulture-99-2024-01-01.md`.

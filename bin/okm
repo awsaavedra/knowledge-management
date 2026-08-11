@@ -50,6 +50,7 @@ Usage:
   okm files [substring]
   okm recent
   okm sync [-m message]
+  okm publish [--remote name] [--branch name] [-m msg] [--dry-run]   # harness-only push to the public tool repo (never public/* or private/* notes)
   okm tags [note] [--json]
   okm tag <note> <tag> [...]
   okm untag <note> <tag> [...]
@@ -1210,6 +1211,155 @@ port_cmd() {
   echo "  privacy guard → ${guard_status}"
 }
 
+# Resolve which remote is the public tool repo: an explicit name wins; otherwise
+# a remote literally named "public"; otherwise auto-detect by URL via
+# km_repo_is_public_tool. Prints the remote name, or returns 1 if none matches.
+_publish_resolve_remote() {
+  if [ -n "${1:-}" ]; then printf '%s\n' "$1"; return 0; fi
+  if git -C "$VAULT" remote get-url public >/dev/null 2>&1; then printf 'public\n'; return 0; fi
+  local r u
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    u="$(git -C "$VAULT" remote get-url "$r" 2>/dev/null || true)"
+    if [ -n "$u" ] && km_repo_is_public_tool "$u"; then printf '%s\n' "$r"; return 0; fi
+  done < <(git -C "$VAULT" remote)
+  return 1
+}
+
+# okm publish — sync harness (tool code, tests, docs, inbox templates) to the
+# public tool repo with every vault note stripped. Deterministic git plumbing:
+# builds a harness-only tree from committed HEAD, parented on the remote tip.
+# public/* and private/* notes are never published (the pre-push hook is a
+# further backstop); the public repo's own .gitignore is preserved.
+publish_cmd() {
+  local remote_arg="" branch="main" msg="" dry_run=false
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --remote) shift; remote_arg="${1:-}"; shift ;;
+      --branch) shift; branch="${1:-}"; shift ;;
+      -m|--message) shift; msg="${1:-}"; shift ;;
+      --dry-run) dry_run=true; shift ;;
+      -h|--help)
+        cat <<'EOF'
+okm publish — push harness (tool code, tests, docs, inbox templates) to the
+public tool repo, with all vault notes stripped. Never publishes public/* or
+private/* notes; the public repo's own .gitignore is preserved.
+
+Usage:
+  okm publish [--remote <name>] [--branch <name>] [-m <msg>] [--dry-run]
+
+Defaults: --remote auto (a remote named 'public', else detected by URL); --branch main
+EOF
+        return 0 ;;
+      *) echo "okm publish: unknown argument '$1'" >&2; return 2 ;;
+    esac
+  done
+  msg="${msg:-#change, sync public harness to current tool state (vault notes excluded)}"
+
+  git -C "$VAULT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    echo "okm publish: vault is not a git repo" >&2; exit 1; }
+
+  # Publish ships committed HEAD; require a clean tree so what's published is
+  # exactly what's committed (uncommitted harness edits would be silently omitted).
+  if [ -n "$(git -C "$VAULT" status --porcelain 2>/dev/null)" ]; then
+    echo "okm publish: working tree is not clean. Commit or stash changes first." >&2
+    exit 1
+  fi
+
+  local remote
+  remote="$(_publish_resolve_remote "$remote_arg")" || {
+    echo "okm publish: could not find the public tool remote." >&2
+    echo "  Pass --remote <name>, or add a remote named 'public' for the tool repo." >&2
+    exit 1
+  }
+  git -C "$VAULT" remote get-url "$remote" >/dev/null 2>&1 || {
+    echo "okm publish: remote '$remote' not found." >&2; exit 1; }
+
+  git -C "$VAULT" fetch -q "$remote" "$branch" 2>/dev/null || true
+  local base
+  base="$(git -C "$VAULT" rev-parse -q --verify "refs/remotes/${remote}/${branch}" 2>/dev/null || true)"
+
+  local check="${OKM_SCRIPT_DIR}/scripts/check-no-vault-content.sh"
+  local gidx; gidx="$(mktemp)"; rm -f "$gidx"
+
+  # Build a harness-only tree from HEAD in a throwaway index.
+  GIT_INDEX_FILE="$gidx" git -C "$VAULT" read-tree HEAD
+
+  # Strip vault notes/attachments (km_path_is_vault_content keeps templates + .gitkeep).
+  local offenders p
+  offenders="$(git -C "$VAULT" ls-tree -r --name-only HEAD | bash "$check" || true)"
+  if [ -n "$offenders" ]; then
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      GIT_INDEX_FILE="$gidx" git -C "$VAULT" rm --cached -q --ignore-unmatch -- "$p" >/dev/null
+    done <<< "$offenders"
+  fi
+
+  # Preserve the public repo's own .gitignore — never publish the personal-vault
+  # one (which tracks notes as first-class content).
+  if [ -n "$base" ]; then
+    local pub_gi
+    pub_gi="$(git -C "$VAULT" rev-parse -q --verify "${remote}/${branch}:.gitignore" 2>/dev/null || true)"
+    [ -n "$pub_gi" ] && GIT_INDEX_FILE="$gidx" git -C "$VAULT" update-index --cacheinfo "100644,${pub_gi},.gitignore"
+  fi
+
+  # Defense in depth: the resulting tree must contain zero vault content.
+  local residual
+  residual="$(GIT_INDEX_FILE="$gidx" git -C "$VAULT" ls-files | bash "$check" || true)"
+  if [ -n "$residual" ]; then
+    echo "okm publish: ABORT — vault content survived the strip (bug):" >&2
+    printf '%s\n' "$residual" | sed 's/^/  /' >&2
+    rm -f "$gidx"; exit 1
+  fi
+
+  local tree
+  tree="$(GIT_INDEX_FILE="$gidx" git -C "$VAULT" write-tree)"
+  rm -f "$gidx"
+
+  # Nothing to publish if the harness tree already matches the remote branch.
+  if [ -n "$base" ]; then
+    local base_tree; base_tree="$(git -C "$VAULT" rev-parse "${base}^{tree}")"
+    if [ "$tree" = "$base_tree" ]; then
+      echo "okm publish: nothing to publish — ${remote}/${branch} already matches the current harness."
+      return 0
+    fi
+  fi
+
+  local commit
+  if [ -n "$base" ]; then
+    commit="$(git -C "$VAULT" commit-tree "$tree" -p "$base" -m "$msg")"
+  else
+    commit="$(git -C "$VAULT" commit-tree "$tree" -m "$msg")"
+  fi
+
+  if $dry_run; then
+    echo "okm publish (dry-run): target ${remote}/${branch}"
+    echo "Harness changes vs ${remote}/${branch}:"
+    if [ -n "$base" ]; then
+      git -C "$VAULT" diff --stat "$base" "$commit" | sed 's/^/  /'
+    else
+      echo "  (new branch — full harness tree)"
+    fi
+    if [ -n "$offenders" ]; then
+      echo "Vault notes EXCLUDED (never sent to ${remote}):"
+      printf '%s\n' "$offenders" | sed 's/^/  /'
+    fi
+    echo "Nothing pushed (--dry-run)."
+    return 0
+  fi
+
+  # Push the new commit. If the remote's push URL is DISABLED (a v1 safety layer),
+  # push to the resolved fetch URL instead; the pre-push hook still runs as a backstop.
+  local push_url
+  push_url="$(git -C "$VAULT" remote get-url --push "$remote" 2>/dev/null || true)"
+  if [ "$push_url" = "DISABLED" ]; then
+    git -C "$VAULT" push "$(git -C "$VAULT" remote get-url "$remote")" "${commit}:refs/heads/${branch}"
+  else
+    git -C "$VAULT" push "$remote" "${commit}:refs/heads/${branch}"
+  fi
+  echo "okm publish: pushed harness to ${remote}/${branch} (${commit:0:9}); vault notes excluded."
+}
+
 case "${1:-help}" in
   open) shift; open_note "${1:-}" ;;
   new) shift; new_note "$@" ;;
@@ -1222,6 +1372,7 @@ case "${1:-help}" in
   files) shift; files_vault "${1:-}" ;;
   recent) shift; recent_notes ;;
   sync) shift; sync_git "$@" ;;
+  publish) shift; publish_cmd "$@" ;;
   tags) shift; list_tags "$@" ;;
   tag) shift; add_tags "$@" ;;
   untag) shift; remove_tags "$@" ;;

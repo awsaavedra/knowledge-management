@@ -113,6 +113,38 @@ Personal notes are private and stay in the personal vault.
 
 **Decision:** A if minimal change acceptable. B2 if structural impossibility preferred. Ship A first, evaluate B after real usage.
 
+### Two-remote separation convention
+
+A personal vault keeps **two remotes**, and the split is the load-bearing convention:
+
+| Remote | Points at | Receives |
+|---|---|---|
+| **`private`** | `{handle}-knowledge-management` (private) | **everything** — harness *and* vault notes/attachments (`public/*`, `private/*`) |
+| **`public`** | `knowledge-management` (public tool) | **harness only** — tool code, tests, docs, and inbox templates. **Never** vault notes. |
+
+Two independent guarantees keep them from crossing:
+
+- **Push side (guard):** `scripts/hooks/pre-push` fails closed on any vault content bound for
+  the public tool repo (`km_repo_is_public_tool`, offline) or any non-private remote — so notes
+  cannot leak even if committed. Override is `git push --no-verify` (friction, not a wall).
+- **Publish side (mechanism):** **`okm publish`** is the sanctioned way harness reaches `public`.
+  It builds a harness-only commit from committed `HEAD` using git plumbing (`read-tree` →
+  strip vault paths via `scripts/check-no-vault-content.sh` → `write-tree` → `commit-tree`
+  parented on the remote tip), so the published tree is **note-free by construction**. It
+  preserves the public repo's own `.gitignore` (never the personal-vault one, which tracks
+  notes), asserts zero residual vault content before pushing, and supports `--dry-run`. The
+  pre-push hook still runs as a backstop.
+
+`okm publish` is **naming-agnostic**: it targets a remote named `public`, else auto-detects the
+tool remote by URL, else takes `--remote <name>`. Corollary: harness and vault notes must be
+committed **separately** (see `docs/CONTRIBUTING.md` → Style), so `okm publish` and the private
+push each carry a clean set.
+
+> **Deferred follow-up.** `okm port` and `setup-km.sh` still create the v1 `origin`/`upstream`
+> remote names (`origin` = private vault, `upstream` = public tool, push disabled). Renaming
+> those to the `private`/`public` convention — and making note *tracking* repo-identity-aware
+> (the "Note-tracking rule" above) — is a single follow-up, tracked in `docs/roadmap.md`.
+
 ### Defense-in-depth (both)
 
 `.gitignore`: `vault/ data/ notes/ personal/ *.pem *.key *.db *.sqlite *.env` · Gitleaks pre-commit hook (`gitleaks v8.18.0`) · GitHub server-side push protection (Settings → Code security).

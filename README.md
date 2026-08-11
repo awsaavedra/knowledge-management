@@ -80,7 +80,8 @@ Seeded files: `public/daily/demo-YYYY-MM-DD.md` · `public/inbox/demo-{meeting-n
 - **Capture:** `okm today` (this week's note) or `okm capture <text>` (timestamped)
 - **Save from a link:** `okm pod <podcast-link>` or `okm video <video-link>` — resolves title/show/episode/date from the source (podcast RSS feed or YouTube) into a searchable note (`public/inbox/{format}-{Channel}-{Title}[-{ep}]-{YYYY-MM-DD}.md`), pulls a transcript **only when the source already publishes one** (RSS `<podcast:transcript>` or YouTube captions), prints its path, and opens it. okm never transcribes audio itself; without a published transcript it's an offline scaffold you (or a loom agent) fill in.
 - **Search:** `okm grep <pattern>` (content) or `okm files [pattern]` (paths)
-- **Sync:** `okm sync [message]` — default commit message: `vault sync YYYY-MM-DD HH:MM:SS`
+- **Sync:** `okm sync [message]` — commits and pushes everything to your **private** vault remote
+- **Publish tool changes:** `okm publish` — pushes harness (code/tests/docs/templates) to the **public** tool repo with vault notes stripped (`--dry-run` to preview)
 - **Test before merge:** `bash tests/run_all.sh`
 - **Auto-activation:** `direnv allow .` (repo includes `.envrc`)
 
@@ -146,7 +147,8 @@ Vault follows [PARA](https://fortelabs.com/blog/para/). All agent/loom output be
 | `okm grep <pattern>` | ripgrep across all `.md` files |
 | `okm files [pattern]` | List `.md` paths, optionally filtered |
 | `okm recent` | fzf picker over 200 recently modified notes |
-| `okm sync [message]` | `git add -A` → commit → `pull --rebase` → push |
+| `okm sync [message]` | `git add -A` → commit → `pull --rebase` → push (to your **private** vault remote) |
+| `okm publish [--dry-run]` | Harness-only push to the **public** tool repo — vault notes stripped by construction |
 | `okm tags [note]` | List tags with counts, or tags for a note |
 | `okm tag / untag` | Add/remove tags from frontmatter |
 | `okm tagged <tag>` | List notes with a given tag |
@@ -233,6 +235,13 @@ Crontab entries: see [`scripts/README.md`](scripts/README.md).
 
 `okm sync [message]` — stages all, commits, rebases, pushes. Skips if no upstream.
 Advanced: `lazygit -p "$(okm path)"` or `git -C "$(okm path)" <cmd>`.
+
+**Two remotes, one convention.** A personal vault keeps a **`private`** remote (your
+`{handle}-knowledge-management` — receives everything) and a **`public`** remote (the
+`knowledge-management` tool repo — harness only). `okm sync` pushes to `private`; **`okm publish`**
+is the only sanctioned path to `public`, building a harness-only commit with all `public/*` and
+`private/*` notes stripped by construction (the pre-push hook is a further backstop). See
+`docs/design.md` → *Two-remote separation convention*.
 
 ---
 
