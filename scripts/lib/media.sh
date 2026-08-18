@@ -57,6 +57,48 @@ _media_filename() {
   printf '%s' "$parts"
 }
 
+# Return 0 if the note already has real transcript text under its
+# "## Transcript" heading, 1 otherwise. HTML-comment placeholders (the "no
+# captions available" scaffold) count as empty — so a stale scaffold is
+# treated as missing a transcript and can be back-filled on a later run.
+_note_has_transcript() {
+  _python3 - "$1" <<'PYEOF'
+import re, sys
+try:
+    text = open(sys.argv[1], encoding="utf-8").read()
+except OSError:
+    sys.exit(1)
+m = re.search(r'(?im)^##[ \t]+Transcript[ \t]*$', text)
+if not m:
+    sys.exit(1)
+body = re.sub(r'<!--.*?-->', '', text[m.end():], flags=re.S).strip()
+sys.exit(0 if body else 1)
+PYEOF
+}
+
+# Replace whatever sits under the note's "## Transcript" heading with the given
+# transcript, preserving any sections that follow it. The transcript is passed
+# via the environment so newlines and length are never a shell concern.
+_note_set_transcript() {
+  local file="$1" transcript="$2"
+  OKM_TRANSCRIPT="$transcript" _python3 - "$file" <<'PYEOF'
+import os, re, sys
+path = sys.argv[1]
+body = os.environ.get("OKM_TRANSCRIPT", "").rstrip("\n")
+text = open(path, encoding="utf-8").read()
+m = re.search(r'(?im)^##[ \t]+Transcript[ \t]*$', text)
+if not m:
+    text = text.rstrip("\n") + "\n\n## Transcript\n\n" + body + "\n"
+else:
+    rest = text[m.end():]
+    nxt = re.search(r'(?m)^##[ \t]+', rest)          # next H2 after Transcript
+    tail = ("\n\n" + rest[nxt.start():].rstrip("\n") + "\n") if nxt else "\n"
+    text = text[:m.end()] + "\n\n" + body + tail
+with open(path, "w", encoding="utf-8") as f:
+    f.write(text)
+PYEOF
+}
+
 # ---------------------------------------------------------------------------
 # okm pod — podcast capture from a link (Spotify / Apple / RSS / page) or file.
 # ---------------------------------------------------------------------------
@@ -391,7 +433,18 @@ pod_note() {
   rel="${file#"$VAULT"/}"
 
   if [ -f "$file" ]; then
-    echo "Exists: $rel"
+    # The note already exists. Only short-circuit if it already carries a
+    # transcript; a stale scaffold (placeholder only) gets back-filled when a
+    # transcript is now reachable, so re-running finishes what a blocked or
+    # caption-less first run left undone.
+    if _note_has_transcript "$file"; then
+      echo "Exists: $rel"
+    elif [ -n "$transcript" ]; then
+      _note_set_transcript "$file" "$transcript"
+      echo "Filled transcript: $rel"
+    else
+      echo "Exists: $rel (no transcript available — source has none or fetch was blocked)"
+    fi
     exec "$EDITOR_CMD" "$file"
   fi
 
@@ -568,7 +621,18 @@ video_note() {
   rel="${file#"$VAULT"/}"
 
   if [ -f "$file" ]; then
-    echo "Exists: $rel"
+    # The note already exists. Only short-circuit if it already carries a
+    # transcript; a stale scaffold (placeholder only) gets back-filled when a
+    # transcript is now reachable, so re-running finishes what a blocked or
+    # caption-less first run left undone.
+    if _note_has_transcript "$file"; then
+      echo "Exists: $rel"
+    elif [ -n "$transcript" ]; then
+      _note_set_transcript "$file" "$transcript"
+      echo "Filled transcript: $rel"
+    else
+      echo "Exists: $rel (no transcript available — source has none or fetch was blocked)"
+    fi
     exec "$EDITOR_CMD" "$file"
   fi
 

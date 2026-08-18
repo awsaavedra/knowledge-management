@@ -87,6 +87,37 @@ make_note() {
     assert_output --partial "Exists:"
 }
 
+@test "okm pod: re-running back-fills a transcript into an existing scaffold" {
+    local today; today="$(date +%F)"
+    # First run: raw audio -> scaffold with a placeholder, no transcript.
+    "${OKM}" pod "${AUDIO_FILE}" Deep Work >/dev/null
+    local f="${FAKE_VAULT_DIR}/public/inbox/podcast-DeepWork-${today}.md"
+    run grep -q 'does not transcribe audio' "$f"; assert_success
+    # Second run: a real transcript file resolves to the SAME note name and
+    # gets filled in rather than reported as an untouched "Exists".
+    local tx="${BATS_TEST_TMPDIR}/deep.txt"
+    printf 'Hello world, this is the transcript body.\n' > "${tx}"
+    run "${OKM}" pod "${tx}" Deep Work
+    assert_success
+    assert_output --partial "Filled transcript:"
+    run grep -q 'Hello world, this is the transcript body.' "$f"; assert_success
+    run grep -q 'does not transcribe audio' "$f"; assert_failure
+}
+
+@test "okm pod: re-running a note that already has a transcript leaves it untouched" {
+    local today; today="$(date +%F)"
+    local tx="${BATS_TEST_TMPDIR}/talk.txt"
+    printf 'Original transcript body.\n' > "${tx}"
+    "${OKM}" pod "${tx}" My Talk >/dev/null
+    local f="${FAKE_VAULT_DIR}/public/inbox/podcast-MyTalk-${today}.md"
+    run "${OKM}" pod "${tx}" My Talk
+    assert_success
+    assert_output --partial "Exists:"
+    refute_output --partial "Filled transcript:"
+    run grep -c 'Original transcript body.' "$f"
+    assert_output "1"
+}
+
 # === okm distill — AI summary ===
 
 @test "okm distill: requires a note argument" {
